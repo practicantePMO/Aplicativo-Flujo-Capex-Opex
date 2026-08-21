@@ -1,0 +1,226 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum TipoClasificacion {
+  TRADICIONAL
+  NUEVA
+}
+
+model categorias {
+  id                    Int                     @id @default(autoincrement())
+  nombre                String                  @db.VarChar(100)
+  eliminado_el          DateTime?               @db.Timestamp(6)
+  fecha_creacion        DateTime?               @default(now()) @db.Timestamp(6)
+  solicitudes_inversion solicitudes_inversion[]
+}
+
+model asignaciones_proceso {
+  id                Int       @id @default(autoincrement())
+  proceso_id        Int?
+  etapa             String    @db.VarChar(50)
+  rol_id            Int?
+  usuario_id        Int?
+  estado_asignacion String?   @default("PENDIENTE") @db.VarChar(20)
+  fecha_asignacion  DateTime? @default(now()) @db.Timestamp(6)
+  fecha_resolucion  DateTime? @db.Timestamp(6)
+  procesos          procesos? @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  roles             roles?    @relation(fields: [rol_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  usuarios          usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@index([rol_id, estado_asignacion], map: "idx_asignaciones_rol")
+  @@index([usuario_id, estado_asignacion], map: "idx_asignaciones_usuario")
+}
+
+model companias {
+  id                     Int                      @id @default(autoincrement())
+  nombre                 String                   @unique @db.VarChar(100)
+  activa                 Boolean?                 @default(true)
+  proyectos              proyectos[]
+  usuario_roles_compania usuario_roles_compania[]
+}
+
+model grupos {
+  id        Int         @id @default(autoincrement())
+  nombre    String      @db.VarChar(100)
+  programas programas[]
+}
+
+model historico_aprobaciones {
+  id             Int       @id @default(autoincrement())
+  proceso_id     Int?
+  etapa_origen   String    @db.VarChar(50)
+  etapa_destino  String    @db.VarChar(50)
+  accion         String    @db.VarChar(20)
+  razon_rechazo  String?
+  observaciones  String? 
+  usuario_id     Int
+  fecha_registro DateTime? @default(now()) @db.Timestamp(6)
+  procesos       procesos? @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  usuarios       usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model procesos {
+  id                     Int                      @id @default(autoincrement())
+  proyecto_id            String?                  @db.VarChar(20)
+  tipo_proceso           String                   @db.VarChar
+  estado_actual          String                   @default("BORRADOR") @db.VarChar(50)
+  fecha_creacion         DateTime?                @default(now()) @db.Timestamp(6)
+  eliminado_el           DateTime?                @db.Timestamp(6)
+  asignaciones_proceso   asignaciones_proceso[]
+  historico_aprobaciones historico_aprobaciones[]
+  proyectos              proyectos?               @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  solicitudes_inversion  solicitudes_inversion?
+}
+
+model programas {
+  id           Int            @id @default(autoincrement())
+  id_grupo     Int?
+  nombre       String         @db.VarChar(100)
+  grupos       grupos?        @relation(fields: [id_grupo], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subprogramas subprogramas[]
+}
+
+model proyectos {
+  id             String    @id @default(dbgenerated()) @db.VarChar(20)
+  nombre         String    @db.VarChar(255)
+  compania_id    Int?
+  fecha_proyecto DateTime  @db.Date
+  anio_proyecto  Int       @default(dbgenerated())
+  anio_asignado  Int       @default(dbgenerated())   // 👈 AGREGAR esta línea
+  consecutivo    Int       @default(dbgenerated())
+  creado_por     Int?
+  fecha_creacion DateTime? @default(now()) @db.Timestamp(6)
+  eliminado_el   DateTime? @db.Timestamp(6)
+
+  companias companias? @relation(fields: [compania_id], references: [id])
+  usuarios  usuarios?  @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  procesos  procesos[]
+  proyectos_aplazamientos proyectos_aplazamientos[]   // 👈 AGREGAR esta línea
+}
+
+model proyectos_aplazamientos {
+  id             Int       @id @default(autoincrement())
+  proyecto_id    String    @db.VarChar(20)
+  anio_anterior  Int
+  anio_nuevo     Int
+  motivo         String
+  usuario_id     Int
+  fecha_registro DateTime? @default(now()) @db.Timestamp(6)
+
+  proyectos proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  usuarios  usuarios  @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model roles {
+  id                     Int                      @id @default(autoincrement())
+  codigo                 String                   @unique @db.VarChar(50)
+  nombre                 String                   @db.VarChar(100)
+  asignaciones_proceso   asignaciones_proceso[]
+  usuario_roles_compania usuario_roles_compania[]
+}
+
+model solicitud_evaluacion_financiera {
+  id                    Int                    @id @default(autoincrement())
+  solicitud_id          Int?                   @unique
+  tir                   Decimal?               @db.Decimal(8, 2)
+  vpn                   Decimal?               @db.Decimal(15, 2)
+  payback               Decimal?               @db.Decimal(8, 2)
+  solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+model solicitud_flujo_caja {
+  id                    Int                    @id @default(autoincrement())
+  solicitud_id          Int?
+  tipo                  String                 @db.VarChar(20)
+  anio                  Int
+  mes                   Int                    @default(1)
+  monto                 Decimal?               @default(0) @db.Decimal(15, 2)
+  solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+model solicitud_metas {
+  id                    Int                    @id @default(autoincrement())
+  solicitud_id          Int?
+  compromiso            String
+  fecha_inicio          DateTime               @db.Date
+  indicador             String
+  solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+model solicitud_valores {
+  id                    Int                    @id @default(autoincrement())
+  solicitud_id          Int?
+  categoria             String                 @db.VarChar(20)
+  usd                   Decimal?               @db.Decimal(15, 2)
+  cop                   Decimal?               @db.Decimal(15, 2)
+  solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+model solicitudes_inversion {
+  id                              Int                              @id @default(autoincrement())
+  proceso_id                      Int?                             @unique
+  tipo_clasificacion              TipoClasificacion                @default(TRADICIONAL)
+  subprograma_id                  Int?
+  categoria_id                    Int?
+  entregable_planeado             String?
+  tiene_evaluacion_financiera     Boolean                          @default(false)
+  trm                             Decimal?                         @db.Decimal(10, 2)
+  justificacion_sin_evaluacion    String?
+  responsable_pm_id               Int?
+  link_acta_aprobacion            String?
+  link_plan_proyecto              String?
+  link_presentacion_puertas_3     String?
+  solicitud_evaluacion_financiera solicitud_evaluacion_financiera?
+  solicitud_flujo_caja            solicitud_flujo_caja[]
+  solicitud_metas                 solicitud_metas[]
+  solicitud_valores               solicitud_valores[]
+  procesos                        procesos?                        @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  usuarios                        usuarios?                        @relation(fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  subprogramas                    subprogramas?                    @relation(fields: [subprograma_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  categorias                      categorias?                      @relation(fields: [categoria_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+}
+
+model subprogramas {
+  id                              Int                     @id @default(autoincrement())
+  programa_id                     Int?
+  nombre                          String                  @db.VarChar(100)
+  requiere_evaluacion_obligatoria Boolean?                @default(false)
+  solicitudes_inversion           solicitudes_inversion[]
+  programas                       programas?              @relation(fields: [programa_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model usuario_roles_compania {
+  id          Int        @id @default(autoincrement())
+  usuario_id  Int?
+  rol_id      Int?
+  compania_id Int?
+  companias   companias? @relation(fields: [compania_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  roles       roles?     @relation(fields: [rol_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  usuarios    usuarios?  @relation(fields: [usuario_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([usuario_id, rol_id, compania_id], map: "unique_usuario_rol_compania")
+  @@index([usuario_id, compania_id], map: "idx_usuario_roles")
+}
+
+model usuarios {
+  id                     Int                      @id @default(autoincrement())
+  nombre                 String                   @db.VarChar(150)
+  email                  String                   @unique @db.VarChar(150)
+  password_hash          String?                  @db.VarChar(255)
+  proveedor_auth         String?                  @default("GOOGLE") @db.VarChar(50)
+  area                   String?                  @db.VarChar(100)
+  activo                 Boolean?                 @default(true)
+  fecha_creacion         DateTime?                @default(now()) @db.Timestamp(6)
+  eliminado_el           DateTime?                @db.Timestamp(6)
+  asignaciones_proceso   asignaciones_proceso[]
+  proyectos_aplazamientos proyectos_aplazamientos[]
+  historico_aprobaciones historico_aprobaciones[]
+  proyectos              proyectos[]
+  solicitudes_inversion  solicitudes_inversion[]
+  usuario_roles_compania usuario_roles_compania[]
+}

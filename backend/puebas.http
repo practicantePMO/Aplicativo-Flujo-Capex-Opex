@@ -1,0 +1,227 @@
+### =========================================================
+### VARIABLES BASE
+### =========================================================
+@baseUrl = http://localhost:3000
+
+### =========================================================
+### PASO 0: Obtener tokens de cada usuario de prueba (loginDev)
+### Ejecuta estos primero, en orden. REST Client guarda la respuesta
+### de cada uno en memoria mientras el archivo esté abierto, así que
+### las variables {{login_xxx.response.body.access_token}} de abajo
+### siempre usan el token más reciente, sin copiar y pegar nada.
+### =========================================================
+
+### 0.1 Login Ana (ADMIN global)
+# @name login_admin
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 1 }
+
+### 0.2 Login Laura (PM, compañía 1)
+# @name login_pm
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 2 }
+
+### 0.3 Login Carlos (PMO, compañía 1)
+# @name login_pmo
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 3 }
+
+### 0.4 Login Diana (DIRECTOR_PMO, compañía 1)
+# @name login_director
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 4 }
+
+### 0.5 Login Gerardo (GERENCIA, compañía 1)
+# @name login_gerencia
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 5 }
+
+### 0.6 Login Pedro (PRESIDENCIA, global)
+# @name login_presidencia
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 6 }
+
+### 0.7 Login Sofía (parte interesada, usuario 7)
+# @name login_interesada
+POST {{baseUrl}}/auth/login-dev
+Content-Type: application/json
+
+{ "usuarioId": 7 }
+
+
+### =========================================================
+### CAMINO FELIZ: Solicitud de Inversión aprobada de punta a punta
+### =========================================================
+
+### 1. Laura (PM) crea el proyecto
+# @name crear_proyecto
+POST {{baseUrl}}/proyectos
+Content-Type: application/json
+Authorization: Bearer {{login_pm.response.body.access_token}}
+
+{
+  "nombre": "Prueba E2E - Línea nueva de producción",
+  "compania_id": 1,
+  "fecha_proyecto": "2026-08-15"
+}
+
+### Guarda el "id" que devuelve la respuesta anterior (ej. "2026005")
+### y pégalo abajo en @proyectoId antes de seguir.
+@proyectoId = 2026005
+
+### 2. Laura (PM) crea la Solicitud de Inversión, con Sofía (usuario 7) como parte interesada
+# @name crear_solicitud
+POST {{baseUrl}}/solicitud-inversion
+Content-Type: application/json
+Authorization: Bearer {{login_pm.response.body.access_token}}
+
+{
+  "proyecto_id": "{{proyectoId}}",
+  "subprograma_id": 7,
+  "entregable_planeado": "Línea de producción instalada y operando",
+  "tiene_evaluacion_financiera": true,
+  "evaluacion_financiera": { "tir": 15.5, "vpn": 250000, "payback": 24 },
+  "metas": [
+    { "compromiso": "Aumentar producción 20%", "fecha_inicio": "2026-09-01", "indicador": "Unidades/mes" }
+  ],
+  "valores": [
+    { "categoria": "ACTIVO", "usd": 100000, "cop": 400000000 },
+    { "categoria": "GASTO", "usd": 5000, "cop": 20000000 }
+  ],
+  "flujos_caja": [
+    { "tipo": "CAPEX", "anio": 2026, "monto": 100000 }
+  ],
+  "partes_interesadas_ids": [7]
+}
+
+### Guarda el "proceso_id" que devuelve la respuesta anterior y pégalo abajo.
+@procesoId = 5
+
+### 3. Laura (PM) envía la solicitud a revisión (BORRADOR -> PENDIENTE_PMO)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/enviar
+Authorization: Bearer {{login_pm.response.body.access_token}}
+
+### 4. Carlos (PMO) aprueba (PENDIENTE_PMO -> VERIFICACION_PARTES_INTERESADAS)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/aprobar
+Content-Type: application/json
+Authorization: Bearer {{login_pmo.response.body.access_token}}
+
+{ "comentarios": "Todo en orden, avanza." }
+
+### 5. Sofía aprueba como parte interesada (VERIFICACION_PARTES_INTERESADAS -> DIRECCION_PMO)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/aprobar
+Content-Type: application/json
+Authorization: Bearer {{login_interesada.response.body.access_token}}
+
+{ "comentarios": "Confirmo, de acuerdo con el proyecto." }
+
+### 6. Diana (Director PMO) aprueba (DIRECCION_PMO -> GERENCIA)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/aprobar
+Authorization: Bearer {{login_director.response.body.access_token}}
+
+### 7. Gerardo (Gerencia) aprueba (GERENCIA -> PRESIDENCIA)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/aprobar
+Authorization: Bearer {{login_gerencia.response.body.access_token}}
+
+### 8. Pedro (Presidencia) aprueba (PRESIDENCIA -> APROBADO_FINAL)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId}}/aprobar
+Authorization: Bearer {{login_presidencia.response.body.access_token}}
+
+### 9. Consultar el expediente completo (debe mostrar estado APROBADO_FINAL
+###    y el histórico con las 6 filas: ENVIADO + 5 APROBADO)
+GET {{baseUrl}}/solicitud-inversion/{{procesoId}}
+Authorization: Bearer {{login_admin.response.body.access_token}}
+
+
+### =========================================================
+### PRUEBA DE PERMISOS: debe ser RECHAZADO con 403
+### =========================================================
+
+### 10. Laura (PM) intenta aprobar directamente en etapa PENDIENTE_PMO (no le corresponde)
+###     Corre un segundo camino feliz (pasos 1-3) con otro proyecto antes de este,
+###     y ajusta @procesoId2 con ese id.
+@procesoId2 = 6
+
+POST {{baseUrl}}/solicitud-inversion/{{procesoId2}}/aprobar
+Authorization: Bearer {{login_pm.response.body.access_token}}
+### Resultado esperado: 403 Forbidden ("No tienes el rol requerido...")
+
+
+### =========================================================
+### CAMINO DE RECHAZO
+### =========================================================
+
+### 11. Carlos (PMO) RECHAZA con razón obligatoria
+POST {{baseUrl}}/solicitud-inversion/{{procesoId2}}/rechazar
+Content-Type: application/json
+Authorization: Bearer {{login_pmo.response.body.access_token}}
+
+{ "razon_rechazo": "Falta detallar el flujo de caja del año 2, favor completar." }
+
+### 12. Verifica: el proceso debe volver a estado BORRADOR
+GET {{baseUrl}}/solicitud-inversion/{{procesoId2}}
+Authorization: Bearer {{login_pm.response.body.access_token}}
+
+### 13. Prueba que el DTO rechaza una razón vacía (antes de llegar al CHECK de la BD)
+POST {{baseUrl}}/solicitud-inversion/{{procesoId2}}/rechazar
+Content-Type: application/json
+Authorization: Bearer {{login_pmo.response.body.access_token}}
+
+{ "razon_rechazo": "" }
+### Resultado esperado: 400 Bad Request (razón vacía, el DTO la rechaza)
+
+
+### =========================================================
+### PRUEBA DE MULTICOMPAÑÍA (requiere una 2da compañía y un usuario limitado a ella)
+### =========================================================
+### Crea manualmente en la BD un usuario 8 con rol PMO solo para compania_id = 2 (Pastas),
+### haz login-dev con usuarioId: 8, y prueba aprobar el procesoId de la compañía 1.
+### Resultado esperado: 403 Forbidden (no tiene el rol PMO para esa compañía)
+
+
+### =========================================================
+### VERIFICACIÓN DE NOTIFICACIONES
+### =========================================================
+### Después de cada aprobación/rechazo de arriba, revisa tu bandeja de Mailtrap:
+### - Paso 3 (enviar a revisión) -> debe llegar correo a Carlos (PMO)
+### - Paso 4 (Carlos aprueba)     -> debe llegar correo a Laura (aprobada) y a Sofía (nueva tarea)
+### - Paso 11 (Carlos rechaza)    -> debe llegar correo a Laura con la razón exacta del rechazo
+
+
+### =========================================================
+### LISTADO CON ALCANCE DE COMPAÑÍA
+### =========================================================
+
+### 14. Ana (Admin global) debe ver TODOS los proyectos
+GET {{baseUrl}}/proyectos
+Authorization: Bearer {{login_admin.response.body.access_token}}
+
+### 15. Laura (PM, compañía 1) ve sus proyectos
+GET {{baseUrl}}/proyectos
+Authorization: Bearer {{login_pm.response.body.access_token}}
+
+
+### =========================================================
+### PRUEBA DEL IDOR CORREGIDO (Paso 4 de nuestra lista de seguridad)
+### =========================================================
+
+### 16. Laura intenta ver un proceso que no le corresponde
+###     (ajusta @procesoAjeno al id de un proceso de otra compañía, o cualquiera
+###      donde Laura no sea PM responsable ni esté asignada)
+@procesoAjeno = 1
+
+GET {{baseUrl}}/solicitud-inversion/{{procesoAjeno}}
+Authorization: Bearer {{login_pm.response.body.access_token}}
+### Resultado esperado: 403 Forbidden ("No tienes acceso a este proceso.")
