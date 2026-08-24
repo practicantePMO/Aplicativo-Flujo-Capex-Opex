@@ -26,7 +26,7 @@ export function Topbar() {
 
           <Box>
             <Typography sx={styles.brandTitle}>
-              Aplicativo CAPEX - OPEX
+              Aplicativo Flujo CAPEX - OPEX
             </Typography>
 
             <Typography sx={styles.brandSubtitle}>

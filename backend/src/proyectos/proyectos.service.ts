@@ -7,6 +7,13 @@ import { AplazarProyectoDto } from './dto/aplazar-proyecto.dto';
 
 const ROLES_QUE_PUEDEN_APLAZAR = ['PMO', 'ADMIN'];
 
+// 👀 Una parte interesada solo debe ver el proyecto desde que el proceso llega
+// a "Verificación de Partes Interesadas" en adelante — nunca mientras está en
+// BORRADOR ni en PENDIENTE_PMO (todavía no le corresponde actuar).
+const ESTADOS_VISIBLES_PARA_PARTE_INTERESADA = {
+  not: { in: ['BORRADOR', 'PENDIENTE_PMO'] },
+};
+
 @Injectable()
 export class ProyectosService {
   constructor(
@@ -98,7 +105,7 @@ export class ProyectosService {
       usuarios: { select: { id: true, nombre: true } },
       // 👈 Necesario para calcular el "estado" del proyecto (Cancelado si algún
       // proceso suyo terminó cancelado)
-      procesos: { where: { eliminado_el: null }, select: { estado_actual: true } },
+      procesos: { where: { eliminado_el: null }, select: { estado_actual: true, tipo_proceso: true } },
     };
 
     const condicionesFiltro: any = { eliminado_el: null };
@@ -126,6 +133,7 @@ export class ProyectosService {
           procesos: {
             some: {
               eliminado_el: null,
+              estado_actual: ESTADOS_VISIBLES_PARA_PARTE_INTERESADA,
               asignaciones_proceso: { some: { usuario_id: usuarioId } },
             },
           },
@@ -139,6 +147,7 @@ export class ProyectosService {
             procesos: {
               some: {
                 eliminado_el: null,
+                estado_actual: ESTADOS_VISIBLES_PARA_PARTE_INTERESADA,
                 asignaciones_proceso: { some: { usuario_id: usuarioId } },
               },
             },
@@ -155,14 +164,22 @@ export class ProyectosService {
 
     // 🎯 Calculamos el "estado" de cada proyecto (no es una columna guardada,
     // se deriva de sus propios datos):
-    //   CANCELADO   -> tiene algún proceso (Solicitud de Inversión, etc.) en CANCELADO
-    //   APLAZADO    -> anio_asignado es distinto al anio_proyecto original
-    //   ACTIVO      -> ninguna de las anteriores
-    //   SUSPENDIDO  -> todavía no hay ninguna acción que lo dispare (queda reservado)
+    //   CANCELADO             -> el proceso "Acta de Cierre" quedó CERRADO (aún no existe este módulo)
+    //   EN_PROCESO_DE_CANCELACION -> algún proceso (ej. Solicitud de Inversión) quedó CANCELADO,
+    //                             pero el proyecto sigue abierto hasta que se cierre el Acta de Cierre
+    //   APLAZADO              -> anio_asignado es distinto al anio_proyecto original
+    //   ACTIVO                -> ninguna de las anteriores
+    //   SUSPENDIDO            -> todavía no hay ninguna acción que lo dispare (queda reservado)
     proyectos = proyectos.map((p) => {
-      const tieneProcesoCancelado = (p.procesos || []).some((proc: any) => proc.estado_actual === 'CANCELADO');
-      let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'SUSPENDIDO' = 'ACTIVO';
-      if (tieneProcesoCancelado) estado = 'CANCELADO';
+      const procesosProyecto = p.procesos || [];
+      const actaCierreCerrada = procesosProyecto.some(
+        (proc: any) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
+      );
+      const tieneProcesoCancelado = procesosProyecto.some((proc: any) => proc.estado_actual === 'CANCELADO');
+
+      let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO' = 'ACTIVO';
+      if (actaCierreCerrada) estado = 'CANCELADO';
+      else if (tieneProcesoCancelado) estado = 'EN_PROCESO_DE_CANCELACION';
       else if (p.anio_asignado !== p.anio_proyecto) estado = 'APLAZADO';
 
       const { procesos, ...resto } = p;
@@ -312,6 +329,7 @@ export class ProyectosService {
       where: {
         proyecto_id: proyecto.id,
         eliminado_el: null,
+        estado_actual: ESTADOS_VISIBLES_PARA_PARTE_INTERESADA,
         asignaciones_proceso: { some: { usuario_id: usuarioId } },
       },
     });

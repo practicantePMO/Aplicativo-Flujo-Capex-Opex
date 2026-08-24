@@ -57,22 +57,8 @@ export class SolicitudInversionService {
       );
     }
 
-    // Validaciones condicionales según tipo de clasificación
-    if (dto.tipo_clasificacion === 'NUEVA') {
-      if (!dto.categoria_id) {
-        throw new BadRequestException('Debes seleccionar una Categoría.');
-      }
-      const categoria = await this.prisma.categorias.findUnique({ where: { id: dto.categoria_id } });
-      if (!categoria) throw new NotFoundException('La categoría seleccionada no existe.');
-    } else {
-      if (!dto.subprograma_id) {
-        throw new BadRequestException('Debes seleccionar un Subprograma.');
-      }
-      const subprograma = await this.prisma.subprogramas.findUnique({ where: { id: dto.subprograma_id } });
-      if (subprograma?.requiere_evaluacion_obligatoria && !dto.tiene_evaluacion_financiera) {
-        throw new BadRequestException('El subprograma requiere evaluación financiera obligatoria.');
-      }
-    }
+    // Validaciones condicionales según clasificación (Tradicional, Nueva, o ambas)
+    const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -83,9 +69,9 @@ export class SolicitudInversionService {
         const solicitud = await tx.solicitudes_inversion.create({
           data: {
             proceso_id: proceso.id,
-            tipo_clasificacion: dto.tipo_clasificacion || 'TRADICIONAL',
-            subprograma_id: dto.tipo_clasificacion === 'NUEVA' ? null : dto.subprograma_id,
-            categoria_id: dto.tipo_clasificacion === 'TRADICIONAL' ? null : dto.categoria_id,
+            tipo_clasificacion: tipoClasificacion,
+            subprograma_id: dto.incluye_tradicional ? dto.subprograma_id : null,
+            categoria_id: dto.incluye_nueva ? dto.categoria_id : null,
             entregable_planeado: dto.entregable_planeado,
             tiene_evaluacion_financiera: dto.tiene_evaluacion_financiera,
             trm: dto.trm,
@@ -107,14 +93,15 @@ export class SolicitudInversionService {
             data: dto.metas.map((m) => ({ ...m, fecha_inicio: new Date(m.fecha_inicio), solicitud_id: solicitud.id })),
           });
         }
-        if (dto.valores?.length) {
-          await tx.solicitud_valores.createMany({
-            data: dto.valores.map((v) => ({ ...v, solicitud_id: solicitud.id })),
-          });
-        }
         if (dto.flujos_caja?.length) {
           await tx.solicitud_flujo_caja.createMany({
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
+          });
+          // 🧮 "Valor Total del Proyecto" se calcula solo, sumando el flujo de caja.
+          await tx.solicitud_valores.createMany({
+            data: this.helpers
+              .calcularValoresDesdeFlujo(dto.flujos_caja)
+              .map((v) => ({ ...v, solicitud_id: solicitud.id })),
           });
         }
         if (dto.partes_interesadas_ids?.length) {
@@ -194,6 +181,7 @@ export class SolicitudInversionService {
     await this.helpers.validarPermisoParaEtapa(usuarioId, procesoId, companiaId, estadoOrigen);
 
     let estadoDestino = '';
+    let gerenteElegidoId: number | undefined;
 
     switch (estadoOrigen) {
       case 'PENDIENTE_PMO':
@@ -202,6 +190,16 @@ export class SolicitudInversionService {
       case 'VERIFICACION_PARTES_INTERESADAS':
         break;
       case 'DIRECCION_PMO':
+        if (!dto.gerente_id) {
+          throw new BadRequestException('Debes elegir a qué gerente enviar el proceso (hay varias gerencias).');
+        }
+        {
+          const gerenteValido = await this.permisos.tieneRolParaCompania(dto.gerente_id, ['GERENCIA'], companiaId);
+          if (!gerenteValido) {
+            throw new BadRequestException('El usuario seleccionado no tiene el rol GERENCIA en esta compañía.');
+          }
+        }
+        gerenteElegidoId = dto.gerente_id;
         estadoDestino = 'GERENCIA';
         break;
       case 'GERENCIA':
@@ -296,6 +294,24 @@ export class SolicitudInversionService {
         });
       }
 
+      // 👤 Dirección PMO acaba de elegir a un gerente puntual: le creamos su
+      // asignación individual pendiente en la nueva etapa GERENCIA.
+      if (estadoDestino === 'GERENCIA' && gerenteElegidoId) {
+        await tx.asignaciones_proceso.deleteMany({ where: { proceso_id: procesoId, etapa: 'GERENCIA' } });
+        await tx.asignaciones_proceso.create({
+          data: { proceso_id: procesoId, etapa: 'GERENCIA', usuario_id: gerenteElegidoId, estado_asignacion: 'PENDIENTE' },
+        });
+      }
+
+      // ✅ Si la etapa que se acaba de aprobar era de asignación individual
+      // (hoy, GERENCIA), marcamos esa asignación puntual como resuelta.
+      if (REGLA_POR_ETAPA[estadoOrigen]?.tipo === 'ASIGNACION_INDIVIDUAL') {
+        await tx.asignaciones_proceso.updateMany({
+          where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
+          data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
+        });
+      }
+
       await tx.historico_aprobaciones.create({
         data: {
           proceso_id: procesoId,
@@ -351,6 +367,21 @@ export class SolicitudInversionService {
             datos: {
               nombreUsuario: 'Parte Interesada',
               etapaActual: 'Verificación de Partes Interesadas',
+              codigoProyecto: proyecto.id.toString(),
+              nombreProyecto: proyecto.nombre,
+              nombrePM: proceso.solicitudes_inversion?.usuarios?.nombre || 'Project Manager',
+            },
+          });
+        }
+      } else if (nuevoEstado === 'GERENCIA') {
+        const destinatarioGerente = await this.helpers.obtenerEmailsAsignados(procesoId, 'GERENCIA');
+        if (destinatarioGerente.length) {
+          await this.notificaciones.encolarNotificacion({
+            tipo: 'NUEVA_SOLICITUD',
+            destinatarios: destinatarioGerente,
+            datos: {
+              nombreUsuario: 'Gerente',
+              etapaActual: 'Gerencia',
               codigoProyecto: proyecto.id.toString(),
               nombreProyecto: proyecto.nombre,
               nombrePM: proceso.solicitudes_inversion?.usuarios?.nombre || 'Project Manager',
@@ -565,31 +596,17 @@ export class SolicitudInversionService {
       throw new ForbiddenException('No tienes permisos para modificar este borrador.');
     }
 
-    // Validaciones condicionales según tipo de clasificación
-    if (dto.tipo_clasificacion === 'NUEVA') {
-      if (!dto.categoria_id) {
-        throw new BadRequestException('Debes seleccionar una Categoría.');
-      }
-      const categoria = await this.prisma.categorias.findUnique({ where: { id: dto.categoria_id } });
-      if (!categoria) throw new NotFoundException('La categoría seleccionada no existe.');
-    } else {
-      if (!dto.subprograma_id) {
-        throw new BadRequestException('Debes seleccionar un Subprograma.');
-      }
-      const subprograma = await this.prisma.subprogramas.findUnique({ where: { id: dto.subprograma_id } });
-      if (subprograma?.requiere_evaluacion_obligatoria && !dto.tiene_evaluacion_financiera) {
-        throw new BadRequestException('El subprograma requiere evaluación financiera obligatoria.');
-      }
-    }
+    // Validaciones condicionales según clasificación (Tradicional, Nueva, o ambas)
+    const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
         await tx.solicitudes_inversion.update({
           where: { id: solicitud.id },
           data: {
-            tipo_clasificacion: dto.tipo_clasificacion || 'TRADICIONAL',
-            subprograma_id: dto.tipo_clasificacion === 'NUEVA' ? null : dto.subprograma_id,
-            categoria_id: dto.tipo_clasificacion === 'TRADICIONAL' ? null : dto.categoria_id,
+            tipo_clasificacion: tipoClasificacion,
+            subprograma_id: dto.incluye_tradicional ? dto.subprograma_id : null,
+            categoria_id: dto.incluye_nueva ? dto.categoria_id : null,
             entregable_planeado: dto.entregable_planeado,
             tiene_evaluacion_financiera: dto.tiene_evaluacion_financiera,
             trm: dto.trm,
@@ -614,17 +631,17 @@ export class SolicitudInversionService {
           });
         }
 
-        await tx.solicitud_valores.deleteMany({ where: { solicitud_id: solicitud.id } });
-        if (dto.valores?.length) {
-          await tx.solicitud_valores.createMany({
-            data: dto.valores.map((v) => ({ ...v, solicitud_id: solicitud.id })),
-          });
-        }
-
         await tx.solicitud_flujo_caja.deleteMany({ where: { solicitud_id: solicitud.id } });
+        await tx.solicitud_valores.deleteMany({ where: { solicitud_id: solicitud.id } });
         if (dto.flujos_caja?.length) {
           await tx.solicitud_flujo_caja.createMany({
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
+          });
+          // 🧮 "Valor Total del Proyecto" se recalcula solo, sumando el flujo de caja.
+          await tx.solicitud_valores.createMany({
+            data: this.helpers
+              .calcularValoresDesdeFlujo(dto.flujos_caja)
+              .map((v) => ({ ...v, solicitud_id: solicitud.id })),
           });
         }
 

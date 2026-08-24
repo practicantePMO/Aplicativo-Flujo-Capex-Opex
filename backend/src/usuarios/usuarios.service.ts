@@ -137,8 +137,9 @@ export class UsuariosService {
       }
     }
 
+    let asignacion;
     try {
-      return await this.prisma.usuario_roles_compania.create({
+      asignacion = await this.prisma.usuario_roles_compania.create({
         data: {
           usuario_id: dto.usuario_id,
           rol_id: dto.rol_id,
@@ -156,11 +157,47 @@ export class UsuariosService {
       }
       throw error;
     }
+
+    // 📬 Avisamos al usuario (nuevo o antiguo) que ya tiene un rol para usar el sistema.
+    try {
+      if (usuario.email) {
+        await this.notificaciones.encolarNotificacion({
+          tipo: 'ROL_ASIGNADO',
+          destinatarios: [usuario.email],
+          datos: {
+            nombreUsuario: usuario.nombre,
+            nombreRol: asignacion.roles?.nombre || rol.nombre,
+            nombreCompania: asignacion.companias?.nombre || 'Todas (Global)',
+          },
+        });
+      }
+    } catch (error) {
+      // Un fallo al notificar nunca debe impedir que el rol quede asignado
+      console.error('Error al notificar asignación de rol:', error);
+    }
+
+    return asignacion;
   }
 
   async findActivos() {
     return this.prisma.usuarios.findMany({
       where: { activo: true, eliminado_el: null },
+      select: { id: true, nombre: true, email: true, area: true },
+      orderBy: { nombre: 'asc' },
+    });
+  }
+
+  // 🎯 Usuarios activos con un rol puntual (global o de esa compañía) — usado,
+  // por ejemplo, para que Dirección PMO elija a qué gerente enviar el proceso.
+  async findPorRolYCompania(codigoRol: string, companiaId: number) {
+    return this.prisma.usuarios.findMany({
+      where: {
+        activo: true,
+        eliminado_el: null,
+        usuario_roles_compania: {
+          some: { roles: { codigo: codigoRol }, OR: [{ compania_id: null }, { compania_id: companiaId }] },
+        },
+      },
       select: { id: true, nombre: true, email: true, area: true },
       orderBy: { nombre: 'asc' },
     });

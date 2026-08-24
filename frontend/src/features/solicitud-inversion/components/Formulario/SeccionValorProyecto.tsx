@@ -1,28 +1,29 @@
-import { Card, CardContent, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, TextField, Paper, Box } from '@mui/material';
-
-interface ValoresState {
-  activoUsd: string;
-  activoCop: string;
-  gastoUsd: string;
-  gastoCop: string;
-}
+import { Card, CardContent, Typography, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, TextField, Paper, Box, Alert } from '@mui/material';
 
 interface Props {
-  valoresProyecto: ValoresState;
-  setValoresProyecto: React.Dispatch<React.SetStateAction<ValoresState>>;
   trm: string;
   setTrm: (val: string) => void;
-  totalUsd: number;
-  totalCop: number;
+  activoUsd: number;
+  activoCop: number;
+  gastoUsd: number;
+  gastoCop: number;
 }
 
-export function SeccionValorProyecto({ valoresProyecto, setValoresProyecto, trm, setTrm, totalUsd, totalCop }: Props) {
+export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoUsd, gastoCop }: Props) {
+  const totalUsd = activoUsd + gastoUsd;
+  const totalCop = activoCop + gastoCop;
+
   return (
     <Card sx={{ mb: 3, borderRadius: 3 }}>
       <CardContent>
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
           Valor Total del Proyecto
         </Typography>
+
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Estos valores se calculan automáticamente sumando la sección "Flujo de Caja Planeado" de abajo
+          (CAPEX = Activo; GCAPEX + OPEX = Gasto), separados por la moneda de cada fila. Para cambiarlos, edita el flujo de caja.
+        </Alert>
 
         <Box sx={{ mb: 2, maxWidth: 220 }}>
           <TextField
@@ -43,38 +44,14 @@ export function SeccionValorProyecto({ valoresProyecto, setValoresProyecto, trm,
             </TableHead>
             <TableBody>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>ACTIVO</TableCell>
-                <TableCell align="center">
-                  <TextField
-                    size="small" type="number" fullWidth placeholder="0.00"
-                    value={valoresProyecto.activoUsd}
-                    onChange={(e) => setValoresProyecto({ ...valoresProyecto, activoUsd: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <TextField
-                    size="small" type="number" fullWidth placeholder="0.00"
-                    value={valoresProyecto.activoCop}
-                    onChange={(e) => setValoresProyecto({ ...valoresProyecto, activoCop: e.target.value })}
-                  />
-                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>ACTIVO (CAPEX)</TableCell>
+                <TableCell align="center">${activoUsd.toLocaleString()}</TableCell>
+                <TableCell align="center">COP{activoCop.toLocaleString()}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>GASTO</TableCell>
-                <TableCell align="center">
-                  <TextField
-                    size="small" type="number" fullWidth placeholder="0.00"
-                    value={valoresProyecto.gastoUsd}
-                    onChange={(e) => setValoresProyecto({ ...valoresProyecto, gastoUsd: e.target.value })}
-                  />
-                </TableCell>
-                <TableCell align="center">
-                  <TextField
-                    size="small" type="number" fullWidth placeholder="0.00"
-                    value={valoresProyecto.gastoCop}
-                    onChange={(e) => setValoresProyecto({ ...valoresProyecto, gastoCop: e.target.value })}
-                  />
-                </TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>GASTO (GCAPEX + OPEX)</TableCell>
+                <TableCell align="center">${gastoUsd.toLocaleString()}</TableCell>
+                <TableCell align="center">COP{gastoCop.toLocaleString()}</TableCell>
               </TableRow>
               <TableRow sx={{ backgroundColor: '#f8fafc' }}>
                 <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>TOTAL</TableCell>

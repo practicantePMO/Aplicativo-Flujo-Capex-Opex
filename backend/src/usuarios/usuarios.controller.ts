@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Delete, Patch, Body, Param, ParseIntPipe, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Delete, Patch, Body, Param, ParseIntPipe, Query, Req, UseGuards } from '@nestjs/common';
 import { UsuariosService } from './usuarios.service';
 import { AsignarRolDto } from './dto/asignar-rol.dto';
 import { CambiarActivoDto } from './dto/cambiar-activo.dto';
@@ -28,6 +28,13 @@ export class UsuariosController {
   @Roles('ADMIN', 'PMO')
   async obtenerTodos() {
     return this.usuariosService.findTodos();
+  }
+
+  // Ej: GET /usuarios/por-rol?rol=GERENCIA&companiaId=3 (elegir a qué gerente enviar el proceso)
+  @Get('por-rol')
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM')
+  async obtenerPorRol(@Query('rol') rol: string, @Query('companiaId', ParseIntPipe) companiaId: number) {
+    return this.usuariosService.findPorRolYCompania(rol, companiaId);
   }
 
   @Get('roles-disponibles')

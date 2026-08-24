@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Proyecto } from '../../proyectos/types/proyecto.types';
-import type { SolicitudInversionDetalle, FlujoCaja, Metainterface, ValoresProyecto } from '../types/solicitud.types';
+import type { SolicitudInversionDetalle, FlujoCaja, Meta } from '../types/solicitud.types';
 import {
   obtenerJerarquia,
   obtenerCategorias,
@@ -8,6 +8,9 @@ import {
   crearSolicitudInversion,
   actualizarSolicitudInversion,
 } from '../services/solicitudInversion.service';
+
+type Tipo = 'CAPEX' | 'GCAPEX' | 'OPEX';
+type Moneda = 'USD' | 'COP';
 
 export function useSolicitudForm(
   proyecto: Proyecto,
@@ -21,45 +24,55 @@ export function useSolicitudForm(
   const [grupos, setGrupos] = useState<any[]>([]);
   const [programas, setProgramas] = useState<any[]>([]);
   const [subprogramas, setSubprogramas] = useState<any[]>([]);
-  const [categorias, setCategorias] = useState<{ id: number; nombre: string }[]>([]);
+  const [categorias, setCategorias] = useState<{ id: number; nombre: string; requiere_evaluacion_obligatoria: boolean }[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
   // 1. Extraer flujos existentes (si es modo edición)
   const flujosGuardados = (solicitudExistente?.solicitudes_inversion?.solicitud_flujo_caja || []) as FlujoCaja[];
-  
+
   // 2. Determinar el año base (del proyecto)
   const anioBase = (proyecto as any)?.anio_proyecto || new Date().getFullYear();
 
   // 3. Configurar años iniciales (flujos existentes o el año base si es nuevo)
-  const initialAnios = flujosGuardados.length > 0 
-    ? Array.from(new Set(flujosGuardados.map((f) => Number(f.anio)))) 
+  const initialAnios = flujosGuardados.length > 0
+    ? Array.from(new Set(flujosGuardados.map((f) => Number(f.anio))))
     : [anioBase];
 
-  // 4. Configurar tipos (CAPEX, OPEX) y trimestres abiertos por defecto
-  const initialTipos: Record<number, ('CAPEX' | 'GCAPEX' | 'OPEX')[]> = {};
-  const initialTrimestres: Record<number, number[]> = {};
+  // 4. Configurar tipos (CAPEX/GCAPEX/OPEX), meses y moneda por columna, a partir de lo guardado
+  const initialTipos: Record<number, Tipo[]> = {};
+  const initialMeses: Record<number, number[]> = {};
+  const initialMoneda: Record<string, Moneda> = {};
 
   if (flujosGuardados.length > 0) {
     flujosGuardados.forEach((f) => {
       const anio = Number(f.anio);
-      const tipo = (f as any).tipo || (f as any).tipo_flujo;
-      const trimestre = Math.ceil(Number(f.mes) / 3);
+      const tipo = (f as any).tipo as Tipo;
+      const mes = Number(f.mes);
 
       if (!initialTipos[anio]) initialTipos[anio] = [];
       if (!initialTipos[anio].includes(tipo)) initialTipos[anio].push(tipo);
 
-      if (!initialTrimestres[anio]) initialTrimestres[anio] = [];
-      if (!initialTrimestres[anio].includes(trimestre)) initialTrimestres[anio].push(trimestre);
+      if (!initialMeses[anio]) initialMeses[anio] = [];
+      if (!initialMeses[anio].includes(mes)) initialMeses[anio].push(mes);
+
+      initialMoneda[`${anio}_${tipo}`] = (f.moneda as Moneda) || 'COP';
     });
   } else {
-    // Si es un proyecto NUEVO, arranca con CAPEX seleccionado y Q1 abierto
+    // Si es un proyecto NUEVO, arranca con CAPEX seleccionado
     initialTipos[anioBase] = ['CAPEX'];
-    initialTrimestres[anioBase] = [1];
+    initialMeses[anioBase] = [];
   }
+
+  const esNuevaGuardada = Boolean((solicitudExistente?.solicitudes_inversion as any)?.categoria_id);
+  const esTradicionalGuardada = Boolean(solicitudExistente?.solicitudes_inversion?.subprograma_id);
 
   // 5. INICIALIZAR EL FORMULARIO
   const [form, setForm] = useState({
-    tipoClasificacion: (solicitudExistente?.solicitudes_inversion as any)?.tipo_clasificacion || 'TRADICIONAL',
+    // 🏷️ Clasificación doble: ya no es un radio excluyente, son 2 checkboxes
+    // independientes que se pueden marcar juntos.
+    incluyeTradicional: solicitudExistente ? esTradicionalGuardada : true,
+    incluyeNueva: esNuevaGuardada,
+
     grupoId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programas?.id_grupo || ('' as number | ''),
     programaId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programa_id || ('' as number | ''),
     subprogramaId: solicitudExistente?.solicitudes_inversion?.subprograma_id || ('' as number | ''),
@@ -67,32 +80,27 @@ export function useSolicitudForm(
 
     entregablePlaneado: solicitudExistente?.solicitudes_inversion?.entregable_planeado || '',
     tieneEvaluacionFinanciera: solicitudExistente?.solicitudes_inversion?.tiene_evaluacion_financiera ?? false,
-    trm: solicitudExistente?.solicitudes_inversion?.trm?.toString() || '', 
+    trm: solicitudExistente?.solicitudes_inversion?.trm?.toString() || '',
     justificacion: solicitudExistente?.solicitudes_inversion?.justificacion_sin_evaluacion || '',
 
     tir: solicitudExistente?.solicitudes_inversion?.solicitud_evaluacion_financiera?.tir?.toString() || '',
     vpn: solicitudExistente?.solicitudes_inversion?.solicitud_evaluacion_financiera?.vpn?.toString() || '',
     payback: solicitudExistente?.solicitudes_inversion?.solicitud_evaluacion_financiera?.payback?.toString() || '',
 
-        metas: (solicitudExistente?.solicitudes_inversion?.solicitud_metas?.length
+    metas: (solicitudExistente?.solicitudes_inversion?.solicitud_metas?.length
       ? solicitudExistente.solicitudes_inversion.solicitud_metas.map((m: any) => ({
           compromiso: m.compromiso || '',
           fecha_inicio: m.fecha_inicio ? String(m.fecha_inicio).split('T')[0] : '',
           indicador: m.indicador || '',
         }))
-      : [{ compromiso: '', fecha_inicio: '', indicador: '' }]) as Metainterface[],
-    
-    valoresProyecto: {
-      activoUsd: solicitudExistente?.solicitudes_inversion?.solicitud_valores?.find((v) => v.categoria === 'ACTIVO')?.usd?.toString() || '',
-      activoCop: solicitudExistente?.solicitudes_inversion?.solicitud_valores?.find((v) => v.categoria === 'ACTIVO')?.cop?.toString() || '',
-      gastoUsd: solicitudExistente?.solicitudes_inversion?.solicitud_valores?.find((v) => v.categoria === 'GASTO')?.usd?.toString() || '',
-      gastoCop: solicitudExistente?.solicitudes_inversion?.solicitud_valores?.find((v) => v.categoria === 'GASTO')?.cop?.toString() || '',
-    } as ValoresProyecto,
+      : [{ compromiso: '', fecha_inicio: '', indicador: '' }]) as Meta[],
 
-    // 👈 CONECTADO A LOS VALORES CALCULADOS
+    // 💰 "Valor Total del Proyecto" ya NO se digita: se calcula solo a partir
+    // de "flujos" (ver activoUsd/activoCop/gastoUsd/gastoCop más abajo).
     aniosFlujo: initialAnios,
     tiposSeleccionados: initialTipos,
-    trimestresAbiertos: initialTrimestres,
+    mesesSeleccionados: initialMeses,
+    monedaPorColumna: initialMoneda,
     flujos: flujosGuardados,
 
     partesInteresadas: (solicitudExistente?.asignaciones_proceso || [])
@@ -118,7 +126,7 @@ export function useSolicitudForm(
         ]);
 
         if (resJerarquia.status === 'fulfilled') setGrupos(resJerarquia.value);
-        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value);
+        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value as any);
         if (resUsuarios.status === 'fulfilled') setUsuarios(resUsuarios.value);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
@@ -151,25 +159,45 @@ export function useSolicitudForm(
     setForm((prev) => ({ ...prev, ...patch }));
   };
 
-   const subprogramaSeleccionado = subprogramas.find((s) => s.id === Number(form.subprogramaId));
+  const subprogramaSeleccionado = subprogramas.find((s) => s.id === Number(form.subprogramaId));
+  const categoriaSeleccionada = categorias.find((c) => c.id === Number(form.categoriaId));
 
+  // 📌 Si CUALQUIERA de las dos clasificaciones marcadas exige evaluación
+  // financiera obligatoria (subprograma o categoría), se activa sola.
   useEffect(() => {
-    if (subprogramaSeleccionado?.requiere_evaluacion_obligatoria && !form.tieneEvaluacionFinanciera) {
+    const obligaSubprograma = form.incluyeTradicional && subprogramaSeleccionado?.requiere_evaluacion_obligatoria;
+    const obligaCategoria = form.incluyeNueva && categoriaSeleccionada?.requiere_evaluacion_obligatoria;
+    if ((obligaSubprograma || obligaCategoria) && !form.tieneEvaluacionFinanciera) {
       updateForm({ tieneEvaluacionFinanciera: true });
     }
-  }, [subprogramaSeleccionado?.id]);
+  }, [subprogramaSeleccionado?.id, categoriaSeleccionada?.id, form.incluyeTradicional, form.incluyeNueva]);
+
+  // 🧮 Totales de "Valor Total del Proyecto", calculados a partir del flujo
+  // de caja: CAPEX = Activo; GCAPEX + OPEX = Gasto; separados por moneda.
+  const sumarFlujos = (tipos: Tipo[], moneda: Moneda) =>
+    (form.flujos || [])
+      .filter((f) => tipos.includes((f as any).tipo) && ((f as any).moneda || 'COP') === moneda)
+      .reduce((acc, f) => acc + (Number(f.monto) || 0), 0);
+
+  const activoUsd = sumarFlujos(['CAPEX'], 'USD');
+  const activoCop = sumarFlujos(['CAPEX'], 'COP');
+  const gastoUsd = sumarFlujos(['GCAPEX', 'OPEX'], 'USD');
+  const gastoCop = sumarFlujos(['GCAPEX', 'OPEX'], 'COP');
 
   const guardar = async () => {
     try {
       setGuardando(true);
       setError(null);
 
-      // --- Categorización ---
-      if (form.tipoClasificacion === 'TRADICIONAL' && !form.subprogramaId) {
-        throw new Error('Debes seleccionar el Grupo, Programa y Subprograma.');
+      // --- Categorización: al menos una de las dos, y completa la que se marque ---
+      if (!form.incluyeTradicional && !form.incluyeNueva) {
+        throw new Error('Debes marcar al menos una clasificación: Tradicional, Nueva, o ambas.');
       }
-      if (form.tipoClasificacion === 'NUEVA' && !form.categoriaId) {
-        throw new Error('Debes seleccionar una Categoría.');
+      if (form.incluyeTradicional && !form.subprogramaId) {
+        throw new Error('Debes seleccionar el Grupo, Programa y Subprograma (clasificación Tradicional).');
+      }
+      if (form.incluyeNueva && !form.categoriaId) {
+        throw new Error('Debes seleccionar una Categoría (clasificación Nueva).');
       }
 
       // --- Entregable planeado ---
@@ -186,36 +214,42 @@ export function useSolicitudForm(
         throw new Error('Debes ingresar una justificación si el proyecto no tiene evaluación financiera.');
       }
 
-      
-
       // --- Metas: al menos una, completa ---
       const metasCompletas = (form.metas || [])
         .filter((m) => m.compromiso?.trim() && m.fecha_inicio && m.indicador?.trim())
-        .map((m) => ({
-          compromiso: m.compromiso.trim(),
-          fecha_inicio: m.fecha_inicio,
-          indicador: m.indicador.trim(),
-        }));
+        .map((m) => ({ compromiso: m.compromiso.trim(), fecha_inicio: m.fecha_inicio, indicador: m.indicador.trim() }));
       if (metasCompletas.length === 0) {
         throw new Error('Debes registrar al menos una meta completa (compromiso, fecha e indicador).');
       }
 
-      // --- Valores del proyecto: no dejar los campos en blanco ---
-      const { activoUsd, activoCop, gastoUsd, gastoCop } = form.valoresProyecto;
-      if ([activoUsd, activoCop, gastoUsd, gastoCop].some((v) => v === '' || v === undefined)) {
-        throw new Error('Debes diligenciar los 4 valores del proyecto (Activo y Gasto, en USD y COP). Usa 0 si no aplica.');
-      }
       if (!form.trm || form.trm.trim() === '') {
         throw new Error('Debes ingresar la TRM.');
       }
 
-      // --- Flujo de caja: sanitizar y exigir al menos una fila con monto ---
+      // --- Flujo de caja: cada mes que el PM marcó debe tener un valor > 0 ---
+      for (const anio of form.aniosFlujo || []) {
+        const tiposAnio = form.tiposSeleccionados[anio] || [];
+        const mesesAnio = form.mesesSeleccionados[anio] || [];
+        if (tiposAnio.length > 0 && mesesAnio.length === 0) {
+          throw new Error(`Marca al menos un mes para el año ${anio} en el Flujo de Caja.`);
+        }
+        for (const mesNum of mesesAnio) {
+          const totalMes = (form.flujos || [])
+            .filter((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && tiposAnio.includes((f as any).tipo))
+            .reduce((acc, f) => acc + (Number(f.monto) || 0), 0);
+          if (totalMes <= 0) {
+            throw new Error(`Falta ingresar el valor del mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
+          }
+        }
+      }
+
       const flujosLimpios = (form.flujos || [])
         .filter((f) => Number(f.monto) > 0)
         .map((f) => ({
           anio: Number(f.anio),
           mes: Number(f.mes),
-          tipo: (f as any).tipo || (f as any).tipo_flujo,
+          tipo: (f as any).tipo,
+          moneda: (f as any).moneda || 'COP',
           monto: Number(f.monto),
         }));
       if (flujosLimpios.length === 0) {
@@ -234,25 +268,18 @@ export function useSolicitudForm(
 
       const dtoPayload: any = {
         proyecto_id: proyecto.id,
-        tipo_clasificacion: form.tipoClasificacion,
-        subprograma_id: form.tipoClasificacion === 'TRADICIONAL' && form.subprogramaId ? Number(form.subprogramaId) : undefined,
-        categoria_id: form.tipoClasificacion === 'NUEVA' && form.categoriaId ? Number(form.categoriaId) : undefined,
+        incluye_tradicional: form.incluyeTradicional,
+        incluye_nueva: form.incluyeNueva,
+        subprograma_id: form.incluyeTradicional && form.subprogramaId ? Number(form.subprogramaId) : undefined,
+        categoria_id: form.incluyeNueva && form.categoriaId ? Number(form.categoriaId) : undefined,
         entregable_planeado: form.entregablePlaneado || undefined,
         tiene_evaluacion_financiera: Boolean(form.tieneEvaluacionFinanciera),
-        trm: Number(form.trm), 
+        trm: Number(form.trm),
         justificacion_sin_evaluacion: !form.tieneEvaluacionFinanciera ? form.justificacion.trim() : undefined,
         evaluacion_financiera: form.tieneEvaluacionFinanciera
-          ? {
-              tir: Number(form.tir) || 0,
-              vpn: Number(form.vpn) || 0,
-              payback: Number(form.payback) || 0,
-            }
+          ? { tir: Number(form.tir) || 0, vpn: Number(form.vpn) || 0, payback: Number(form.payback) || 0 }
           : undefined,
         metas: metasCompletas,
-        valores: [
-          { categoria: 'ACTIVO', usd: Number(form.valoresProyecto.activoUsd) || 0, cop: Number(form.valoresProyecto.activoCop) || 0 },
-          { categoria: 'GASTO', usd: Number(form.valoresProyecto.gastoUsd) || 0, cop: Number(form.valoresProyecto.gastoCop) || 0 },
-        ],
         flujos_caja: flujosLimpios,
         partes_interesadas_ids: (form.partesInteresadas || []).map((u) => u.id),
         link_acta_aprobacion: form.linkActa || undefined,
@@ -285,10 +312,15 @@ export function useSolicitudForm(
     subprogramas,
     subprogramaSeleccionado,
     categorias,
+    categoriaSeleccionada,
     usuarios,
     cargandoCatalogos,
     guardando,
     error,
     guardar,
+    activoUsd,
+    activoCop,
+    gastoUsd,
+    gastoCop,
   };
 }

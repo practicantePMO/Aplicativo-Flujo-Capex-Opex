@@ -9,23 +9,23 @@ import { useAuth } from '../../../auth/AuthContext';
 import type { SolicitudInversionDetalle, FlujoCaja, UsuarioActivo } from '../types/solicitud.types';
 import {
   obtenerSolicitudInversion, enviarARevision, aprobarEtapa, rechazarEtapa, cancelarDefinitivamente,
-  actualizarPartesInteresadas, obtenerPartesInteresadas,
+  actualizarPartesInteresadas, obtenerPartesInteresadas, obtenerUsuariosPorRol,
 } from '../services/solicitudInversion.service';
 
 // Formulario para modo edición
 import { FormularioSolicitudInversion } from './FormularioSolicitudInversion';
 
 // Subcomponentes modulares
-import { EncabezadoSolicitud } from './vista/EncabezadoSolicitud';
-import { BarraAccionesSolicitud } from './vista/BarraAccionesSolicitud';
-import { SeccionInformacionGeneralVista } from './vista/SeccionInformacionGeneralVista';
-import { SeccionEvaluacionFinancieraVista } from './vista/SeccionEvaluacionFinancieraVista';
-import { SeccionMetasYValoresVista } from './vista/SeccionMetasYValoresVista';
-import { SeccionFlujoCajaVista } from './vista/SeccionFlujoCajaVista';
-import { SeccionPartesInteresadasVista } from './vista/SeccionPartesInteresadasVista';
-import { SeccionHistoricoVista } from './vista/SeccionHistoricoVista';
-import { DialogosAccionVista } from './vista/DialogosAccionVista';
-import { SeccionDocumentosLinksVista } from './vista/SeccionDocumentosLinksVista';
+import { EncabezadoSolicitud } from './Vista/EncabezadoSolicitud';
+import { BarraAccionesSolicitud } from './Vista/BarraAccionesSolicitud';
+import { SeccionInformacionGeneralVista } from './Vista/SeccionInformacionGeneralVista';
+import { SeccionEvaluacionFinancieraVista } from './Vista/SeccionEvaluacionFinancieraVista';
+import { SeccionMetasYValoresVista } from './Vista/SeccionMetasYValoresVista';
+import { SeccionFlujoCajaVista } from './Vista/SeccionFlujoCajaVista';
+import { SeccionPartesInteresadasVista } from './Vista/SeccionPartesInteresadasVista';
+import { SeccionHistoricoVista } from './Vista/SeccionHistoricoVista';
+import { DialogosAccionVista } from './Vista/DialogosAccionVista';
+import { SeccionDocumentosLinksVista } from './Vista/SeccionDocumentosLinksVista';
 
 interface Props {
   procesoId: number;
@@ -37,7 +37,9 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
   PENDIENTE_PMO: ['PMO', 'ADMIN'],
   VERIFICACION_PARTES_INTERESADAS: [],
   DIRECCION_PMO: ['DIRECTOR_PMO', 'ADMIN'],
-  GERENCIA: ['GERENCIA', 'PMO', 'ADMIN'],
+  // GERENCIA ya no es por rol: Dirección PMO elige a UN gerente puntual
+  // (hay varias gerencias), y solo esa persona puede actuar aquí.
+  GERENCIA: [],
   PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
 };
 
@@ -54,12 +56,15 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   const [dialogoRechazo, setDialogoRechazo] = useState(false);
   const [dialogoCancelacion, setDialogoCancelacion] = useState(false);
   const [dialogoGerencia, setDialogoGerencia] = useState(false);
+  const [dialogoElegirGerente, setDialogoElegirGerente] = useState(false);
   const [dialogoPartes, setDialogoPartes] = useState(false);
 
   const [razon, setRazon] = useState('');
   const [enviarPresidencia, setEnviarPresidencia] = useState<'si' | 'no'>('si');
   const [usuariosDisponibles, setUsuariosDisponibles] = useState<UsuarioActivo[]>([]);
   const [partesSeleccionadas, setPartesSeleccionadas] = useState<UsuarioActivo[]>([]);
+  const [gerentesDisponibles, setGerentesDisponibles] = useState<UsuarioActivo[]>([]);
+  const [gerenteElegido, setGerenteElegido] = useState<UsuarioActivo | null>(null);
 
   const [dialogoAprobar, setDialogoAprobar] = useState(false);
 
@@ -100,9 +105,9 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
 
   const nombrePmExtraido =
     solicitud?.usuarios?.nombre ||
-    solicitud?.usuario?.nombre ||
+    (solicitud as any)?.usuario?.nombre ||
     data?.proyectos?.usuarios?.nombre ||
-    data?.proyectos?.usuario?.nombre;
+    (data?.proyectos as any)?.usuario?.nombre;
 
   const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
   const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
@@ -116,9 +121,20 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         Number(a.usuarios?.id) === Number(usuario?.id),
     );
 
+  // 🎯 GERENCIA ya no es por rol de compañía: solo el gerente puntual que
+  // Dirección PMO eligió (asignación individual) puede aprobar/rechazar aquí.
+  const estaAsignadoComoGerente =
+    estado === 'GERENCIA' &&
+    data.asignaciones_proceso.some(
+      (a) =>
+        a.etapa === 'GERENCIA' &&
+        a.estado_asignacion === 'PENDIENTE' &&
+        Number(a.usuarios?.id) === Number(usuario?.id),
+    );
+
   const puedeEditarBorrador = estado === 'BORRADOR' && (esPmResponsable || tieneRol('ADMIN'));
   const puedeEnviarARevision = estado === 'BORRADOR' && (esPmResponsable || tieneRol('ADMIN'));
-  const puedeAprobarORechazar = tieneRolDeEtapa || estaAsignadoComoParteInteresada;
+  const puedeAprobarORechazar = tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
   const puedeCancelar = !['BORRADOR', 'APROBADO_FINAL', 'CANCELADO'].includes(estado) &&
     (tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN'));
 
@@ -168,9 +184,31 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
     finally { setProcesando(false); }
   };
 
-  const manejarAprobar = () => {
+  const manejarAprobar = async () => {
+    if (estado === 'DIRECCION_PMO') {
+      if (gerentesDisponibles.length === 0) {
+        const companiaId = data?.proyectos?.companias?.id || data?.proyectos?.compania_id || 1;
+        const gerentes = await obtenerUsuariosPorRol('GERENCIA', companiaId);
+        setGerentesDisponibles(gerentes);
+      }
+      setGerenteElegido(null);
+      setDialogoElegirGerente(true);
+      return;
+    }
     if (estado === 'GERENCIA') { setDialogoGerencia(true); return; }
     setDialogoAprobar(true); // 👈 antes aprobaba directo, ahora abre el diálogo
+  };
+
+  const confirmarElegirGerente = async () => {
+    if (!razon.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    setProcesando(true);
+    try {
+      await aprobarEtapa(procesoId, razon, undefined, gerenteElegido.id);
+      setDialogoElegirGerente(false); setRazon(''); setGerenteElegido(null);
+      await cargar();
+    } catch (e: any) { alert(e.response?.data?.message || 'Error al aprobar.'); }
+    finally { setProcesando(false); }
   };
 
   const confirmarAprobar = async () => {
@@ -218,7 +256,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   // 👈 Formato condicional según el tipo de clasificación
-  const esNueva = (solicitud as any)?.tipo_clasificacion === 'NUEVA';
+  const esNueva = (solicitud as any)?.tipo_clasificacion === 'NUEVA' || (solicitud as any)?.tipo_clasificacion === 'AMBAS';
   const categoriaTexto = esNueva
     ? `[Nueva Categoría] ${(solicitud as any)?.categorias?.nombre || '—'}`
     : `${solicitud?.subprogramas?.programas?.grupos?.nombre || '—'} / ${solicitud?.subprogramas?.programas?.nombre || '—'} / ${solicitud?.subprogramas?.nombre || '—'}`;
@@ -302,6 +340,9 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         dialogoRechazo={dialogoRechazo} setDialogoRechazo={setDialogoRechazo}
         dialogoCancelacion={dialogoCancelacion} setDialogoCancelacion={setDialogoCancelacion}
         dialogoGerencia={dialogoGerencia} setDialogoGerencia={setDialogoGerencia}
+        dialogoElegirGerente={dialogoElegirGerente} setDialogoElegirGerente={setDialogoElegirGerente}
+        gerentesDisponibles={gerentesDisponibles}
+        gerenteElegido={gerenteElegido} setGerenteElegido={setGerenteElegido}
         dialogoPartes={dialogoPartes} setDialogoPartes={setDialogoPartes}
         dialogoAprobar={dialogoAprobar} setDialogoAprobar={setDialogoAprobar}
         onConfirmarAprobar={confirmarAprobar}
@@ -313,6 +354,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         onConfirmarRechazo={confirmarRechazo}
         onConfirmarCancelacion={confirmarCancelacion}
         onConfirmarGerencia={confirmarAprobarGerencia}
+        onConfirmarElegirGerente={confirmarElegirGerente}
         onConfirmarPartes={confirmarPartesInteresadas}
       />
 

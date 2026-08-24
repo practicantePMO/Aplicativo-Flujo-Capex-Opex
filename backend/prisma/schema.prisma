@@ -9,14 +9,16 @@ datasource db {
 enum TipoClasificacion {
   TRADICIONAL
   NUEVA
+  AMBAS
 }
 
 model categorias {
-  id                    Int                     @id @default(autoincrement())
-  nombre                String                  @db.VarChar(100)
-  eliminado_el          DateTime?               @db.Timestamp(6)
-  fecha_creacion        DateTime?               @default(now()) @db.Timestamp(6)
-  solicitudes_inversion solicitudes_inversion[]
+  id                              Int                     @id @default(autoincrement())
+  nombre                          String                  @db.VarChar(100)
+  requiere_evaluacion_obligatoria Boolean?                @default(false)
+  eliminado_el                    DateTime?               @db.Timestamp(6)
+  fecha_creacion                  DateTime?               @default(now()) @db.Timestamp(6)
+  solicitudes_inversion           solicitudes_inversion[]
 }
 
 model asignaciones_proceso {
@@ -137,6 +139,7 @@ model solicitud_flujo_caja {
   id                    Int                    @id @default(autoincrement())
   solicitud_id          Int?
   tipo                  String                 @db.VarChar(20)
+  moneda                String                 @default("COP") @db.VarChar(3)
   anio                  Int
   mes                   Int                    @default(1)
   monto                 Decimal?               @default(0) @db.Decimal(15, 2)

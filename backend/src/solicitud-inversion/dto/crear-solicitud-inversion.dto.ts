@@ -24,26 +24,33 @@ export class SolicitudValorDto {
 
 export class SolicitudFlujoCajaDto {
   @IsString() @IsNotEmpty() tipo: string;
+  @IsIn(['USD', 'COP'], { message: 'La moneda debe ser USD o COP.' })
+  moneda: 'USD' | 'COP';
   @IsInt() anio: number;
   @IsInt() @Min(1) @Max(12) mes: number;
-  @IsNumber() monto: number;
+  @IsNumber({}, { message: 'El monto debe ser un número.' })
+  @Min(0.01, { message: 'El monto no puede quedar en blanco o en 0 para un mes seleccionado.' })
+  monto: number;
 }
 
 export class CrearSolicitudInversionDto {
   @IsString() @IsNotEmpty() proyecto_id: string;
 
-  @IsIn(['TRADICIONAL', 'NUEVA'], { message: 'tipo_clasificacion debe ser TRADICIONAL o NUEVA.' })
-  @IsOptional()
-  tipo_clasificacion?: 'TRADICIONAL' | 'NUEVA';
+  // El PM puede marcar Tradicional, Nueva, o ambas a la vez.
+  @IsBoolean() @IsOptional()
+  incluye_tradicional?: boolean;
 
-  @ValidateIf((o) => o.tipo_clasificacion !== 'NUEVA')
+  @IsBoolean() @IsOptional()
+  incluye_nueva?: boolean;
+
+  @ValidateIf((o) => o.incluye_tradicional === true)
   @IsInt({ message: 'Debes seleccionar un subprograma.' })
-  @IsNotEmpty({ message: 'El subprograma es obligatorio para solicitudes tradicionales.' })
+  @IsNotEmpty({ message: 'El subprograma es obligatorio para la clasificación Tradicional.' })
   subprograma_id?: number;
 
-  @ValidateIf((o) => o.tipo_clasificacion === 'NUEVA')
+  @ValidateIf((o) => o.incluye_nueva === true)
   @IsInt({ message: 'Debes seleccionar una categoría.' })
-  @IsNotEmpty({ message: 'La categoría es obligatoria para clasificación Nueva.' })
+  @IsNotEmpty({ message: 'La categoría es obligatoria para la clasificación Nueva.' })
   categoria_id?: number;
 
   @IsString() @IsNotEmpty({ message: 'El entregable planeado es obligatorio.' })
@@ -70,8 +77,9 @@ export class CrearSolicitudInversionDto {
   @ValidateNested({ each: true }) @Type(() => SolicitudMetaDto)
   metas: SolicitudMetaDto[];
 
-  @IsArray() @ValidateNested({ each: true }) @Type(() => SolicitudValorDto) @IsOptional()
-  valores?: SolicitudValorDto[];
+  // 🧮 Ya NO se recibe manual: "Valor Total del Proyecto" (ACTIVO/GASTO en
+  // USD/COP) se calcula en el backend sumando flujos_caja según su tipo y
+  // moneda. Ver SolicitudInversionHelpersService.calcularValoresDesdeFlujo().
 
   @IsArray({ message: 'El flujo de caja debe ser una lista.' })
   @ArrayMinSize(1, { message: 'Debes registrar al menos una fila de flujo de caja.' })

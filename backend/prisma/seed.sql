@@ -157,13 +157,16 @@ SELECT 9, id, NULL::integer FROM roles WHERE codigo = 'PMO'
 ON CONFLICT DO NOTHING;
 
 -- 5. CLASIFICACIÓN NUEVA (CATEGORÍAS DIRECTAS)
+-- "Crecimiento Estratégico" y "Productividad y Mejora" exigen evaluación
+-- financiera obligatoria; "Sostenimiento y Continuidad" no.
 INSERT INTO
-    categorias (id, nombre)
-VALUES (1, 'Conocimiento Estratégico'),
-    (2, 'Productividad y Mejora'),
+    categorias (id, nombre, requiere_evaluacion_obligatoria)
+VALUES (1, 'Crecimiento Estratégico', true),
+    (2, 'Productividad y Mejora', true),
     (
         3,
-        'Sostenimiento y Continuidad'
+        'Sostenimiento y Continuidad',
+        false
     ) ON CONFLICT (id) DO NOTHING;
 
 -- 6. CLASIFICACIÓN TRADICIONAL - GRUPOS

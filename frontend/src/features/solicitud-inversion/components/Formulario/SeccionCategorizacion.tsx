@@ -1,17 +1,14 @@
 import {
   Card, CardContent, Typography, TextField, MenuItem, Alert,
-  RadioGroup, FormControlLabel, Radio, FormControl, FormLabel, Box
+  FormControlLabel, Checkbox, FormGroup, Box
 } from '@mui/material';
-import type { Grupo, Programa, Subprograma } from '../../types/solicitud.types';
-
-export interface CategoriaSimple {
-  id: number;
-  nombre: string;
-}
+import type { Grupo, Programa, Subprograma, Categoria } from '../../types/solicitud.types';
 
 interface Props {
-  tipoClasificacion: 'TRADICIONAL' | 'NUEVA';
-  onChangeTipoClasificacion: (tipo: 'TRADICIONAL' | 'NUEVA') => void;
+  incluyeTradicional: boolean;
+  incluyeNueva: boolean;
+  onChangeIncluyeTradicional: (val: boolean) => void;
+  onChangeIncluyeNueva: (val: boolean) => void;
 
   // Tradicional
   grupoId: number | '';
@@ -27,15 +24,16 @@ interface Props {
 
   // Nueva
   categoriaId: number | '';
-  categorias: CategoriaSimple[];
+  categorias: Categoria[];
+  categoriaSeleccionada?: Categoria;
   onChangeCategoria: (id: number | '') => void;
 }
 
 export function SeccionCategorizacion({
-  tipoClasificacion, onChangeTipoClasificacion,
+  incluyeTradicional, incluyeNueva, onChangeIncluyeTradicional, onChangeIncluyeNueva,
   grupoId, programaId, subprogramaId, grupos, programas, subprogramas,
   subprogramaSeleccionado, onChangeGrupo, onChangePrograma, onChangeSubprograma,
-  categoriaId, categorias, onChangeCategoria,
+  categoriaId, categorias, categoriaSeleccionada, onChangeCategoria,
 }: Props) {
   return (
     <Card sx={{ mb: 3, borderRadius: 3 }}>
@@ -43,36 +41,43 @@ export function SeccionCategorizacion({
         <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
           Categorización del Proyecto *
         </Typography>
+        <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 1 }}>
+          Marca las que apliquen — un proyecto puede tener clasificación Tradicional, Nueva, o ambas a la vez.
+        </Typography>
 
-        <FormControl component="fieldset" sx={{ mb: 3, width: '100%' }}>
-          <FormLabel sx={{ fontWeight: 600, fontSize: '0.875rem', color: '#64748b', mb: 1 }}>
-            Tipo de Clasificación
-          </FormLabel>
-          <RadioGroup
-            row
-            value={tipoClasificacion}
-            onChange={(e) => onChangeTipoClasificacion(e.target.value as 'TRADICIONAL' | 'NUEVA')}
-          >
-            <FormControlLabel
-              value="TRADICIONAL"
-              control={<Radio size="small" color="secondary" />}
-              label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Tradicional (Grupo / Programa / Subprograma)</Typography>}
-            />
-            <FormControlLabel
-              value="NUEVA"
-              control={<Radio size="small" color="secondary" />}
-              label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Nueva Clasificación (Categoría Directa)</Typography>}
-            />
-          </RadioGroup>
-        </FormControl>
+        <FormGroup row sx={{ mb: 3 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                color="secondary"
+                checked={incluyeTradicional}
+                onChange={(e) => onChangeIncluyeTradicional(e.target.checked)}
+              />
+            }
+            label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Tradicional (Grupo / Programa / Subprograma)</Typography>}
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                size="small"
+                color="secondary"
+                checked={incluyeNueva}
+                onChange={(e) => onChangeIncluyeNueva(e.target.checked)}
+              />
+            }
+            label={<Typography variant="body2" sx={{ fontWeight: 600 }}>Nueva Clasificación (Categoría Directa)</Typography>}
+          />
+        </FormGroup>
 
-        {tipoClasificacion === 'TRADICIONAL' ? (
+        {incluyeTradicional && (
           <Box
             sx={{
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
               gap: 2,
               width: '100%',
+              mb: 2,
             }}
           >
             <TextField
@@ -131,13 +136,16 @@ export function SeccionCategorizacion({
               ))}
             </TextField>
           </Box>
-        ) : (
+        )}
+
+        {incluyeNueva && (
           <Box
             sx={{
               display: 'grid',
               gridTemplateColumns: { xs: '1fr', md: 'repeat(2, 1fr)' },
               gap: 2,
               width: '100%',
+              mb: 2,
             }}
           >
             <TextField
@@ -160,9 +168,15 @@ export function SeccionCategorizacion({
           </Box>
         )}
 
-        {tipoClasificacion === 'TRADICIONAL' && subprogramaSeleccionado?.requiere_evaluacion_obligatoria && (
-          <Alert severity="info" sx={{ mt: 2 }}>
+        {incluyeTradicional && subprogramaSeleccionado?.requiere_evaluacion_obligatoria && (
+          <Alert severity="info" sx={{ mt: 1 }}>
             Este subprograma exige evaluación financiera obligatoria.
+          </Alert>
+        )}
+
+        {incluyeNueva && categoriaSeleccionada?.requiere_evaluacion_obligatoria && (
+          <Alert severity="info" sx={{ mt: 1 }}>
+            Esta categoría (Crecimiento Estratégico / Productividad y Mejora) exige evaluación financiera obligatoria.
           </Alert>
         )}
       </CardContent>

@@ -24,6 +24,7 @@ const ESTADO_CONFIG: Record<string, { label: string; color: 'success' | 'warning
   ACTIVO: { label: 'Activo', color: 'success' },
   APLAZADO: { label: 'Aplazado', color: 'warning' },
   CANCELADO: { label: 'Cancelado', color: 'error' },
+  EN_PROCESO_DE_CANCELACION: { label: 'En proceso de cancelación', color: 'warning' },
   SUSPENDIDO: { label: 'Suspendido', color: 'default' },
 };
 
@@ -92,9 +93,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
       <Box sx={styles.headerBox}>
         <Box>
           <Typography variant="h5" sx={styles.title}>Portafolio de Proyectos</Typography>
-          <Typography variant="body2" color="text.secondary">
-            Gestión y seguimiento de iniciativas por compañía
-          </Typography>
         </Box>
 
         {puedeCrear && (
@@ -188,7 +186,7 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
                   </TableRow>
                 ) : (
                   proyectosFiltrados.map((proyecto) => {
-                    const estadoInfo = ESTADO_CONFIG[proyecto.estado || 'ACTIVO'];
+                                        const estadoInfo = ESTADO_CONFIG[proyecto.estado || 'ACTIVO'] || { label: proyecto.estado || 'Desconocido', color: 'default' as const };
                     return (
                       <TableRow key={proyecto.id} hover sx={styles.tableRow}>
                         <TableCell sx={styles.idCell}>

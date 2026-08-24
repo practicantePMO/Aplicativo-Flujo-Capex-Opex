@@ -19,20 +19,23 @@ export interface Valor {
 export interface FlujoCaja {
   id?: number;
   tipo: 'CAPEX' | 'GCAPEX' | 'OPEX';
+  moneda: 'USD' | 'COP';
   anio: number;
   mes: number; // 1 = Enero, 12 = Diciembre
   monto: number;
 }
 export interface CrearSolicitudInversionDto {
   proyecto_id: string;
-  subprograma_id: number;
+  incluye_tradicional?: boolean;
+  incluye_nueva?: boolean;
+  subprograma_id?: number;
+  categoria_id?: number;
   entregable_planeado?: string;
   tiene_evaluacion_financiera: boolean;
   trm?: number;
   justificacion_sin_evaluacion?: string;
   evaluacion_financiera?: EvaluacionFinanciera;
   metas?: Meta[];
-  valores?: Valor[];
   flujos_caja?: FlujoCaja[];
   partes_interesadas_ids?: number[];
   link_acta_aprobacion?: string;
@@ -43,6 +46,7 @@ export interface CrearSolicitudInversionDto {
 export interface Subprograma { id: number; nombre: string; requiere_evaluacion_obligatoria: boolean; }
 export interface Programa { id: number; nombre: string; subprogramas: Subprograma[]; }
 export interface Grupo { id: number; nombre: string; programas: Programa[]; }
+export interface Categoria { id: number; nombre: string; requiere_evaluacion_obligatoria: boolean; }
 
 export interface UsuarioActivo { id: number; nombre: string; email: string; area?: string; }
 
@@ -143,7 +147,10 @@ export interface SolicitudInversionDetalle {
 }
 export interface CrearSolicitudPayload {
   proyecto_id: string;
-  subprograma_id: number;
+  incluye_tradicional?: boolean;
+  incluye_nueva?: boolean;
+  subprograma_id?: number;
+  categoria_id?: number;
   entregable_planeado?: string;
   tiene_evaluacion_financiera: boolean;
   trm?: number;
@@ -158,10 +165,10 @@ export interface CrearSolicitudPayload {
     fecha_inicio: string;
     indicador: string;
   }>;
-  valores: Valor[];
   flujos_caja: Array<{
     anio: number;
     tipo: 'CAPEX' | 'GCAPEX' | 'OPEX';
+    moneda: 'USD' | 'COP';
     mes: number;
     monto: number;
   }>;

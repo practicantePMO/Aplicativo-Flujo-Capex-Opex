@@ -11,6 +11,11 @@ interface Props {
   setDialogoCancelacion: (val: boolean) => void;
   dialogoGerencia: boolean;
   setDialogoGerencia: (val: boolean) => void;
+  dialogoElegirGerente: boolean;
+  setDialogoElegirGerente: (val: boolean) => void;
+  gerentesDisponibles: UsuarioActivo[];
+  gerenteElegido: UsuarioActivo | null;
+  setGerenteElegido: (val: UsuarioActivo | null) => void;
   dialogoPartes: boolean;
   setDialogoPartes: (val: boolean) => void;
   razon: string;
@@ -24,6 +29,7 @@ interface Props {
   onConfirmarRechazo: () => void;
   onConfirmarCancelacion: () => void;
   onConfirmarGerencia: () => void;
+  onConfirmarElegirGerente: () => void;
   onConfirmarPartes: () => void;
   dialogoAprobar: boolean;
   setDialogoAprobar: (val: boolean) => void;
@@ -32,14 +38,36 @@ interface Props {
 
 export function DialogosAccionVista({
   dialogoRechazo, setDialogoRechazo, dialogoCancelacion, setDialogoCancelacion,
-  dialogoGerencia, setDialogoGerencia, dialogoPartes, setDialogoPartes,
+  dialogoGerencia, setDialogoGerencia, dialogoElegirGerente, setDialogoElegirGerente,
+  gerentesDisponibles, gerenteElegido, setGerenteElegido,
+  dialogoPartes, setDialogoPartes,
   razon, setRazon, enviarPresidencia, setEnviarPresidencia, usuariosDisponibles,
   partesSeleccionadas, setPartesSeleccionadas, procesando,
-  onConfirmarRechazo, onConfirmarCancelacion, onConfirmarGerencia, onConfirmarPartes,
+  onConfirmarRechazo, onConfirmarCancelacion, onConfirmarGerencia, onConfirmarElegirGerente, onConfirmarPartes,
   dialogoAprobar, setDialogoAprobar, onConfirmarAprobar
 }: Props) {
   return (
     <>
+    {/* Elegir gerente (Dirección PMO -> Gerencia, hay varias gerencias) */}
+      <Dialog open={dialogoElegirGerente} onClose={() => setDialogoElegirGerente(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Enviar a Gerencia</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            options={gerentesDisponibles}
+            getOptionLabel={(u) => `${u.nombre} (${u.email})`}
+            value={gerenteElegido}
+            onChange={(_, value) => setGerenteElegido(value)}
+            renderInput={(params) => <TextField {...params} label="¿A qué gerente se envía el proceso?" sx={{ mt: 1, mb: 2 }} />}
+          />
+          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+            value={razon} onChange={(e) => setRazon(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogoElegirGerente(false)}>Cancelar</Button>
+          <Button variant="contained" color="success" onClick={onConfirmarElegirGerente} disabled={procesando}>Confirmar envío</Button>
+        </DialogActions>
+      </Dialog>
+
     {/* Aprobar con observación obligatoria */}
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar etapa</DialogTitle>
