@@ -25,3 +25,8 @@ export const cambiarActivoUsuario = async (usuarioId: number, activo: boolean) =
   const response = await axiosClient.patch(`/usuarios/${usuarioId}/activo`, { activo });
   return response.data;
 };
+
+export const editarAreaUsuario = async (usuarioId: number, area: string) => {
+  const response = await axiosClient.patch(`/usuarios/${usuarioId}/area`, { area });
+  return response.data;
+};

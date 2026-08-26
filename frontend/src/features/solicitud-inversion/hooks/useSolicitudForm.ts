@@ -38,10 +38,13 @@ export function useSolicitudForm(
     ? Array.from(new Set(flujosGuardados.map((f) => Number(f.anio))))
     : [anioBase];
 
-  // 4. Configurar tipos (CAPEX/GCAPEX/OPEX), meses y moneda por columna, a partir de lo guardado
+    // 4. Configurar tipos (CAPEX/GCAPEX/OPEX), meses y moneda por columna, a partir de lo guardado
   const initialTipos: Record<number, Tipo[]> = {};
   const initialMeses: Record<number, number[]> = {};
   const initialMoneda: Record<string, Moneda> = {};
+  // 🎯 Qué tipos aplican en cada mes puntual (ej: "2026_2": ['CAPEX']) — se
+  // reconstruye a partir de qué filas de flujo_caja existían para ese mes.
+  const initialTiposPorMes: Record<string, Tipo[]> = {};
 
   if (flujosGuardados.length > 0) {
     flujosGuardados.forEach((f) => {
@@ -56,6 +59,10 @@ export function useSolicitudForm(
       if (!initialMeses[anio].includes(mes)) initialMeses[anio].push(mes);
 
       initialMoneda[`${anio}_${tipo}`] = (f.moneda as Moneda) || 'COP';
+
+      const claveMes = `${anio}_${mes}`;
+      if (!initialTiposPorMes[claveMes]) initialTiposPorMes[claveMes] = [];
+      if (!initialTiposPorMes[claveMes].includes(tipo)) initialTiposPorMes[claveMes].push(tipo);
     });
   } else {
     // Si es un proyecto NUEVO, arranca con CAPEX seleccionado
@@ -100,6 +107,7 @@ export function useSolicitudForm(
     aniosFlujo: initialAnios,
     tiposSeleccionados: initialTipos,
     mesesSeleccionados: initialMeses,
+    tiposPorMes: initialTiposPorMes,
     monedaPorColumna: initialMoneda,
     flujos: flujosGuardados,
 
@@ -226,7 +234,8 @@ export function useSolicitudForm(
         throw new Error('Debes ingresar la TRM.');
       }
 
-      // --- Flujo de caja: cada mes que el PM marcó debe tener un valor > 0 ---
+                 // --- Flujo de caja: cada mes que el PM marcó debe tener valor > 0 SOLO
+      // en los tipos que él mismo dijo que aplican ese mes puntual ---
       for (const anio of form.aniosFlujo || []) {
         const tiposAnio = form.tiposSeleccionados[anio] || [];
         const mesesAnio = form.mesesSeleccionados[anio] || [];
@@ -234,11 +243,19 @@ export function useSolicitudForm(
           throw new Error(`Marca al menos un mes para el año ${anio} en el Flujo de Caja.`);
         }
         for (const mesNum of mesesAnio) {
-          const totalMes = (form.flujos || [])
-            .filter((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && tiposAnio.includes((f as any).tipo))
-            .reduce((acc, f) => acc + (Number(f.monto) || 0), 0);
-          if (totalMes <= 0) {
-            throw new Error(`Falta ingresar el valor del mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
+          const claveMes = `${anio}_${mesNum}`;
+          // Si el mes no tiene selección puntual, por defecto aplican todos los del año.
+          const tiposDeEsteMes = form.tiposPorMes[claveMes] || tiposAnio;
+          if (tiposDeEsteMes.length === 0) {
+            throw new Error(`Elige al menos un tipo (CAPEX/GCAPEX/OPEX) para el mes seleccionado (año ${anio}).`);
+          }
+          for (const tipo of tiposDeEsteMes) {
+            const monto = (form.flujos || [])
+              .find((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo)
+              ?.monto;
+            if (!monto || Number(monto) <= 0) {
+              throw new Error(`Falta ingresar el valor de ${tipo} para el mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
+            }
           }
         }
       }

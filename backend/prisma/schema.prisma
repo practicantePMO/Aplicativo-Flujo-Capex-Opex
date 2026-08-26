@@ -77,6 +77,7 @@ model procesos {
   historico_aprobaciones historico_aprobaciones[]
   proyectos              proyectos?               @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   solicitudes_inversion  solicitudes_inversion?
+  ordenes_internas       ordenes_internas?
 }
 
 model programas {
@@ -103,6 +104,7 @@ model proyectos {
   usuarios  usuarios?  @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
   procesos  procesos[]
   proyectos_aplazamientos proyectos_aplazamientos[]   // 👈 AGREGAR esta línea
+  grupos_ordenes_internas grupos_ordenes_internas? 
 }
 
 model proyectos_aplazamientos {
@@ -226,4 +228,97 @@ model usuarios {
   proyectos              proyectos[]
   solicitudes_inversion  solicitudes_inversion[]
   usuario_roles_compania usuario_roles_compania[]
+  ordenes_internas_como_pm ordenes_internas[] @relation("OI_PM")
+  ordenes_internas_como_cg ordenes_internas[] @relation("OI_CG")
+  grupo_oi_historico_cierre grupo_oi_historico_cierre[]
+}
+
+// =====================================================================
+// PROCESO: ÓRDENES INTERNAS
+// =====================================================================
+
+// 📦 El "grupo" contenedor — 1 por proyecto. Se crea automáticamente cuando
+// la Solicitud de Inversión llega a APROBADO_FINAL. Su nombre queda vacío
+// hasta que Control Gestión lo llena (Sección 4 de la primera OI que
+// aprueba). Se cierra solo cuando TODAS sus Órdenes Internas quedan CERRADA.
+model grupos_ordenes_internas {
+  id             Int       @id @default(autoincrement())
+  proyecto_id    String    @unique @db.VarChar(20)
+  nombre         String?   @db.VarChar(150)
+  estado         String    @default("ABIERTO") @db.VarChar(20) // ABIERTO | SOLICITADO_CIERRE | CERRADO
+  fecha_creacion DateTime? @default(now()) @db.Timestamp(6)
+
+  proyectos                 proyectos                   @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ordenes_internas          ordenes_internas[]
+  grupo_oi_historico_cierre grupo_oi_historico_cierre[]
+}
+
+// 🧾 Cada Orden Interna individual. También es un "proceso" genérico (1:1 con
+// procesos) para reutilizar historico_aprobaciones y asignaciones_proceso
+// (Control Gestión puntual, igual que se hizo con Gerencia en Solicitud de
+// Inversión) sin inventar tablas paralelas.
+model ordenes_internas {
+  id                  Int      @id @default(autoincrement())
+  grupo_id            Int
+  proceso_id          Int      @unique
+  numero_oi           String   @db.VarChar(50) // Lo escribe el PM a mano
+  nombre_descriptivo  String   @db.VarChar(255)
+  tipo_orden          String   @db.VarChar(10) // ACTIVO | GASTO
+  es_control_cambios  Boolean  @default(false) // Decide si se llena la Sección 3
+
+  // Sección 1
+  centro_costos   String?  @db.VarChar(100)
+  oficina_ventas  String?  @db.VarChar(100)
+  linea_marca     String?  @db.VarChar(100)
+  cliente         String?  @db.VarChar(150)
+  ramo            String?  @db.VarChar(100)
+  porcentaje_1    Decimal? @db.Decimal(5, 2)
+
+  // Sección 2 (solo aplica completa si tipo_orden = ACTIVO; si es GASTO solo se usa "presupuesto")
+  activo_fijo_curso      String?  @db.VarChar(150)
+  tipo_activo             String? @db.VarChar(100)
+  porcentaje_2            Decimal? @db.Decimal(5, 2)
+  presupuesto             Decimal? @db.Decimal(15, 2)
+  presupuesto_moneda      String   @default("COP") @db.VarChar(3)
+  activo_real_productivo String?  @db.VarChar(150)
+
+  // Sección 4 (solo la llena Control Gestión, mientras está PENDIENTE)
+  grupo_texto      String? @db.VarChar(150)
+  observaciones_cg String?
+
+  responsable_pm_id           Int?
+  control_gestion_asignado_id Int?
+  fecha_creacion               DateTime? @default(now()) @db.Timestamp(6)
+
+  grupos_ordenes_internas grupos_ordenes_internas @relation(fields: [grupo_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  procesos                procesos                @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  pm                      usuarios?               @relation("OI_PM", fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control_gestion         usuarios?               @relation("OI_CG", fields: [control_gestion_asignado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  oi_valores              oi_valores[]
+}
+
+// 💰 Sección 3: "Valor Total del Proyecto", pero AQUÍ se llena manual (a
+// diferencia de Solicitud de Inversión) — solo aplica si es_control_cambios.
+model oi_valores {
+  id               Int      @id @default(autoincrement())
+  orden_interna_id Int
+  categoria        String   @db.VarChar(20) // ACTIVO | GASTO
+  usd              Decimal? @db.Decimal(15, 2)
+  cop              Decimal? @db.Decimal(15, 2)
+
+  ordenes_internas ordenes_internas @relation(fields: [orden_interna_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 📜 Histórico SOLO del cierre del grupo completo (separado del histórico de
+// cada OI individual, que ya vive en historico_aprobaciones vía su proceso_id).
+model grupo_oi_historico_cierre {
+  id             Int       @id @default(autoincrement())
+  grupo_id       Int
+  accion         String    @db.VarChar(30) // SOLICITADO | CERRADO
+  observaciones  String?
+  usuario_id     Int
+  fecha_registro DateTime? @default(now()) @db.Timestamp(6)
+
+  grupos_ordenes_internas grupos_ordenes_internas @relation(fields: [grupo_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  usuarios                usuarios                @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }

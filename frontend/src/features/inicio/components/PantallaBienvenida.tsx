@@ -4,7 +4,7 @@ import AssignmentLateIcon from '@mui/icons-material/AssignmentLate';
 import FolderIcon from '@mui/icons-material/Folder';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useAuth } from '../../../auth/AuthContext';
-import { obtenerMisPendientes } from '../../solicitud-inversion/services/solicitudInversion.service';
+import { obtenerMisPendientes } from '../../procesos/services/procesos.service';
 import { obtenerProyectos } from '../../proyectos/services/proyectos.service';
 
 interface Props {

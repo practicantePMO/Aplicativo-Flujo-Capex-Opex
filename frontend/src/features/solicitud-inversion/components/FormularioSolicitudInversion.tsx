@@ -36,9 +36,14 @@ export function FormularioSolicitudInversion({ proyecto, solicitudExistente, onC
     updateForm({ tiposSeleccionados: nuevoValor });
   };
 
-  const handleSetMesesSeleccionados = (val: React.SetStateAction<Record<number, number[]>>) => {
+    const handleSetMesesSeleccionados = (val: React.SetStateAction<Record<number, number[]>>) => {
     const nuevoValor = typeof val === 'function' ? val(form.mesesSeleccionados || {}) : val;
     updateForm({ mesesSeleccionados: nuevoValor });
+  };
+
+  const handleSetTiposPorMes = (val: React.SetStateAction<Record<string, ('CAPEX' | 'GCAPEX' | 'OPEX')[]>>) => {
+    const nuevoValor = typeof val === 'function' ? val(form.tiposPorMes || {}) : val;
+    updateForm({ tiposPorMes: nuevoValor });
   };
 
   const handleSetMonedaPorColumna = (val: React.SetStateAction<Record<string, 'USD' | 'COP'>>) => {
@@ -111,6 +116,7 @@ export function FormularioSolicitudInversion({ proyecto, solicitudExistente, onC
         aniosFlujo={form.aniosFlujo} setAniosFlujo={handleSetAniosFlujo}
         tiposSeleccionados={form.tiposSeleccionados} setTiposSeleccionados={handleSetTiposSeleccionados}
         mesesSeleccionados={form.mesesSeleccionados} setMesesSeleccionados={handleSetMesesSeleccionados}
+        tiposPorMes={form.tiposPorMes} setTiposPorMes={handleSetTiposPorMes}
         monedaPorColumna={form.monedaPorColumna} setMonedaPorColumna={handleSetMonedaPorColumna}
         flujos={form.flujos} setFlujos={handleSetFlujos}
       />

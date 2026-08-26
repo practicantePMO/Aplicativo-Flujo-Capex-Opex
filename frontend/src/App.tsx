@@ -9,7 +9,7 @@ import { DetalleProyecto } from './features/proyectos/components/DetalleProyecto
 import type { Proyecto } from './features/proyectos/types/proyecto.types';
 
 // Vistas de Solicitud de Inversión y Pendientes
-import { VistaMisPendientes } from './features/solicitud-inversion/components/VistaMisPendientes';
+import { VistaMisPendientes } from './features/procesos/components/VistaMisPendientes';
 
 // Gestión de usuarios
 import { TablaUsuarios } from './features/usuarios/components/TablaUsuarios';

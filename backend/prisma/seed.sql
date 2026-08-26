@@ -28,16 +28,24 @@ VALUES (
         7,
         'PARTE_INTERESADA',
         'Parte Interesada'
+    ),
+    (
+        8,
+        'CONTROL_GESTION',
+        'Control de Gestión'
     ) ON CONFLICT (id) DO NOTHING;
 
 -- 2. INSERTAR COMPAÑÍAS
 INSERT INTO
     companias (id, nombre, activa)
 VALUES (1, 'Galletas', true),
-    (2, 'Pasas', true),
+    (2, 'Pastas', true),
     (3, 'Snacks', true) ON CONFLICT (id) DO NOTHING;
 
--- 3. INSERTAR USUARIOS DE PRUEBA
+-- 3. USUARIOS DE PRUEBA
+-- Set amplio a propósito para poder probar visibilidad real: varios PM,
+-- varios GERENCIA por compañía (para probar el selector de "a qué gerente
+-- enviar"), PRESIDENCIA por compañía, y varias PARTES INTERESADAS.
 INSERT INTO
     usuarios (
         id,
@@ -47,7 +55,9 @@ INSERT INTO
         area,
         activo
     )
-VALUES (
+VALUES
+    -- Administración
+    (
         1,
         'Ana Admin',
         'ana.admin@empresa.com',
@@ -55,114 +65,246 @@ VALUES (
         'TI',
         true
     ),
-    (
-        2,
-        'Laura PM',
-        'laura.pm@empresa.com',
-        'GOOGLE',
-        'Proyectos',
-        true
-    ),
-    (
-        3,
-        'Carlos PMO',
-        'carlos.pmo@empresa.com',
-        'GOOGLE',
-        'PMO',
-        true
-    ),
-    (
-        4,
-        'Diana Directora PMO',
-        'diana.director@empresa.com',
-        'GOOGLE',
-        'PMO',
-        true
-    ),
-    (
-        5,
-        'Gerardo Gerente',
-        'gerardo.gerencia@empresa.com',
-        'GOOGLE',
-        'Gerencia',
-        true
-    ),
-    (
-        6,
-        'Pedro Presidencia',
-        'pedro.presidencia@empresa.com',
-        'GOOGLE',
-        'Presidencia',
-        true
-    ),
-    (
-        7,
-        'Sofia Interesada',
-        'sofia.interesada@empresa.com',
-        'GOOGLE',
-        'Operaciones',
-        true
-    ) ON CONFLICT (id) DO NOTHING;
 
--- 4. INSERTAR ASIGNACIÓN DE ROLES Y COMPAÑÍAS (Con NULL::integer para evitar error de tipos)
-INSERT INTO usuario_roles_compania (usuario_id, rol_id, compania_id) VALUES
-    (7, (SELECT id FROM roles WHERE codigo = 'PARTE_INTERESADA'), NULL::integer)
-ON CONFLICT DO NOTHING;
+-- Project Managers
+(
+    2,
+    'Laura PM',
+    'laura.pm@empresa.com',
+    'GOOGLE',
+    'Proyectos',
+    true
+),
+(
+    8,
+    'Mateo PM',
+    'mateo.pm@empresa.com',
+    'GOOGLE',
+    'Proyectos',
+    true
+),
 
+-- PMO
+(
+    3,
+    'Carlos PMO',
+    'carlos.pmo@empresa.com',
+    'GOOGLE',
+    'PMO',
+    true
+),
+(
+    9,
+    'Valentina PMO',
+    'valentina.pmo@empresa.com',
+    'GOOGLE',
+    'PMO',
+    true
+),
+
+-- Dirección PMO
+(
+    4,
+    'Diana Directora PMO',
+    'diana.director@empresa.com',
+    'GOOGLE',
+    'PMO',
+    true
+),
+
+-- Gerencia: 2 gerentes en Galletas (para probar el selector con varias
+-- opciones en la MISMA compañía) + 1 en Pastas + 1 en Snacks
+(
+    5,
+    'Gerardo Gerente (Galletas)',
+    'gerardo.gerencia@empresa.com',
+    'GOOGLE',
+    'Gerencia',
+    true
+),
+(
+    11,
+    'Gabriela Gerente (Galletas)',
+    'gabriela.gerencia@empresa.com',
+    'GOOGLE',
+    'Gerencia',
+    true
+),
+(
+    12,
+    'German Gerente (Pastas)',
+    'german.gerencia@empresa.com',
+    'GOOGLE',
+    'Gerencia',
+    true
+),
+(
+    13,
+    'Gloria Gerente (Snacks)',
+    'gloria.gerencia@empresa.com',
+    'GOOGLE',
+    'Gerencia',
+    true
+),
+
+-- Presidencia: 1 por compañía
+(
+    6,
+    'Pedro Presidencia (Galletas)',
+    'pedro.presidencia@empresa.com',
+    'GOOGLE',
+    'Presidencia',
+    true
+),
+(
+    14,
+    'Patricia Presidencia (Pastas)',
+    'patricia.presidencia@empresa.com',
+    'GOOGLE',
+    'Presidencia',
+    true
+),
+(
+    15,
+    'Pablo Presidencia (Snacks)',
+    'pablo.presidencia@empresa.com',
+    'GOOGLE',
+    'Presidencia',
+    true
+),
+
+-- Partes Interesadas
+(
+    7,
+    'Sofia Interesada',
+    'sofia.interesada@empresa.com',
+    'GOOGLE',
+    'Operaciones',
+    true
+),
+(
+    16,
+    'Simon Interesado',
+    'simon.interesado@empresa.com',
+    'GOOGLE',
+    'Calidad',
+    true
+),
+
+-- Usuario SIN ningún rol todavía (para probar la pantalla de "pendiente
+-- de asignación" y el correo automático de ROL_ASIGNADO cuando se lo den)
+(
+    10,
+    'Nuevo Sin Rol',
+    'nuevo.sinrol@empresa.com',
+    'GOOGLE',
+    'Sin asignar',
+    true
+),
+(
+    17,
+    'Camila Control Gestion',
+    'camila.cg@empresa.com',
+    'GOOGLE',
+    'Control de Gestión',
+    true
+),
+(
+    18,
+    'Cristian Control Gestion',
+    'cristian.cg@empresa.com',
+    'GOOGLE',
+    'Control de Gestión',
+    true
+) ON CONFLICT (id) DO NOTHING;
+
+-- 4. ASIGNACIÓN DE ROLES POR COMPAÑÍA
+-- Roles "globales" (compania_id = NULL): actúan en cualquier compañía.
 INSERT INTO usuario_roles_compania (usuario_id, rol_id, compania_id)
 SELECT 1, id, NULL::integer FROM roles WHERE codigo = 'ADMIN'
 UNION ALL
 SELECT 2, id, NULL::integer FROM roles WHERE codigo = 'PM'
 UNION ALL
+SELECT 8, id, NULL::integer FROM roles WHERE codigo = 'PM'
+UNION ALL
 SELECT 3, id, NULL::integer FROM roles WHERE codigo = 'PMO'
+UNION ALL
+SELECT 9, id, NULL::integer FROM roles WHERE codigo = 'PMO'
 UNION ALL
 SELECT 4, id, NULL::integer FROM roles WHERE codigo = 'DIRECTOR_PMO'
 UNION ALL
-SELECT 5, id, NULL::integer FROM roles WHERE codigo = 'GERENCIA'
+SELECT 7, id, NULL::integer FROM roles WHERE codigo = 'PARTE_INTERESADA'
 UNION ALL
-SELECT 6, id, NULL::integer FROM roles WHERE codigo = 'PRESIDENCIA'
+SELECT 16, id, NULL::integer FROM roles WHERE codigo = 'PARTE_INTERESADA'
+UNION ALL
+SELECT 17, id, NULL::integer FROM roles WHERE codigo = 'CONTROL_GESTION'
+UNION ALL
+SELECT 18, id, NULL::integer FROM roles WHERE codigo = 'CONTROL_GESTION'
 ON CONFLICT DO NOTHING;
 
--- 4.1 USUARIOS ADICIONALES DE PRUEBA (para validar visibilidad con roles duplicados)
+-- Roles puntuales por compañía (GERENCIA y PRESIDENCIA sí quedan atados a UNA
+-- compañía específica, para poder probar bien la visibilidad y el selector).
 INSERT INTO
-    usuarios (
-        id,
-        nombre,
-        email,
-        proveedor_auth,
-        area,
-        activo
+    usuario_roles_compania (
+        usuario_id,
+        rol_id,
+        compania_id
     )
-VALUES (
-        8,
-        'Mateo PM',
-        'mateo.pm@empresa.com',
-        'GOOGLE',
-        'Proyectos',
-        true
-    ),
-    (
-        9,
-        'Valentina PMO',
-        'valentina.pmo@empresa.com',
-        'GOOGLE',
-        'PMO',
-        true
-    ) ON CONFLICT (id) DO NOTHING;
-
-INSERT INTO usuario_roles_compania (usuario_id, rol_id, compania_id)
-SELECT 8, id, NULL::integer FROM roles WHERE codigo = 'PM'
+SELECT 5, id, 1
+FROM roles
+WHERE
+    codigo = 'GERENCIA' -- Gerardo -> Galletas
 UNION ALL
-SELECT 9, id, NULL::integer FROM roles WHERE codigo = 'PMO'
-ON CONFLICT DO NOTHING;
+SELECT 11, id, 1
+FROM roles
+WHERE
+    codigo = 'GERENCIA' -- Gabriela -> Galletas (2do gerente, mismo compañía)
+UNION ALL
+SELECT 12, id, 2
+FROM roles
+WHERE
+    codigo = 'GERENCIA' -- German -> Pastas
+UNION ALL
+SELECT 13, id, 3
+FROM roles
+WHERE
+    codigo = 'GERENCIA' -- Gloria -> Snacks
+UNION ALL
+SELECT 6, id, 1
+FROM roles
+WHERE
+    codigo = 'PRESIDENCIA' -- Pedro -> Galletas
+UNION ALL
+SELECT 14, id, 2
+FROM roles
+WHERE
+    codigo = 'PRESIDENCIA' -- Patricia -> Pastas
+UNION ALL
+SELECT 15, id, 3
+FROM roles
+WHERE
+    codigo = 'PRESIDENCIA' -- Pablo -> Snacks
+    ON CONFLICT DO NOTHING;
 
 -- 5. CLASIFICACIÓN NUEVA (CATEGORÍAS DIRECTAS)
 -- "Crecimiento Estratégico" y "Productividad y Mejora" exigen evaluación
 -- financiera obligatoria; "Sostenimiento y Continuidad" no.
 INSERT INTO
-    categorias (id, nombre, requiere_evaluacion_obligatoria)
-VALUES (1, 'Crecimiento Estratégico', true),
-    (2, 'Productividad y Mejora', true),
+    categorias (
+        id,
+        nombre,
+        requiere_evaluacion_obligatoria
+    )
+VALUES (
+        1,
+        'Crecimiento Estratégico',
+        true
+    ),
+    (
+        2,
+        'Productividad y Mejora',
+        true
+    ),
     (
         3,
         'Sostenimiento y Continuidad',
@@ -292,25 +434,6 @@ VALUES (
         14,
         7,
         'Innovación Radical (H2 y H3)',
-        true
-    ) ON CONFLICT (id) DO NOTHING;
-
--- Usuario de prueba SIN NINGÚN ROL (para probar la pantalla de "pendiente")
-INSERT INTO
-    usuarios (
-        id,
-        nombre,
-        email,
-        proveedor_auth,
-        area,
-        activo
-    )
-VALUES (
-        10,
-        'Nuevo Sin Rol',
-        'nuevo.sinrol@empresa.com',
-        'GOOGLE',
-        'Sin asignar',
         true
     ) ON CONFLICT (id) DO NOTHING;
 

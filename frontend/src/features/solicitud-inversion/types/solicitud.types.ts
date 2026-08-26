@@ -102,9 +102,11 @@ export interface SolicitudInversionDetalle {
     subprogramas?: {
       id: number;
       nombre: string;
+      programa_id: number; // 👈 Prisma lo trae solo (usa "include", no "select")
       programas: {
         id: number;
         nombre: string;
+        id_grupo: number; // 👈 Prisma lo trae solo (usa "include", no "select")
         grupos: {
           id: number;
           nombre: string;

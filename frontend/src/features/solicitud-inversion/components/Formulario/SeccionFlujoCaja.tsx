@@ -1,10 +1,13 @@
+import { useState } from 'react';
 import {
-  Card, CardContent, Box, Typography, Button, Paper, FormGroup, FormControlLabel, Checkbox,
+  Card, CardContent, Box, Typography, Button, FormGroup, FormControlLabel, Checkbox,
   Alert, TableContainer, Table, TableHead, TableRow, TableCell, TableBody, TextField,
-  MenuItem, IconButton, Tooltip
+  MenuItem, IconButton, Tooltip, Accordion, AccordionSummary, AccordionDetails, Chip,
+  Select, OutlinedInput, ToggleButtonGroup, ToggleButton
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import type { FlujoCaja } from '../../types/solicitud.types';
 
 const TODOS_LOS_MESES = [
@@ -13,6 +16,10 @@ const TODOS_LOS_MESES = [
   { num: 7, nombre: 'Julio' }, { num: 8, nombre: 'Agosto' }, { num: 9, nombre: 'Septiembre' },
   { num: 10, nombre: 'Octubre' }, { num: 11, nombre: 'Noviembre' }, { num: 12, nombre: 'Diciembre' },
 ];
+const NOMBRE_CORTO: Record<number, string> = {
+  1: 'Ene', 2: 'Feb', 3: 'Mar', 4: 'Abr', 5: 'May', 6: 'Jun',
+  7: 'Jul', 8: 'Ago', 9: 'Sep', 10: 'Oct', 11: 'Nov', 12: 'Dic',
+};
 
 type Tipo = 'CAPEX' | 'GCAPEX' | 'OPEX';
 type Moneda = 'USD' | 'COP';
@@ -24,6 +31,8 @@ interface Props {
   setTiposSeleccionados: React.Dispatch<React.SetStateAction<Record<number, Tipo[]>>>;
   mesesSeleccionados?: Record<number, number[]>;
   setMesesSeleccionados: React.Dispatch<React.SetStateAction<Record<number, number[]>>>;
+  tiposPorMes?: Record<string, Tipo[]>;
+  setTiposPorMes: React.Dispatch<React.SetStateAction<Record<string, Tipo[]>>>;
   monedaPorColumna?: Record<string, Moneda>;
   setMonedaPorColumna: React.Dispatch<React.SetStateAction<Record<string, Moneda>>>;
   flujos?: FlujoCaja[];
@@ -37,6 +46,8 @@ export function SeccionFlujoCaja({
   setTiposSeleccionados,
   mesesSeleccionados = {},
   setMesesSeleccionados,
+  tiposPorMes = {},
+  setTiposPorMes,
   monedaPorColumna = {},
   setMonedaPorColumna,
   flujos = [],
@@ -46,7 +57,16 @@ export function SeccionFlujoCaja({
   const safeFlujos = Array.isArray(flujos) ? flujos : [];
   const safeTiposSeleccionados = tiposSeleccionados || {};
   const safeMesesSeleccionados = mesesSeleccionados || {};
+  const safeTiposPorMes = tiposPorMes || {};
   const safeMonedaPorColumna = monedaPorColumna || {};
+
+  const [anioExpandido, setAnioExpandido] = useState<number | false>(
+    safeAniosFlujo.length ? safeAniosFlujo[safeAniosFlujo.length - 1] : false,
+  );
+
+  const claveMes = (anio: number, mesNum: number) => `${anio}_${mesNum}`;
+  const tiposDelMes = (anio: number, mesNum: number, tiposAnio: Tipo[]): Tipo[] =>
+    safeTiposPorMes[claveMes(anio, mesNum)] || tiposAnio;
 
   const claveColumna = (anio: number, tipo: string) => `${anio}_${tipo}`;
   const monedaDeColumna = (anio: number, tipo: string): Moneda => safeMonedaPorColumna[claveColumna(anio, tipo)] || 'COP';
@@ -58,6 +78,7 @@ export function SeccionFlujoCaja({
     setAniosFlujo([...safeAniosFlujo, nuevoAnio]);
     setTiposSeleccionados((prev) => ({ ...(prev || {}), [nuevoAnio]: ['CAPEX'] }));
     setMesesSeleccionados((prev) => ({ ...(prev || {}), [nuevoAnio]: [] }));
+    setAnioExpandido(nuevoAnio);
   };
 
   const eliminarAnioFlujo = (anioEliminar: number) => {
@@ -69,6 +90,13 @@ export function SeccionFlujoCaja({
       delete nuevo[anioEliminar];
       return nuevo;
     });
+    setTiposPorMes((prev) => {
+      const nuevo = { ...(prev || {}) };
+      Object.keys(nuevo).forEach((clave) => {
+        if (clave.startsWith(`${anioEliminar}_`)) delete nuevo[clave];
+      });
+      return nuevo;
+    });
   };
 
   const quitarFlujosDeTipo = (anio: number, tipos: Tipo[]) => {
@@ -77,10 +105,33 @@ export function SeccionFlujoCaja({
         (f) => !(Number(f.anio) === Number(anio) && tipos.includes((f as any).tipo)),
       ),
     );
+    setTiposPorMes((prev) => {
+      const nuevo = { ...(prev || {}) };
+      Object.keys(nuevo).forEach((clave) => {
+        if (clave.startsWith(`${anio}_`)) {
+          nuevo[clave] = nuevo[clave].filter((t) => !tipos.includes(t));
+        }
+      });
+      return nuevo;
+    });
   };
 
-  // 🔀 CAPEX y OPEX son mutuamente excluyentes: marcar uno apaga el otro
-  // (y su hijo GCAPEX, si aplica).
+  const handleToggleTipoDelMes = (anio: number, mesNum: number, tipo: Tipo, checked: boolean, tiposAnio: Tipo[]) => {
+    const clave = claveMes(anio, mesNum);
+    setTiposPorMes((prev) => {
+      const actuales = (prev || {})[clave] || tiposAnio;
+      const nuevos = checked ? Array.from(new Set([...actuales, tipo])) : actuales.filter((t) => t !== tipo);
+      return { ...(prev || {}), [clave]: nuevos };
+    });
+    if (!checked) {
+      setFlujos((prev) =>
+        (Array.isArray(prev) ? prev : []).filter(
+          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo),
+        ),
+      );
+    }
+  };
+
   const handleToggleCapex = (anio: number, checked: boolean) => {
     const actuales = safeTiposSeleccionados[anio] || [];
     let nuevos: Tipo[];
@@ -119,28 +170,29 @@ export function SeccionFlujoCaja({
     setTiposSeleccionados({ ...safeTiposSeleccionados, [anio]: nuevos });
   };
 
-  // ✅ Selección múltiple de meses: marcar/desmarcar un checkbox agrega o
-  // quita ese mes de una vez (ya no es de a uno con un dropdown).
-  const handleToggleMes = (anio: number, mesNum: number, checked: boolean) => {
-    setMesesSeleccionados((prev) => {
-      const actuales = (prev || {})[anio] || [];
-      const nuevos = checked
-        ? Array.from(new Set([...actuales, mesNum])).sort((a, b) => a - b)
-        : actuales.filter((m) => m !== mesNum);
-      return { ...(prev || {}), [anio]: nuevos };
-    });
-    if (!checked) {
+  const handleCambiarMeses = (anio: number, valores: number[]) => {
+    const nuevos = [...valores].sort((a, b) => a - b);
+    const actuales = safeMesesSeleccionados[anio] || [];
+    const quitados = actuales.filter((m) => !nuevos.includes(m));
+
+    setMesesSeleccionados((prev) => ({ ...(prev || {}), [anio]: nuevos }));
+
+    if (quitados.length) {
       setFlujos((prev) =>
         (Array.isArray(prev) ? prev : []).filter(
-          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum)),
+          (f) => !(Number(f.anio) === Number(anio) && quitados.includes(Number(f.mes))),
         ),
       );
+      setTiposPorMes((prev) => {
+        const nuevo = { ...(prev || {}) };
+        quitados.forEach((m) => delete nuevo[claveMes(anio, m)]);
+        return nuevo;
+      });
     }
   };
 
   const cambiarMonedaColumna = (anio: number, tipo: Tipo, moneda: Moneda) => {
     setMonedaPorColumna((prev) => ({ ...(prev || {}), [claveColumna(anio, tipo)]: moneda }));
-    // Re-etiquetamos las filas ya cargadas de esa columna para que queden consistentes.
     setFlujos((prev) =>
       (Array.isArray(prev) ? prev : []).map((f) =>
         Number(f.anio) === Number(anio) && (f as any).tipo === tipo ? { ...f, moneda } : f,
@@ -171,19 +223,9 @@ export function SeccionFlujoCaja({
     });
   };
 
-  const calcularTotalMes = (anio: number, mesNum: number, tipos: string[]) =>
-    safeFlujos
-      .filter((f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && tipos.includes((f as any).tipo))
-      .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
-
   const calcularTotalColumna = (anio: number, tipo: string) =>
     safeFlujos
       .filter((f) => f && Number(f.anio) === Number(anio) && (f as any).tipo === tipo)
-      .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
-
-  const calcularGranTotalAnio = (anio: number, tipos: string[]) =>
-    safeFlujos
-      .filter((f) => f && Number(f.anio) === Number(anio) && tipos.includes((f as any).tipo))
       .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
 
   return (
@@ -204,128 +246,180 @@ export function SeccionFlujoCaja({
           const tiposColumnasActivos = (['CAPEX', 'GCAPEX', 'OPEX'] as const).filter((t) => tiposAnio.includes(t));
           const mesesListados = [...(safeMesesSeleccionados[anio] || [])].sort((a, b) => a - b);
 
-          // ⚠️ Meses marcados pero sin ningún valor cargado todavía en ninguna
-          // de las columnas activas — aviso visual antes de que intenten guardar.
-          const mesesIncompletos = mesesListados.filter(
-            (mesNum) => calcularTotalMes(anio, mesNum, tiposColumnasActivos) <= 0,
-          );
+          const mesesIncompletos = mesesListados.filter((mesNum) => {
+            const tiposDeEsteMes = tiposDelMes(anio, mesNum, tiposColumnasActivos);
+            if (tiposDeEsteMes.length === 0) return true;
+            return tiposDeEsteMes.some((tipo) => {
+              const monto = safeFlujos.find(
+                (f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo,
+              )?.monto;
+              return !monto || Number(monto) <= 0;
+            });
+          });
+
+          const resumenMeses = mesesListados.length
+            ? mesesListados.map((m) => NOMBRE_CORTO[m]).join(', ')
+            : 'sin meses';
 
           return (
-            <Paper key={anio} variant="outlined" sx={{ p: 2.5, mb: 3, borderRadius: 2, backgroundColor: '#f8fafc' }}>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, flexWrap: 'wrap', gap: 1 }}>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: '#0e381e' }}>Año {anio}</Typography>
-                {safeAniosFlujo.length > 1 && (
-                  <Button size="small" color="error" startIcon={<DeleteIcon />} onClick={() => eliminarAnioFlujo(anio)}>
-                    Eliminar Año
-                  </Button>
-                )}
-              </Box>
-
-              <Box sx={{ mb: 3, p: 2, border: '1px dashed #cbd5e1', borderRadius: 2, backgroundColor: '#ffffff' }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
-                  ¿Qué tipo de flujo requiere el año {anio}? (CAPEX y OPEX son excluyentes)
-                </Typography>
-                <FormGroup row sx={{ gap: 3, alignItems: 'center' }}>
-                  <FormControlLabel
-                    control={<Checkbox size="small" checked={tieneCapex} onChange={(e) => handleToggleCapex(anio, e.target.checked)} />}
-                    label={<Typography variant="body2" sx={{ fontWeight: 700 }}>CAPEX (Activo)</Typography>}
-                  />
-                  {tieneCapex && (
-                    <Box sx={{ borderLeft: '2px solid #cbd5e1', pl: 1.5, my: 0.5 }}>
-                      <FormControlLabel
-                        control={<Checkbox size="small" color="secondary" checked={tieneGcapex} onChange={(e) => handleToggleGcapex(anio, e.target.checked)} />}
-                        label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>¿Incluye GCAPEX? (Gasto)</Typography>}
-                      />
-                    </Box>
-                  )}
-                  <FormControlLabel
-                    control={<Checkbox size="small" checked={tieneOpex} onChange={(e) => handleToggleOpex(anio, e.target.checked)} />}
-                    label={<Typography variant="body2" sx={{ fontWeight: 700 }}>OPEX (Gasto)</Typography>}
-                  />
-                </FormGroup>
-              </Box>
-
-              {/* ✅ Selección múltiple de meses: marca todos los que necesites de una vez */}
-              <Box sx={{ mb: 2.5, p: 2, border: '1px dashed #cbd5e1', borderRadius: 2, backgroundColor: '#ffffff' }}>
-                <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
-                  ¿Qué meses vas a usar en {anio}?
-                </Typography>
-                <FormGroup row sx={{ columnGap: 2, rowGap: 0.5 }}>
-                  {TODOS_LOS_MESES.map((m) => (
-                    <FormControlLabel
-                      key={m.num}
-                      control={
-                        <Checkbox
-                          size="small"
-                          checked={mesesListados.includes(m.num)}
-                          onChange={(e) => handleToggleMes(anio, m.num, e.target.checked)}
-                        />
-                      }
-                      label={<Typography variant="body2">{m.nombre}</Typography>}
-                    />
+            <Accordion
+              key={anio}
+              expanded={anioExpandido === anio}
+              onChange={(_, expandido) => setAnioExpandido(expandido ? anio : false)}
+              disableGutters
+              sx={{ mb: 1.5, borderRadius: 2, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}
+            >
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: '#f8fafc', borderRadius: 2 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', width: '100%', pr: 1 }}>
+                  <Typography sx={{ fontWeight: 700, color: '#0e381e' }}>Año {anio}</Typography>
+                  {tiposColumnasActivos.map((t) => (
+                    <Chip key={t} label={t} size="small" color={mesesIncompletos.length > 0 ? 'default' : 'success'} variant="outlined" />
                   ))}
-                </FormGroup>
-              </Box>
-
-              {tiposColumnasActivos.length === 0 ? (
-                <Alert severity="info">Selecciona CAPEX u OPEX para desplegar la tabla de flujo de caja.</Alert>
-              ) : mesesListados.length === 0 ? (
-                <Alert severity="warning">Marca al menos un mes arriba para empezar a cargar montos.</Alert>
-              ) : (
-                <>
+                  <Typography variant="caption" sx={{ color: '#64748b' }}>{resumenMeses}</Typography>
                   {mesesIncompletos.length > 0 && (
-                    <Alert severity="error" sx={{ mb: 1.5 }}>
-                      Falta ingresar el valor de: {mesesIncompletos.map((m) => TODOS_LOS_MESES.find((x) => x.num === m)?.nombre).join(', ')}.
-                      No puede quedar en blanco ni en 0 para un mes seleccionado.
-                    </Alert>
+                    <Chip label={`${mesesIncompletos.length} sin completar`} size="small" color="error" />
                   )}
-                  <TableContainer sx={{ overflowX: 'auto', maxWidth: '100%', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
-                    <Table size="small">
-                      <TableHead>
+                  <Box sx={{ flexGrow: 1 }} />
+                  {safeAniosFlujo.length > 1 && (
+                    <Tooltip title="Eliminar año">
+                      <IconButton
+                        size="small" color="error"
+                        onClick={(e) => { e.stopPropagation(); eliminarAnioFlujo(anio); }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Box>
+              </AccordionSummary>
+
+              <AccordionDetails sx={{ pt: 1 }}>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' },
+                    gap: 2,
+                    mb: 2,
+                    width: '100%',
+                  }}
+                >
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
+                      Tipo de flujo (CAPEX y OPEX son excluyentes)
+                    </Typography>
+                    <FormGroup row sx={{ gap: 1.5, alignItems: 'center' }}>
+                      <FormControlLabel
+                        control={<Checkbox size="small" checked={tieneCapex} onChange={(e) => handleToggleCapex(anio, e.target.checked)} />}
+                        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>CAPEX</Typography>}
+                      />
+                      {tieneCapex && (
+                        <FormControlLabel
+                          control={<Checkbox size="small" color="secondary" checked={tieneGcapex} onChange={(e) => handleToggleGcapex(anio, e.target.checked)} />}
+                          label={<Typography variant="body2" sx={{ color: '#475569' }}>+ GCAPEX</Typography>}
+                        />
+                      )}
+                      <FormControlLabel
+                        control={<Checkbox size="small" checked={tieneOpex} onChange={(e) => handleToggleOpex(anio, e.target.checked)} />}
+                        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>OPEX</Typography>}
+                      />
+                    </FormGroup>
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
+                      Meses a usar en {anio}
+                    </Typography>
+                    <Select
+                      multiple size="small" fullWidth displayEmpty
+                      value={mesesListados}
+                      onChange={(e) => handleCambiarMeses(anio, (typeof e.target.value === 'string' ? [] : e.target.value) as number[])}
+                      input={<OutlinedInput />}
+                      renderValue={(seleccionados) =>
+                        (seleccionados as number[]).length === 0
+                          ? <Typography variant="body2" sx={{ color: '#94a3b8' }}>Selecciona meses...</Typography>
+                          : (
+                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                              {[...(seleccionados as number[])].sort((a, b) => a - b).map((m) => (
+                                <Chip key={m} label={NOMBRE_CORTO[m]} size="small" />
+                              ))}
+                            </Box>
+                          )
+                      }
+                    >
+                      {TODOS_LOS_MESES.map((m) => (
+                        <MenuItem key={m.num} value={m.num}>
+                          <Checkbox size="small" checked={mesesListados.includes(m.num)} />
+                          {m.nombre}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </Box>
+                </Box>
+
+                {tiposColumnasActivos.length === 0 ? (
+                  <Alert severity="info">Selecciona CAPEX u OPEX para desplegar la tabla de flujo de caja.</Alert>
+                ) : mesesListados.length === 0 ? (
+                  <Alert severity="warning">Elige al menos un mes arriba para empezar a cargar montos.</Alert>
+                ) : (
+                  <TableContainer sx={{ overflowX: 'auto', width: '100%', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
+                    <Table size="small" sx={{ width: '100%', '& .MuiTableCell-root': { py: 0.5 } }}>
+                      <TableHead sx={{ backgroundColor: '#f1f5f9' }}>
                         <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                          <TableCell sx={{ fontWeight: 700, minWidth: 140, width: 140 }}>Mes</TableCell>
+                          <TableCell sx={{ fontWeight: 700, minWidth: 70, width: 70 }}>Mes</TableCell>
                           {tiposColumnasActivos.map((tipo) => (
-                            <TableCell key={tipo} align="center" sx={{ fontWeight: 700, minWidth: 190 }}>
-                              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5 }}>
+                            <TableCell key={tipo} align="center" sx={{ fontWeight: 700, minWidth: 210 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                                 <span>{tipo}</span>
-                                <TextField
-                                  select size="small" value={monedaDeColumna(anio, tipo)}
-                                  onChange={(e) => cambiarMonedaColumna(anio, tipo, e.target.value as Moneda)}
-                                  sx={{ minWidth: 90 }}
-                                  slotProps={{ select: { sx: { fontSize: '0.75rem', py: 0.5 } } }}
+                                <ToggleButtonGroup
+                                  size="small" exclusive value={monedaDeColumna(anio, tipo)}
+                                  onChange={(_, val) => val && cambiarMonedaColumna(anio, tipo, val)}
+                                  sx={{ '& .MuiToggleButton-root': { py: 0, px: 1, fontSize: '0.7rem' } }}
                                 >
-                                  <MenuItem value="COP">COP</MenuItem>
-                                  <MenuItem value="USD">USD</MenuItem>
-                                </TextField>
+                                  <ToggleButton value="COP">COP</ToggleButton>
+                                  <ToggleButton value="USD">USD</ToggleButton>
+                                </ToggleButtonGroup>
                               </Box>
                             </TableCell>
                           ))}
-                          <TableCell align="right" sx={{ fontWeight: 700, minWidth: 150 }}>Total Mes</TableCell>
-                          <TableCell align="center" sx={{ width: 60 }}></TableCell>
+                          <TableCell align="center" sx={{ width: 40 }} />
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {mesesListados.map((mesNum) => {
-                          const infoMes = TODOS_LOS_MESES.find((m) => m.num === mesNum);
-                          const totalMes = calcularTotalMes(anio, mesNum, tiposColumnasActivos);
+                          const tiposDeEsteMes = tiposDelMes(anio, mesNum, tiposColumnasActivos);
                           return (
                             <TableRow key={mesNum} hover>
-                              <TableCell sx={{ fontWeight: 600, color: '#334155' }}>{infoMes?.nombre || `Mes ${mesNum}`}</TableCell>
-                              {tiposColumnasActivos.map((tipo) => (
-                                <TableCell key={tipo} align="center" sx={{ p: 1 }}>
-                                  <TextField
-                                    fullWidth size="small" placeholder="0"
-                                    error={obtenerMonto(anio, tipo, mesNum) === ''}
-                                    slotProps={{ htmlInput: { style: { textAlign: 'center', padding: '8px' } } }}
-                                    value={obtenerMonto(anio, tipo, mesNum)}
-                                    onChange={(e) => actualizarMonto(anio, tipo, mesNum, e.target.value)}
-                                  />
-                                </TableCell>
-                              ))}
-                              <TableCell align="right" sx={{ fontWeight: 700, color: '#0f172a' }}>${totalMes.toLocaleString()}</TableCell>
+                              <TableCell sx={{ fontWeight: 600, color: '#334155' }}>{NOMBRE_CORTO[mesNum]}</TableCell>
+                              {tiposColumnasActivos.map((tipo) => {
+                                const aplicaEsteMes = tiposDeEsteMes.includes(tipo);
+                                return (
+                                  <TableCell key={tipo} align="center" sx={{ p: 0.5 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                      <Tooltip title={`¿${tipo} aplica en ${NOMBRE_CORTO[mesNum]}?`}>
+                                        <Checkbox
+                                          size="small"
+                                          checked={aplicaEsteMes}
+                                          onChange={(e) => handleToggleTipoDelMes(anio, mesNum, tipo, e.target.checked, tiposColumnasActivos)}
+                                          sx={{ p: 0.5 }}
+                                        />
+                                      </Tooltip>
+                                      {aplicaEsteMes ? (
+                                        <TextField
+                                          fullWidth size="small" placeholder="0"
+                                          slotProps={{ htmlInput: { style: { textAlign: 'center', padding: '6px' } } }}
+                                          value={obtenerMonto(anio, tipo, mesNum)}
+                                          onChange={(e) => actualizarMonto(anio, tipo, mesNum, e.target.value)}
+                                        />
+                                      ) : (
+                                        <Typography variant="caption" sx={{ color: '#94a3b8', flexGrow: 1 }}>N/A</Typography>
+                                      )}
+                                    </Box>
+                                  </TableCell>
+                                );
+                              })}
                               <TableCell align="center">
                                 <Tooltip title="Quitar mes">
-                                  <IconButton size="small" color="error" onClick={() => handleToggleMes(anio, mesNum, false)}>
+                                  <IconButton size="small" color="error" onClick={() => handleCambiarMeses(anio, mesesListados.filter((m) => m !== mesNum))}>
                                     <DeleteIcon fontSize="small" />
                                   </IconButton>
                                 </Tooltip>
@@ -333,24 +427,23 @@ export function SeccionFlujoCaja({
                             </TableRow>
                           );
                         })}
+
                         <TableRow sx={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
-                          <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>Total Año {anio}</TableCell>
+                          <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>Total</TableCell>
                           {tiposColumnasActivos.map((tipo) => (
                             <TableCell key={tipo} align="center" sx={{ fontWeight: 800, color: '#0e381e' }}>
-                              ${calcularTotalColumna(anio, tipo).toLocaleString()}
+                              {monedaDeColumna(anio, tipo) === 'USD' ? 'US$' : '$'}{calcularTotalColumna(anio, tipo).toLocaleString()}
+                              {monedaDeColumna(anio, tipo) === 'COP' ? ' COP' : ''}
                             </TableCell>
                           ))}
-                          <TableCell align="right" sx={{ fontWeight: 800, color: '#0e381e', fontSize: '0.95rem' }}>
-                            ${calcularGranTotalAnio(anio, tiposColumnasActivos).toLocaleString()}
-                          </TableCell>
                           <TableCell />
                         </TableRow>
                       </TableBody>
                     </Table>
                   </TableContainer>
-                </>
-              )}
-            </Paper>
+                )}
+              </AccordionDetails>
+            </Accordion>
           );
         })}
       </CardContent>

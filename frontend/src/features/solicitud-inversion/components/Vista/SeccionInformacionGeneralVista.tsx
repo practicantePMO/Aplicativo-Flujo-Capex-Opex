@@ -2,11 +2,12 @@ import { Card, CardContent, Typography, Grid } from '@mui/material';
 
 interface Props {
   nombrePm?: string;
-  categoriaTexto: string;
+  categoriaTradicional?: string;
+  categoriaNueva?: string;
   entregablePlaneado?: string;
 }
 
-export function SeccionInformacionGeneralVista({ nombrePm, categoriaTexto, entregablePlaneado }: Props) {
+export function SeccionInformacionGeneralVista({ nombrePm, categoriaTradicional, categoriaNueva, entregablePlaneado }: Props) {
   return (
     <Card
       elevation={0}
@@ -81,7 +82,19 @@ export function SeccionInformacionGeneralVista({ nombrePm, categoriaTexto, entre
               Categoría
             </Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', display: 'block', textAlign: 'left' }}>
-              {categoriaTexto}
+              {!categoriaTradicional && !categoriaNueva && '—'}
+              {categoriaTradicional && (
+                <Typography component="span" variant="body2" sx={{ display: 'block', fontWeight: 600 }}>
+                  <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>Tradicional: </Typography>
+                  {categoriaTradicional}
+                </Typography>
+              )}
+              {categoriaNueva && (
+                <Typography component="span" variant="body2" sx={{ display: 'block', fontWeight: 600, mt: categoriaTradicional ? 0.5 : 0 }}>
+                  <Typography component="span" variant="caption" sx={{ color: 'text.secondary', fontWeight: 700 }}>Nueva: </Typography>
+                  {categoriaNueva}
+                </Typography>
+              )}
             </Typography>
           </Grid>
 

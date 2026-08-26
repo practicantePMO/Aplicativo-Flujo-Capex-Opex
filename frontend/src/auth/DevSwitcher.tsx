@@ -3,17 +3,27 @@ import { useAuth } from './AuthContext';
 import { Box, Button, Paper, Typography, Menu, MenuItem, Chip } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
-// Lista de los 7 usuarios del seed de prueba
+// Lista de los 16 usuarios del seed de prueba
+// ⚠️ Esta lista NO se lee de la base de datos — si vuelves a cambiar el seed
+// (agregar/quitar usuarios), hay que actualizarla también aquí a mano.
 const USUARIOS_PRUEBA = [
   { id: 1, nombre: 'Ana (Admin)', rol: 'ADMIN', compania: 'Global' },
-  { id: 2, nombre: 'Laura (PM)', rol: 'PM', compania: 'Galletas' },
-  { id: 3, nombre: 'Carlos (PMO)', rol: 'PMO', compania: 'Galletas' },
-  { id: 4, nombre: 'Diana (Director PMO)', rol: 'DIRECTOR_PMO', compania: 'Galletas' },
+  { id: 2, nombre: 'Laura (PM)', rol: 'PM', compania: 'Global' },
+  { id: 8, nombre: 'Mateo (PM)', rol: 'PM', compania: 'Global' },
+  { id: 3, nombre: 'Carlos (PMO)', rol: 'PMO', compania: 'Global' },
+  { id: 9, nombre: 'Valentina (PMO)', rol: 'PMO', compania: 'Global' },
+  { id: 4, nombre: 'Diana (Director PMO)', rol: 'DIRECTOR_PMO', compania: 'Global' },
   { id: 5, nombre: 'Gerardo (Gerencia)', rol: 'GERENCIA', compania: 'Galletas' },
-  { id: 6, nombre: 'Pedro (Presidencia)', rol: 'PRESIDENCIA', compania: 'Global' },
-  { id: 7, nombre: 'Sofía (Parte Interesada)', rol: 'PARTE_INTERESADA', compania: 'Galletas' },
-  { id: 8, nombre: 'Mateo (PM #2)', rol: 'PM', compania: 'Global' },
-  { id: 9, nombre: 'Valentina (PMO #2)', rol: 'PMO', compania: 'Global' },
+  { id: 11, nombre: 'Gabriela (Gerencia)', rol: 'GERENCIA', compania: 'Galletas' },
+  { id: 12, nombre: 'German (Gerencia)', rol: 'GERENCIA', compania: 'Pastas' },
+  { id: 13, nombre: 'Gloria (Gerencia)', rol: 'GERENCIA', compania: 'Snacks' },
+  { id: 6, nombre: 'Pedro (Presidencia)', rol: 'PRESIDENCIA', compania: 'Galletas' },
+  { id: 14, nombre: 'Patricia (Presidencia)', rol: 'PRESIDENCIA', compania: 'Pastas' },
+  { id: 15, nombre: 'Pablo (Presidencia)', rol: 'PRESIDENCIA', compania: 'Snacks' },
+  { id: 7, nombre: 'Sofia (Parte Interesada)', rol: 'PARTE_INTERESADA', compania: 'Global' },
+  { id: 16, nombre: 'Simon (Parte Interesada)', rol: 'PARTE_INTERESADA', compania: 'Global' },
+  { id: 17, nombre: 'Camila (Control Gestión)', rol: 'CONTROL_GESTION', compania: 'Global' },
+  { id: 18, nombre: 'Cristian (Control Gestión)', rol: 'CONTROL_GESTION', compania: 'Global' },
   { id: 10, nombre: 'Nuevo (sin rol)', rol: 'NINGUNO', compania: '—' },
 ];
 

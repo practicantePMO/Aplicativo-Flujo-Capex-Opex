@@ -9,9 +9,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import CloseIcon from '@mui/icons-material/Close';
 import TuneIcon from '@mui/icons-material/Tune';
+import EditIcon from '@mui/icons-material/Edit';
 import type { Usuario, RolDisponible } from '../types/usuario.types';
 import type { Compania } from '../../proyectos/types/proyecto.types';
-import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuario } from '../services/usuarios.service';
+import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuario, editarAreaUsuario } from '../services/usuarios.service';
 import { obtenerCompanias } from '../../proyectos/services/proyectos.service';
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
@@ -26,6 +27,9 @@ export function TablaUsuarios() {
   const [error, setError] = useState<string | null>(null);
   const [usuarioParaAsignar, setUsuarioParaAsignar] = useState<Usuario | null>(null);
   const [usuarioParaDesactivar, setUsuarioParaDesactivar] = useState<Usuario | null>(null);
+  const [usuarioParaEditarArea, setUsuarioParaEditarArea] = useState<Usuario | null>(null);
+  const [nuevaArea, setNuevaArea] = useState('');
+  const [guardandoArea, setGuardandoArea] = useState(false);
 
   // Filtros
   const [filtroSoloPendientes, setFiltroSoloPendientes] = useState(false);
@@ -97,7 +101,7 @@ export function TablaUsuarios() {
     }
   };
 
-  const confirmarDesactivar = async () => {
+    const confirmarDesactivar = async () => {
     if (!usuarioParaDesactivar) return;
     try {
       await cambiarActivoUsuario(usuarioParaDesactivar.id, false);
@@ -105,6 +109,25 @@ export function TablaUsuarios() {
       await cargarUsuarios();
     } catch (e: any) {
       alert(e.response?.data?.message || 'Error al desactivar al usuario.');
+    }
+  };
+
+  const abrirEditarArea = (u: Usuario) => {
+    setNuevaArea(u.area || '');
+    setUsuarioParaEditarArea(u);
+  };
+
+  const confirmarEditarArea = async () => {
+    if (!usuarioParaEditarArea || !nuevaArea.trim()) return;
+    try {
+      setGuardandoArea(true);
+      await editarAreaUsuario(usuarioParaEditarArea.id, nuevaArea.trim());
+      setUsuarioParaEditarArea(null);
+      await cargarUsuarios();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Error al actualizar el área.');
+    } finally {
+      setGuardandoArea(false);
     }
   };
 
@@ -213,7 +236,18 @@ export function TablaUsuarios() {
                           <Typography variant="body2" sx={{ fontWeight: 700, color: '#0f172a' }}>{u.nombre}</Typography>
                           <Typography variant="caption" color="text.secondary">{u.email}</Typography>
                         </TableCell>
-                        <TableCell sx={{ color: '#64748b', fontSize: '0.85rem' }}>{u.area || '—'}</TableCell>
+                        <TableCell sx={{ color: '#64748b', fontSize: '0.85rem' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {u.area || '—'}
+                            {puedeModificar && (
+                              <Tooltip title="Editar área">
+                                <IconButton size="small" onClick={() => abrirEditarArea(u)}>
+                                  <EditIcon sx={{ fontSize: '0.9rem' }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           {u.usuario_roles_compania.length === 0 ? (
                             <Chip label="Sin rol — en espera" size="small" color="warning" sx={{ fontWeight: 700, fontSize: '0.68rem' }} />
@@ -293,6 +327,22 @@ export function TablaUsuarios() {
           <Button onClick={() => setUsuarioParaDesactivar(null)}>Cancelar</Button>
           <Button variant="contained" color="error" onClick={confirmarDesactivar}>
             Sí, desactivar
+          </Button>
+        </DialogActions>
+      </Dialog>
+          <Dialog open={!!usuarioParaEditarArea} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Editar área de {usuarioParaEditarArea?.nombre}</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus fullWidth label="Área" value={nuevaArea}
+            onChange={(e) => setNuevaArea(e.target.value)}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUsuarioParaEditarArea(null)}>Cancelar</Button>
+          <Button variant="contained" color="secondary" onClick={confirmarEditarArea} disabled={guardandoArea || !nuevaArea.trim()}>
+            Guardar
           </Button>
         </DialogActions>
       </Dialog>

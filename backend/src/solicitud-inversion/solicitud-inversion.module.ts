@@ -11,5 +11,6 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
   imports: [PrismaModule, PermisosModule, NotificacionesModule],
   controllers: [SolicitudInversionController],
   providers: [SolicitudInversionService, SolicitudInversionConsultaService, SolicitudInversionHelpersService],
+  exports: [SolicitudInversionConsultaService],
 })
 export class SolicitudInversionModule {}

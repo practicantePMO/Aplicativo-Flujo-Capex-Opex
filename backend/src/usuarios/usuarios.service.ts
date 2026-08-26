@@ -267,6 +267,25 @@ export class UsuariosService {
     return { mensaje: activo ? 'Usuario activado exitosamente.' : 'Usuario desactivado exitosamente.' };
   }
 
+  // ✏️ Editar el área de un usuario — antes no existía NINGUNA forma de
+  // hacerlo desde la app (el campo solo se leía, nunca se escribía).
+  async editarArea(usuarioSolicitanteId: number, usuarioId: number, area: string) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: usuarioId },
+      include: { usuario_roles_compania: { include: { roles: true } } },
+    });
+    if (!usuario) throw new NotFoundException('El usuario no existe.');
+
+    const esAdminObjetivo = usuario.usuario_roles_compania.some((r) => r.roles?.codigo === 'ADMIN');
+    const esAdminSolicitante = await this.permisos.esAdminGlobal(usuarioSolicitanteId);
+    if (esAdminObjetivo && !esAdminSolicitante) {
+      throw new ForbiddenException('No tienes permiso para modificar a un Administrador.');
+    }
+
+    await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { area: area.trim() } });
+    return { mensaje: 'Área actualizada exitosamente.' };
+  }
+
   // 8. Catálogo de roles disponibles (para el desplegable de "asignar rol")
   async findRolesDisponibles() {
     return this.prisma.roles.findMany({

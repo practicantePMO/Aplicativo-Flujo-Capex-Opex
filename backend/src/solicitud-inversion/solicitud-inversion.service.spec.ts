@@ -27,7 +27,7 @@ describe('SolicitudInversionService', () => {
   const helpersMock = {
     obtenerProcesoConCompania: jest.fn(),
     obtenerEmailsPorRol: jest.fn().mockResolvedValue([]),
-    obtenerEmailsAsignados: jest.fn().mockResolvedValue([]),
+    obtenerAsignados: jest.fn().mockResolvedValue([]),
     validarPermisoParaEtapa: jest.fn(),
   };
 

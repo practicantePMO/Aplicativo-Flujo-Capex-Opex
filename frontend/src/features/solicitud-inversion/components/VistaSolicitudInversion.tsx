@@ -256,11 +256,15 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   // 👈 Formato condicional según el tipo de clasificación
-  const esNueva = (solicitud as any)?.tipo_clasificacion === 'NUEVA' || (solicitud as any)?.tipo_clasificacion === 'AMBAS';
-  const categoriaTexto = esNueva
-    ? `[Nueva Categoría] ${(solicitud as any)?.categorias?.nombre || '—'}`
-    : `${solicitud?.subprogramas?.programas?.grupos?.nombre || '—'} / ${solicitud?.subprogramas?.programas?.nombre || '—'} / ${solicitud?.subprogramas?.nombre || '—'}`;
-
+   // 👈 Muestra la(s) clasificación(es) reales: puede tener Tradicional, Nueva,
+  // o ambas a la vez — sin corchetes ni texto pegado, la vista los separa.
+  const tipoClasif = (solicitud as any)?.tipo_clasificacion;
+  const textoTradicional = solicitud?.subprogramas
+    ? `${solicitud.subprogramas.programas?.grupos?.nombre || '—'} / ${solicitud.subprogramas.programas?.nombre || '—'} / ${solicitud.subprogramas.nombre || '—'}`
+    : undefined;
+  const textoNueva = (solicitud as any)?.categorias?.nombre || undefined;
+  const categoriaTradicional = (tipoClasif === 'TRADICIONAL' || tipoClasif === 'AMBAS') ? textoTradicional : undefined;
+  const categoriaNueva = (tipoClasif === 'NUEVA' || tipoClasif === 'AMBAS') ? textoNueva : undefined;
   return (
     <Box sx={{ maxWidth: '100%' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onVolver} sx={{ mb: 2, color: '#64748b' }}>
@@ -293,7 +297,8 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         <Box>
           <SeccionInformacionGeneralVista
             nombrePm={nombrePmExtraido}
-            categoriaTexto={categoriaTexto}
+            categoriaTradicional={categoriaTradicional}
+            categoriaNueva={categoriaNueva}
             entregablePlaneado={solicitud?.entregable_planeado || undefined}
           />
           <SeccionDocumentosLinksVista

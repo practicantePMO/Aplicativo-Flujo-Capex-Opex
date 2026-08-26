@@ -91,10 +91,13 @@ export class SolicitudInversionConsultaService {
       .filter((r) => r.compania_id !== null && r.roles)
       .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
 
-    const etapasRolesMap: Record<string, string[]> = {
+        const etapasRolesMap: Record<string, string[]> = {
       PENDIENTE_PMO: ['PMO', 'ADMIN'],
       DIRECCION_PMO: ['DIRECTOR_PMO', 'ADMIN'],
-      GERENCIA: ['GERENCIA', 'PMO', 'ADMIN'],
+      // 🎯 GERENCIA ya NO se ve "por tener el rol" — Dirección PMO elige a un
+      // gerente puntual, y solo a ESE gerente le debe aparecer (ver el OR de
+      // asignaciones_proceso más abajo). ADMIN se deja por supervisión global.
+      GERENCIA: ['ADMIN'],
       PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
     };
 
@@ -125,12 +128,19 @@ export class SolicitudInversionConsultaService {
         tipo_proceso: 'SOLICITUD_INVERSION',
         OR: [
           ...condicionesEtapas,
+          // 🎯 Partes interesadas y Gerencia: la asignación puntual SOLO cuenta
+          // si el proceso YA está en esa etapa exacta ahora mismo — no desde que
+          // se creó el BORRADOR (antes se veía "pendiente" desde el principio).
           {
+            estado_actual: 'VERIFICACION_PARTES_INTERESADAS',
             asignaciones_proceso: {
-              some: {
-                usuario_id: usuarioId,
-                estado_asignacion: 'PENDIENTE',
-              },
+              some: { usuario_id: usuarioId, etapa: 'VERIFICACION_PARTES_INTERESADAS', estado_asignacion: 'PENDIENTE' },
+            },
+          },
+          {
+            estado_actual: 'GERENCIA',
+            asignaciones_proceso: {
+              some: { usuario_id: usuarioId, etapa: 'GERENCIA', estado_asignacion: 'PENDIENTE' },
             },
           },
         ],

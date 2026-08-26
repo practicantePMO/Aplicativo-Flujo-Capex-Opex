@@ -7,25 +7,32 @@ import {
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import InboxIcon from '@mui/icons-material/Inbox';
 import TuneIcon from '@mui/icons-material/Tune';
-import { obtenerMisPendientes } from '../services/solicitudInversion.service';
+import { obtenerMisPendientes } from '../services/procesos.service';
+import { useAuth } from '../../../auth/AuthContext';
 
 interface Props {
   onAbrirProyecto: (proyecto: any, procesoId: number) => void;
 }
 
 const getEstadoChip = (estado: string) => {
-  const configs: Record<string, { label: string; color: 'warning' | 'info' | 'primary' | 'secondary' | 'default' }> = {
+  const configs: Record<string, { label: string; color: 'warning' | 'info' | 'primary' | 'secondary' | 'default' | 'success' }> = {
+    // Solicitud de Inversión
     PENDIENTE_PMO: { label: 'Revisión PMO', color: 'warning' },
     VERIFICACION_PARTES_INTERESADAS: { label: 'Partes Interesadas', color: 'info' },
     DIRECCION_PMO: { label: 'Dirección PMO', color: 'primary' },
     GERENCIA: { label: 'Gerencia', color: 'secondary' },
     PRESIDENCIA: { label: 'Presidencia', color: 'default' },
+    // Órdenes Internas
+    BORRADOR: { label: 'Falta enviar', color: 'warning' },
+    PENDIENTE: { label: 'Pendiente de aprobar', color: 'warning' },
+    APROBADA: { label: 'Falta cerrar', color: 'success' },
   };
   const conf = configs[estado] || { label: estado, color: 'default' };
   return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 600 }} />;
 };
 
 export function VistaMisPendientes({ onAbrirProyecto }: Props) {
+  const { usuario } = useAuth();
   const [pendientes, setPendientes] = useState<any[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -37,17 +44,19 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
   const [filtroAnio, setFiltroAnio] = useState('');
 
   useEffect(() => {
+    setCargando(true);
     (async () => {
       try {
         const data = await obtenerMisPendientes();
         setPendientes(data);
+        setError(null);
       } catch (err) {
         setError('No se pudieron cargar tus tareas pendientes.');
       } finally {
         setCargando(false);
       }
     })();
-  }, []);
+  }, [usuario?.id]); // 👈 antes era [] — nunca se enteraba de un cambio de usuario
 
   const tiposDisponibles = Array.from(new Set(pendientes.map((p) => p.tipo_proceso).filter(Boolean)));
   const companiasDisponibles = Array.from(

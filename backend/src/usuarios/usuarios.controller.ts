@@ -2,6 +2,7 @@ import { Controller, Get, Post, Delete, Patch, Body, Param, ParseIntPipe, Query,
 import { UsuariosService } from './usuarios.service';
 import { AsignarRolDto } from './dto/asignar-rol.dto';
 import { CambiarActivoDto } from './dto/cambiar-activo.dto';
+import { EditarAreaDto } from './dto/editar-area.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -33,7 +34,8 @@ export class UsuariosController {
   // Ej: GET /usuarios/por-rol?rol=GERENCIA&companiaId=3 (elegir a qué gerente enviar el proceso)
   @Get('por-rol')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM')
-  async obtenerPorRol(@Query('rol') rol: string, @Query('companiaId', ParseIntPipe) companiaId: number) {
+  async obtenerPorRol(@Query('rol') rol: string, @Query('companiaId') companiaIdRaw?: string) {
+    const companiaId = companiaIdRaw ? parseInt(companiaIdRaw, 10) : 0;
     return this.usuariosService.findPorRolYCompania(rol, companiaId);
   }
 
@@ -65,5 +67,16 @@ export class UsuariosController {
     @Body() dto: CambiarActivoDto,
   ) {
     return this.usuariosService.cambiarActivo(req.user.userId, id, dto.activo);
+  }
+
+  // ✏️ Nuevo: antes no existía ninguna forma de editar el área de un usuario.
+  @Patch(':id/area')
+  @Roles('ADMIN', 'PMO')
+  async editarArea(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EditarAreaDto,
+  ) {
+    return this.usuariosService.editarArea(req.user.userId, id, dto.area);
   }
 }

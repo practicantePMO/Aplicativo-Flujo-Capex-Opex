@@ -323,6 +323,17 @@ export class SolicitudInversionService {
         },
       });
 
+      // 🆕 Cuando la Solicitud de Inversión llega a APROBADO_FINAL, se habilita
+      // automáticamente el panel de Órdenes Internas (se crea el "grupo"
+      // contenedor, todavía sin nombre — lo pone Control Gestión después).
+      if (estadoDestino === 'APROBADO_FINAL') {
+        await tx.grupos_ordenes_internas.upsert({
+          where: { proyecto_id: proyecto.id },
+          update: {},
+          create: { proyecto_id: proyecto.id },
+        });
+      }
+
       return {
         procesoId,
         estado_anterior: estadoOrigen,
@@ -358,14 +369,14 @@ export class SolicitudInversionService {
       // de verdad que ya usa el sistema para decidir "quién puede aprobar aquí".
       const nuevoEstado = resultado.estado_actual;
 
-      if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
-        const destinatariosPartes = await this.helpers.obtenerEmailsAsignados(procesoId, 'VERIFICACION_PARTES_INTERESADAS');
-        if (destinatariosPartes.length) {
+            if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
+        const asignadosPartes = await this.helpers.obtenerAsignados(procesoId, 'VERIFICACION_PARTES_INTERESADAS');
+        for (const asignado of asignadosPartes) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'NUEVA_SOLICITUD',
-            destinatarios: destinatariosPartes,
+            destinatarios: [asignado.email],
             datos: {
-              nombreUsuario: 'Parte Interesada',
+              nombreUsuario: asignado.nombre,
               etapaActual: 'Verificación de Partes Interesadas',
               codigoProyecto: proyecto.id.toString(),
               nombreProyecto: proyecto.nombre,
@@ -374,13 +385,13 @@ export class SolicitudInversionService {
           });
         }
       } else if (nuevoEstado === 'GERENCIA') {
-        const destinatarioGerente = await this.helpers.obtenerEmailsAsignados(procesoId, 'GERENCIA');
-        if (destinatarioGerente.length) {
+        const asignadosGerencia = await this.helpers.obtenerAsignados(procesoId, 'GERENCIA');
+        for (const asignado of asignadosGerencia) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'NUEVA_SOLICITUD',
-            destinatarios: destinatarioGerente,
+            destinatarios: [asignado.email],
             datos: {
-              nombreUsuario: 'Gerente',
+              nombreUsuario: asignado.nombre,
               etapaActual: 'Gerencia',
               codigoProyecto: proyecto.id.toString(),
               nombreProyecto: proyecto.nombre,

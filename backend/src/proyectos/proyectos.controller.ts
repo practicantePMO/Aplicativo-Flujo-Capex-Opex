@@ -19,15 +19,15 @@ export class ProyectosController {
     return this.proyectosService.crearProyecto(usuarioId, dto);
   }
 
-  @Get()
-  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA')
+    @Get()
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION')
   async listarProyectos(@Req() req: any, @Query() filtros: FiltrarProyectosDto) {
     const usuarioId = req.user.userId;
     return this.proyectosService.listarProyectos(usuarioId, filtros);
   }
 
   @Get(':id/procesos')
-  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA')
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION')
   async obtenerProcesos(@Req() req: any, @Param('id') id: string) {
     return this.proyectosService.obtenerProcesosPorProyecto(req.user.userId, id);
   }

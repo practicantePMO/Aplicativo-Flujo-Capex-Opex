@@ -44,7 +44,7 @@ export class SolicitudInversionController {
   }
 
   @Get('mis-pendientes')
-  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ADMIN')
   async obtenerMisPendientes(@Req() req: any) {
     return this.consulta.obtenerMisPendientes(req.user.userId);
   }

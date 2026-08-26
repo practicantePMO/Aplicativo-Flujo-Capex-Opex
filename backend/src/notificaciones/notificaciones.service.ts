@@ -9,7 +9,7 @@ import * as path from 'path';
 import * as handlebars from 'handlebars';
 
 export interface EventoNotificacion {
-  tipo: 'NUEVA_SOLICITUD' | 'SOLICITUD_APROBADA' | 'SOLICITUD_RECHAZADA' | 'USUARIO_NUEVO_PENDIENTE' | 'ROL_ASIGNADO';
+  tipo: 'NUEVA_SOLICITUD' | 'SOLICITUD_APROBADA' | 'SOLICITUD_RECHAZADA' | 'USUARIO_NUEVO_PENDIENTE' | 'ROL_ASIGNADO' | 'OI_PENDIENTE' | 'OI_APROBADA' | 'OI_RECHAZADA';
   destinatarios: string[];
   datos: Record<string, any>;
 }
@@ -127,6 +127,9 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
         SOLICITUD_RECHAZADA: { template: 'solicitud-rechazada', subject: `❌ Devuelta: ${contenido.datos.codigoProyecto}` },
         USUARIO_NUEVO_PENDIENTE: { template: 'usuario-nuevo-pendiente', subject: `👤 Nuevo Usuario Pendiente` },
         ROL_ASIGNADO: { template: 'rol-asignado', subject: `🔑 Se te asignó un rol en el Sistema de Proyectos` },
+        OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
+        OI_APROBADA: { template: 'oi-aprobada', subject: `✅ Orden Interna aprobada: ${contenido.datos.numeroOi}` },
+        OI_RECHAZADA: { template: 'oi-rechazada', subject: `❌ Orden Interna devuelta: ${contenido.datos.numeroOi}` },
       };
       
       const config = configMap[contenido.tipo];

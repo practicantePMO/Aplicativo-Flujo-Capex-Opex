@@ -38,12 +38,23 @@ export class SolicitudInversionHelpersService {
     return Array.from(new Set(usuarios.map((u) => u.email).filter((e): e is string => Boolean(e))));
   }
 
-  async obtenerEmailsAsignados(procesoId: number, etapa: string): Promise<string[]> {
+  // 📬 Devuelve email Y nombre de cada asignado — antes solo traía el email,
+  // por eso el correo terminaba mandando un texto genérico ("Hola Parte
+  // Interesada") en vez del nombre real de la persona.
+  async obtenerAsignados(procesoId: number, etapa: string): Promise<{ email: string; nombre: string }[]> {
     const asignaciones = await this.prisma.asignaciones_proceso.findMany({
       where: { proceso_id: procesoId, etapa, estado_asignacion: 'PENDIENTE' },
-      include: { usuarios: { select: { email: true } } },
+      include: { usuarios: { select: { email: true, nombre: true } } },
     });
-    return Array.from(new Set(asignaciones.map((a) => a.usuarios?.email).filter((e): e is string => Boolean(e))));
+    const vistos = new Set<string>();
+    const resultado: { email: string; nombre: string }[] = [];
+    for (const a of asignaciones) {
+      const email = a.usuarios?.email;
+      if (!email || vistos.has(email)) continue;
+      vistos.add(email);
+      resultado.push({ email, nombre: a.usuarios?.nombre || 'Usuario' });
+    }
+    return resultado;
   }
 
   async obtenerProcesoConCompania(procesoId: number) {
