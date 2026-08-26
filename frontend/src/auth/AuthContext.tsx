@@ -7,6 +7,7 @@ interface AuthContextType {
   token: string | null;
   cargando: boolean;
   loginDev: (usuarioId: number) => Promise<void>;
+  loginSSO: (idToken: string, proveedor?: 'GOOGLE' | 'MICROSOFT') => Promise<void>;
   logout: () => void;
   tieneRol: (codigoRol: string, companiaId?: number | null) => boolean;
   esAdminGlobal: () => boolean;
@@ -53,6 +54,30 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUsuario(usuario);
   };
 
+  
+  // Login real vía SSO — el backend ya valida el idToken y el dominio
+  // corporativo; acá solo guardamos la sesión resultante.
+    const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
+    const response = await axiosClient.post<AuthResponse>('/auth/login-sso', { idToken, proveedor });
+    const { access_token, usuario } = response.data;
+
+    // El backend de SSO devuelve los roles como "rolesCompania" (plano), distinto
+    // a la forma "roles" con { rol: { codigo, nombre } } anidado que usa login-dev.
+    // Los normalizamos acá para que el resto de la app los reconozca igual,
+    // entres por DevSwitcher o por Google/Microsoft.
+    const rolesNormalizados = ((usuario as any).rolesCompania || []).map((rc: any) => ({
+      rol: { codigo: rc.rolCodigo, nombre: rc.rolNombre },
+      compania: rc.companiaId ? { id: rc.companiaId, nombre: rc.companiaNombre } : null,
+    }));
+    const usuarioNormalizado = { ...usuario, roles: rolesNormalizados };
+
+    localStorage.setItem('token', access_token);
+    localStorage.setItem('usuario', JSON.stringify(usuarioNormalizado));
+
+    setToken(access_token);
+    setUsuario(usuarioNormalizado);
+  };
+
   const MODO_MULTICOMPANIA_ACTIVO = false;
 
   const tieneRol = (codigoRol: string): boolean => {
@@ -80,6 +105,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         token,
         cargando,
         loginDev,
+        loginSSO,
         logout,
         tieneRol,
         esAdminGlobal,

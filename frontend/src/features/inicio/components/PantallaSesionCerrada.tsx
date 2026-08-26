@@ -1,5 +1,6 @@
 import { Box, Card, Typography, Avatar } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
+import { GoogleLoginButton } from '../../../auth/GoogleLoginButton';
 
 export function PantallaSesionCerrada() {
   return (
@@ -14,6 +15,7 @@ export function PantallaSesionCerrada() {
         <Typography variant="body1" sx={styles.subtitle}>
           Saliste del Sistema de Gestión de Proyectos correctamente.
         </Typography>
+        <GoogleLoginButton />
       </Card>
     </Box>
   );

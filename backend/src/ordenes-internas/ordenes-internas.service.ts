@@ -136,11 +136,20 @@ export class OrdenesInternasService {
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
     await this.prisma.$transaction(async (tx) => {
+      // 🔒 Bloqueo optimista: si otro request ya movió el proceso fuera de
+      // BORRADOR (doble clic, dos pestañas, etc.), este update no toca nada.
+      const { count } = await tx.procesos.updateMany({
+        where: { id: orden.proceso_id, estado_actual: 'BORRADOR' },
+        data: { estado_actual: 'PENDIENTE' },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Esta Orden Interna ya fue enviada. Refresca la pantalla.');
+      }
+
       await tx.ordenes_internas.update({
         where: { id: ordenInternaId },
         data: { control_gestion_asignado_id: dto.control_gestion_id },
       });
-      await tx.procesos.update({ where: { id: orden.proceso_id }, data: { estado_actual: 'PENDIENTE' } });
       await tx.asignaciones_proceso.create({
         data: { proceso_id: orden.proceso_id, etapa: 'CONTROL_GESTION', usuario_id: dto.control_gestion_id, estado_asignacion: 'PENDIENTE' },
       });
@@ -168,7 +177,6 @@ export class OrdenesInternasService {
 
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna enviada a Control Gestión.' };
   }
-
   // 3️⃣ Aprobar (Sección 4: grupo + observaciones) — PENDIENTE -> APROBADA
   async aprobar(ordenInternaId: number, usuarioId: number, dto: AprobarOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
@@ -181,11 +189,18 @@ export class OrdenesInternasService {
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
 
     await this.prisma.$transaction(async (tx) => {
+      const { count } = await tx.procesos.updateMany({
+        where: { id: orden.proceso_id, estado_actual: 'PENDIENTE' },
+        data: { estado_actual: 'APROBADA' },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
+      }
+
       await tx.ordenes_internas.update({
         where: { id: ordenInternaId },
         data: { grupo_texto: dto.grupo_texto, observaciones_cg: dto.observaciones },
       });
-      await tx.procesos.update({ where: { id: orden.proceso_id }, data: { estado_actual: 'APROBADA' } });
       await tx.asignaciones_proceso.updateMany({
         where: { proceso_id: orden.proceso_id, etapa: 'CONTROL_GESTION', usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
         data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
@@ -234,7 +249,14 @@ export class OrdenesInternasService {
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.procesos.update({ where: { id: orden.proceso_id }, data: { estado_actual: 'BORRADOR' } });
+      const { count } = await tx.procesos.updateMany({
+        where: { id: orden.proceso_id, estado_actual: 'PENDIENTE' },
+        data: { estado_actual: 'BORRADOR' },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
+      }
+
       await tx.asignaciones_proceso.updateMany({
         where: { proceso_id: orden.proceso_id, etapa: 'CONTROL_GESTION', usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
         data: { estado_asignacion: 'CANCELADA', fecha_resolucion: new Date() },
@@ -267,6 +289,18 @@ export class OrdenesInternasService {
   // las OI estén Aprobadas). Esto lo disparará el proceso "Acta de Cierre"
   // más adelante; por ahora el endpoint queda listo para usarse desde ahí.
   async solicitarCierreGrupo(proyectoId: string, usuarioId: number, dto: SolicitarCierreGrupoDto) {
+    const proyecto = await this.prisma.proyectos.findFirst({ where: { id: proyectoId, eliminado_el: null } });
+    if (!proyecto) throw new NotFoundException('El proyecto no existe o fue eliminado.');
+
+    // El guard de rol del controller solo exige el rol, no que el proyecto
+    // sea "suyo" — esta validación es la que faltaba.
+    const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
+    const esDuenoPM = proyecto.creado_por === usuarioId;
+    const esPmoODirector = await this.permisos.tieneAlgunRol(usuarioId, ['PMO', 'DIRECTOR_PMO']);
+    if (!esAdmin && !esDuenoPM && !esPmoODirector) {
+      throw new ForbiddenException('No tienes acceso a este proyecto.');
+    }
+
     const grupo = await this.prisma.grupos_ordenes_internas.findUnique({
       where: { proyecto_id: proyectoId },
       include: { ordenes_internas: { include: { procesos: true } } },
@@ -285,7 +319,13 @@ export class OrdenesInternasService {
     }
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.grupos_ordenes_internas.update({ where: { id: grupo.id }, data: { estado: 'SOLICITADO_CIERRE' } });
+      const { count } = await tx.grupos_ordenes_internas.updateMany({
+        where: { id: grupo.id, estado: 'ABIERTO' },
+        data: { estado: 'SOLICITADO_CIERRE' },
+      });
+      if (count === 0) {
+        throw new BadRequestException('El cierre de este grupo ya fue solicitado o ya está cerrado.');
+      }
       await tx.grupo_oi_historico_cierre.create({
         data: { grupo_id: grupo.id, accion: 'SOLICITADO', observaciones: dto.observaciones, usuario_id: usuarioId },
       });
@@ -312,7 +352,14 @@ export class OrdenesInternasService {
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
 
     await this.prisma.$transaction(async (tx) => {
-      await tx.procesos.update({ where: { id: orden.proceso_id }, data: { estado_actual: 'CERRADA' } });
+      const { count } = await tx.procesos.updateMany({
+        where: { id: orden.proceso_id, estado_actual: 'APROBADA' },
+        data: { estado_actual: 'CERRADA' },
+      });
+      if (count === 0) {
+        throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
+      }
+
       await tx.historico_aprobaciones.create({
         data: { proceso_id: orden.proceso_id, etapa_origen: 'APROBADA', etapa_destino: 'CERRADA', accion: 'CERRADO', usuario_id: usuarioId },
       });

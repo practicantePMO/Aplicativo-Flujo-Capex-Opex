@@ -129,9 +129,10 @@ export class UsuariosService {
         // Asignación limitada a una compañía: debe tener autoridad de PMO ahí
         await this.permisos.exigirRolParaCompania(usuarioSolicitanteId, ['PMO'], dto.compania_id);
       } else {
-        // Asignación GLOBAL: ya no es exclusiva de ADMIN — un PMO también puede,
-        const esPmo = await this.permisos.tieneAlgunRol(usuarioSolicitanteId, ['PMO']);
-        if (!esPmo) {
+        // Asignación GLOBAL: solo si el PMO solicitante es él mismo global,
+        // no un PMO acotado a una sola compañía.
+        const esPmoGlobal = await this.permisos.tieneRolGlobal(usuarioSolicitanteId, ['PMO']);
+        if (!esPmoGlobal) {
           throw new ForbiddenException('No tienes permiso para asignar roles globales.');
         }
       }

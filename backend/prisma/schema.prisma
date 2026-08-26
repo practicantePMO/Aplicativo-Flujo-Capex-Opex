@@ -322,3 +322,4 @@ model grupo_oi_historico_cierre {
   grupos_ordenes_internas grupos_ordenes_internas @relation(fields: [grupo_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   usuarios                usuarios                @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
+

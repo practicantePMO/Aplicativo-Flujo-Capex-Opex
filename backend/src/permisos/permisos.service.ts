@@ -52,11 +52,20 @@ export class PermisosService {
     }
   }
 
-    // ¿Tiene este usuario alguno de estos roles, en CUALQUIER compañía (o global)?
+  // ¿Tiene este usuario alguno de estos roles, en CUALQUIER compañía (o global)?
   // A diferencia de tieneRolParaCompania, este no necesita una compañía de referencia.
   async tieneAlgunRol(usuarioId: number, codigosRol: string[]): Promise<boolean> {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: { usuario_id: usuarioId, roles: { codigo: { in: codigosRol } } },
+    });
+    return !!asignacion;
+  }
+
+  // ¿Tiene este rol de forma GLOBAL (compania_id NULL)? A diferencia de
+  // tieneAlgunRol, un rol asignado solo para una compañía puntual NO cuenta.
+  async tieneRolGlobal(usuarioId: number, codigosRol: string[]): Promise<boolean> {
+    const asignacion = await this.prisma.usuario_roles_compania.findFirst({
+      where: { usuario_id: usuarioId, compania_id: null, roles: { codigo: { in: codigosRol } } },
     });
     return !!asignacion;
   }
