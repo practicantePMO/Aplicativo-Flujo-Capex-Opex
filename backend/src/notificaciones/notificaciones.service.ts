@@ -20,7 +20,11 @@ export interface EventoNotificacion {
     | 'OI_RECHAZADA'
     | 'CC_NUEVA_ETAPA'
     | 'CC_APROBADO'
-    | 'CC_RECHAZADO';
+    | 'CC_RECHAZADO'
+    | 'AC_NUEVA_ETAPA'
+    | 'AC_APROBADO'
+    | 'AC_RECHAZADO';
+
   destinatarios: string[];
   datos: Record<string, any>;
 }
@@ -137,14 +141,16 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
         SOLICITUD_RECHAZADA: { template: 'solicitud-rechazada', subject: `❌ Devuelta: ${contenido.datos.codigoProyecto}` },
         USUARIO_NUEVO_PENDIENTE: { template: 'usuario-nuevo-pendiente', subject: `👤 Nuevo Usuario Pendiente` },
         ROL_ASIGNADO: { template: 'rol-asignado', subject: `🔑 Se te asignó un rol en el Sistema de Proyectos` },
-                OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
+        OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
         OI_APROBADA: { template: 'oi-aprobada', subject: `✅ Orden Interna aprobada: ${contenido.datos.numeroOi}` },
         OI_RECHAZADA: { template: 'oi-rechazada', subject: `❌ Orden Interna devuelta: ${contenido.datos.numeroOi}` },
         CC_NUEVA_ETAPA: { template: 'cc-nueva-etapa', subject: `📌 Control de Cambios pendiente: ${contenido.datos.codigoProyecto}` },
         CC_APROBADO: { template: 'cc-aprobado', subject: `✅ Control de Cambios aprobado: ${contenido.datos.codigoProyecto}` },
         CC_RECHAZADO: { template: 'cc-rechazado', subject: `❌ Control de Cambios devuelto: ${contenido.datos.codigoProyecto}` },
+        AC_NUEVA_ETAPA: { template: 'ac-nueva-etapa', subject: `📌 Acta de Cierre pendiente: ${contenido.datos.codigoProyecto}` },
+        AC_APROBADO: { template: 'ac-aprobado', subject: `✅ Acta de Cierre aprobada: ${contenido.datos.codigoProyecto}` },
+        AC_RECHAZADO: { template: 'ac-rechazado', subject: `❌ Acta de Cierre devuelta: ${contenido.datos.codigoProyecto}` },
       };
-      
       const config = configMap[contenido.tipo];
 
       // 🟢 CORRECCIÓN 2: Validar que el tipo de evento exista y fallar rápido

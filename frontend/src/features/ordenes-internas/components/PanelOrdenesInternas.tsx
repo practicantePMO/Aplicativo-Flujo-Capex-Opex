@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Button, Accordion, AccordionSummary, AccordionDetails, Chip, Alert,
-  CircularProgress,
+  CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, TextField,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AddIcon from '@mui/icons-material/Add';
 import ListAltIcon from '@mui/icons-material/ListAlt';
+import LockClockIcon from '@mui/icons-material/LockClock';
 import { useAuth } from '../../../auth/AuthContext';
 import type { GrupoOrdenesInternas } from '../types/ordenInterna.types';
-import { obtenerOrdenesInternasPorProyecto } from '../services/ordenesInternas.service';
+import { obtenerOrdenesInternasPorProyecto, solicitarCierreGrupoOi } from '../services/ordenesInternas.service';
 import { DetalleOrdenInterna } from './DetalleOrdenInterna';
 import { FormularioOrdenInterna } from './FormularioOrdenInterna';
 
@@ -40,7 +41,12 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
   const [ordenExpandidaId, setOrdenExpandidaId] = useState<number | false>(false);
   const [ordenEnEdicionId, setOrdenEnEdicionId] = useState<number | null>(null);
 
+  const [dialogoSolicitarCierre, setDialogoSolicitarCierre] = useState(false);
+  const [observacionesCierre, setObservacionesCierre] = useState('');
+  const [procesandoCierre, setProcesandoCierre] = useState(false);
+
   const puedeCrear = tieneRol('PM') || tieneRol('ADMIN');
+  const puedeSolicitarCierre = tieneRol('PM') || tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN');
 
   const cargar = async () => {
     try {
@@ -63,6 +69,20 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
 
   const ordenesInternas = Array.isArray(grupo.ordenes_internas) ? grupo.ordenes_internas : [];
   const historicoCierre = Array.isArray(grupo.grupo_oi_historico_cierre) ? grupo.grupo_oi_historico_cierre : [];
+
+  const confirmarSolicitarCierre = async () => {
+    setProcesandoCierre(true);
+    try {
+      await solicitarCierreGrupoOi(proyectoId, observacionesCierre.trim() || undefined);
+      setDialogoSolicitarCierre(false);
+      setObservacionesCierre('');
+      await cargar();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Error al solicitar el cierre.');
+    } finally {
+      setProcesandoCierre(false);
+    }
+  };
 
   if (mostrarFormulario || ordenEnEdicionId !== null) {
     return (
@@ -91,6 +111,12 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
           Órdenes Internas {grupo.nombre ? `— ${grupo.nombre}` : ''}
         </Typography>
         <Chip label={ESTADO_GRUPO_CONFIG[grupo.estado]?.label || grupo.estado} color={ESTADO_GRUPO_CONFIG[grupo.estado]?.color || 'default'} size="small" />
+        <Box sx={{ flexGrow: 1 }} />
+        {puedeSolicitarCierre && hayOrdenes && grupo.estado === 'ABIERTO' && (
+          <Button size="small" variant="outlined" color="warning" startIcon={<LockClockIcon />} onClick={() => setDialogoSolicitarCierre(true)}>
+            Solicitar cierre de Órdenes Internas
+          </Button>
+        )}
       </Box>
 
       {!hayOrdenes ? (
@@ -172,6 +198,22 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
           )}
         </Box>
       )}
+
+      <Dialog open={dialogoSolicitarCierre} onClose={() => setDialogoSolicitarCierre(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Solicitar cierre de Órdenes Internas</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" sx={{ mb: 2 }}>
+            Esto le pedirá a Control Gestión que cierre, una por una, todas las Órdenes Internas de este proyecto.
+            No podrás crear Órdenes Internas nuevas mientras el cierre esté en curso.
+          </Typography>
+          <TextField fullWidth multiline minRows={2} label="Observaciones (opcional)" value={observacionesCierre}
+            onChange={(e) => setObservacionesCierre(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogoSolicitarCierre(false)}>Cancelar</Button>
+          <Button variant="contained" color="warning" onClick={confirmarSolicitarCierre} disabled={procesandoCierre}>Solicitar cierre</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

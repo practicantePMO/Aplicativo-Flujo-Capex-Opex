@@ -76,16 +76,22 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           linea_marca: detalle.linea_marca || '',
           cliente: detalle.cliente || '',
           ramo: detalle.ramo || '',
-          porcentaje_1: detalle.porcentaje_1 ?? undefined,
+          // 🔧 Decimal de Prisma llega como string desde el backend — hay que
+          // convertirlo a número explícitamente o el DTO de guardado lo rechaza.
+          porcentaje_1: detalle.porcentaje_1 !== null && detalle.porcentaje_1 !== undefined ? Number(detalle.porcentaje_1) : undefined,
           es_control_cambios: detalle.es_control_cambios,
           control_cambio_id: detalle.control_cambio_id ?? undefined,
           activo_fijo_curso: detalle.activo_fijo_curso || '',
           tipo_activo: detalle.tipo_activo || '',
-          porcentaje_2: detalle.porcentaje_2 ?? undefined,
+          porcentaje_2: detalle.porcentaje_2 !== null && detalle.porcentaje_2 !== undefined ? Number(detalle.porcentaje_2) : undefined,
           presupuesto: Number(detalle.presupuesto) || 0,
           presupuesto_moneda: detalle.presupuesto_moneda || 'COP',
           activo_real_productivo: detalle.activo_real_productivo || '',
-          valores: detalle.oi_valores?.length ? detalle.oi_valores : CAMPO_VACIO.valores,
+          // 🔧 Igual que arriba: quitamos "id"/"orden_interna_id" (que el DTO no
+          // acepta) y convertimos usd/cop de string a número.
+          valores: detalle.oi_valores?.length
+            ? detalle.oi_valores.map((v: any) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
+            : CAMPO_VACIO.valores,
         });
       } catch {
         setError('No se pudo cargar la Orden Interna.');

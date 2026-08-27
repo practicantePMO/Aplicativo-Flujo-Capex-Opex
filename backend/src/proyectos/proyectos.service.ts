@@ -113,7 +113,14 @@ export class ProyectosService {
       usuarios: { select: { id: true, nombre: true } },
       // 👈 Necesario para calcular el "estado" del proyecto (Cancelado si algún
       // proceso suyo terminó cancelado)
-      procesos: { where: { eliminado_el: null }, select: { estado_actual: true, tipo_proceso: true } },
+      procesos: {
+        where: { eliminado_el: null },
+        select: {
+          estado_actual: true,
+          tipo_proceso: true,
+          actas_cierre: { select: { tipo_cierre: true } },
+        },
+      },
     };
 
     const condicionesFiltro: any = { eliminado_el: null };
@@ -229,15 +236,19 @@ export class ProyectosService {
     //   SUSPENDIDO            -> todavía no hay ninguna acción que lo dispare (queda reservado)
     proyectos = proyectos.map((p) => {
       const procesosProyecto = p.procesos || [];
-      const actaCierreCerrada = procesosProyecto.some(
+      const actaCierreCerrada = procesosProyecto.find(
         (proc: any) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
       );
       const tieneProcesoCancelado = procesosProyecto.some((proc: any) => proc.estado_actual === 'CANCELADO');
 
-      let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO' = 'ACTIVO';
-      if (actaCierreCerrada) estado = 'CANCELADO';
-      else if (tieneProcesoCancelado) estado = 'EN_PROCESO_DE_CANCELACION';
-      else if (p.anio_asignado !== p.anio_proyecto) estado = 'APLAZADO';
+      let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'FINALIZADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO' = 'ACTIVO';
+      if (actaCierreCerrada) {
+        estado = actaCierreCerrada.actas_cierre?.tipo_cierre === 'CULMINACION' ? 'FINALIZADO' : 'CANCELADO';
+      } else if (tieneProcesoCancelado) {
+        estado = 'EN_PROCESO_DE_CANCELACION';
+      } else if (p.anio_asignado !== p.anio_proyecto) {
+        estado = 'APLAZADO';
+      }
 
       const { procesos, ...resto } = p;
       return { ...resto, estado };

@@ -40,6 +40,8 @@ const CAMPO_VACIO: CrearControlCambioPayload = {
   impacto_alcance: '',
   impacto_tiempo: '',
   anexos: [],
+  tipo_control_cambio: 'GENERAL',
+  anio_nuevo_propuesto: undefined,
 };
 
 export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onCancelar, onGuardado }: Props) {
@@ -68,7 +70,11 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
           justificacion: detalle.justificacion || '',
           impacto_alcance: detalle.impacto_alcance || '',
           impacto_tiempo: detalle.impacto_tiempo || '',
-          anexos: detalle.control_cambio_anexos || [],
+          // 🔧 El DTO de guardado solo acepta tipo/url/descripcion — quitamos
+          // "id" y "control_cambio_id" que trae la respuesta de la base de datos.
+          anexos: (detalle.control_cambio_anexos || []).map((a) => ({ tipo: a.tipo, url: a.url, descripcion: a.descripcion || '' })),
+          tipo_control_cambio: detalle.tipo_control_cambio || 'GENERAL',
+          anio_nuevo_propuesto: detalle.anio_nuevo_propuesto ?? undefined,
         });
         const actuales = detalle.procesos.asignaciones_proceso
           .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
@@ -95,8 +101,16 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
       setGuardando(true);
       setError(null);
 
+      if (form.tipo_control_cambio === 'APLAZAMIENTO' && !form.anio_nuevo_propuesto) {
+        throw new Error('Debes indicar el año nuevo propuesto para el proyecto.');
+      }
+
       const anexosValidos = (form.anexos || []).filter((a) => a.url.trim());
-      const payload: CrearControlCambioPayload = { ...form, anexos: anexosValidos };
+      const payload: CrearControlCambioPayload = {
+        ...form,
+        anexos: anexosValidos,
+        anio_nuevo_propuesto: form.tipo_control_cambio === 'APLAZAMIENTO' ? form.anio_nuevo_propuesto : undefined,
+      };
 
       let procesoIdResultante: number;
       if (procesoId) {
@@ -129,6 +143,29 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
       <Card sx={{ mb: 2, mt: 2, borderRadius: 2 }}>
         <CardContent>
           <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Información General</Typography>
+
+          <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>Tipo de Control de Cambios</FormLabel>
+          <RadioGroup
+            row
+            value={form.tipo_control_cambio || 'GENERAL'}
+            onChange={(e) => actualizar({ tipo_control_cambio: e.target.value as 'GENERAL' | 'APLAZAMIENTO' })}
+            sx={{ mb: form.tipo_control_cambio === 'APLAZAMIENTO' ? 1 : 2 }}
+          >
+            <FormControlLabel value="GENERAL" control={<Radio />} label="General" />
+            <FormControlLabel value="APLAZAMIENTO" control={<Radio />} label="Aplazamiento de año del proyecto" />
+          </RadioGroup>
+
+            {form.tipo_control_cambio === 'APLAZAMIENTO' && (
+            <TextField
+              label="Año nuevo propuesto *"
+              type="number"
+              value={form.anio_nuevo_propuesto ?? ''}
+              onChange={(e) => actualizar({ anio_nuevo_propuesto: e.target.value === '' ? undefined : Number(e.target.value) })}
+              sx={{ mb: 2, maxWidth: 220, display: 'block' }}
+              helperText="Al aprobarse en Aprobado Final, el proyecto se aplaza automáticamente a este año."
+            />
+          )}
+
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>¿Requiere Orden Interna?</FormLabel>
           <RadioGroup
             row

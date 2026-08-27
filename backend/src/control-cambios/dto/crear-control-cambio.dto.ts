@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsArray, ValidateNested } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsArray, ValidateNested, IsIn, IsInt, Min, ValidateIf } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AnexoControlCambioDto {
@@ -48,4 +48,14 @@ export class CrearControlCambioDto {
   @ValidateNested({ each: true })
   @Type(() => AnexoControlCambioDto)
   anexos?: AnexoControlCambioDto[];
+
+  // 🕒 GENERAL (default) o APLAZAMIENTO. Si es APLAZAMIENTO, exige el año nuevo.
+  @IsIn(['GENERAL', 'APLAZAMIENTO'], { message: 'El tipo de Control de Cambios debe ser GENERAL o APLAZAMIENTO.' })
+  @IsOptional()
+  tipo_control_cambio?: 'GENERAL' | 'APLAZAMIENTO';
+
+  @ValidateIf((o) => o.tipo_control_cambio === 'APLAZAMIENTO')
+  @IsInt({ message: 'Debes indicar el año nuevo propuesto para el proyecto.' })
+  @Min(2000, { message: 'El año propuesto no es válido.' })
+  anio_nuevo_propuesto?: number;
 }

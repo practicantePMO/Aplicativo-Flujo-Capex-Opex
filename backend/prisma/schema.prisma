@@ -79,6 +79,7 @@ model procesos {
   solicitudes_inversion  solicitudes_inversion?
   ordenes_internas       ordenes_internas?
   controles_cambio       controles_cambio?
+  actas_cierre           actas_cierre?
 }
 
 model programas {
@@ -107,6 +108,7 @@ model proyectos {
   proyectos_aplazamientos proyectos_aplazamientos[]   // 👈 AGREGAR esta línea
   grupos_ordenes_internas grupos_ordenes_internas? 
   controles_cambio controles_cambio[]
+  actas_cierre     actas_cierre?
 }
 
 model proyectos_aplazamientos {
@@ -157,6 +159,7 @@ model solicitud_metas {
   fecha_inicio          DateTime               @db.Date
   indicador             String
   solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  acta_cierre_metas     acta_cierre_metas[]
 }
 
 model solicitud_valores {
@@ -234,6 +237,8 @@ model usuarios {
   ordenes_internas_como_cg ordenes_internas[] @relation("OI_CG")
   grupo_oi_historico_cierre grupo_oi_historico_cierre[]
   controles_cambio controles_cambio[]
+  actas_cierre_como_pm actas_cierre[] @relation("ActaCierre_PM")
+  actas_cierre_como_cg actas_cierre[] @relation("ActaCierre_CG")
 } 
 
 // =====================================================================
@@ -300,6 +305,7 @@ model ordenes_internas {
   control_gestion         usuarios?               @relation("OI_CG", fields: [control_gestion_asignado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   controles_cambio        controles_cambio?       @relation(fields: [control_cambio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   oi_valores              oi_valores[]
+  acta_cierre_oi_valores_reales acta_cierre_oi_valores_reales[]
 }
 
 // 💰 Sección 3: "Valor Total del Proyecto", pero AQUÍ se llena manual (a
@@ -352,6 +358,13 @@ model controles_cambio {
   impacto_tiempo         String?
   fecha_creacion         DateTime? @default(now()) @db.Timestamp(6)
 
+  // 🕒 Tipo de Control de Cambios: GENERAL (el de siempre) o APLAZAMIENTO
+  // (pide aprobar un cambio de año del proyecto). Si es APLAZAMIENTO,
+  // "anio_nuevo_propuesto" es obligatorio — al llegar a APROBADO_FINAL el
+  // sistema ejecuta el aplazamiento automáticamente (ver proyectos_aplazamientos).
+  tipo_control_cambio  String @default("GENERAL") @db.VarChar(20)
+  anio_nuevo_propuesto Int?
+
   procesos              procesos                @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   proyectos             proyectos               @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   usuarios              usuarios?               @relation(fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
@@ -369,4 +382,106 @@ model control_cambio_anexos {
   descripcion       String? @db.VarChar(255)
 
   controles_cambio controles_cambio @relation(fields: [control_cambio_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// =====================================================================
+// PROCESO: ACTA DE CIERRE
+// =====================================================================
+
+// 📋 El Acta de Cierre — 1 por proyecto (proyecto_id único). Se crea cuando
+// el PM va a cancelar o a culminar el proyecto. Flujo propio, distinto al de
+// SI/OI/CC: BORRADOR -> PENDIENTE_PMO -> CONTROL_GESTION ->
+// VERIFICACION_PARTES_INTERESADAS -> DIRECCION_PMO -> GERENCIA ->
+// (PRESIDENCIA) -> CERRADO. Al llegar a CERRADO, el proyecto pasa a
+// CANCELADO o FINALIZADO según "tipo_cierre".
+model actas_cierre {
+  id                           Int       @id @default(autoincrement())
+  proceso_id                   Int       @unique
+  proyecto_id                  String    @unique @db.VarChar(20)
+  tipo_cierre                  String    @db.VarChar(20) // CANCELACION | CULMINACION
+  responsable_pm_id            Int?
+  control_gestion_asignado_id  Int?
+  presentacion_p5_link         String?
+  entregable_real              String?
+  explicacion_ejecucion        String? // sobre/sub-ejecución del Valor Total
+  otros_entregables            String?
+  fecha_creacion                DateTime? @default(now()) @db.Timestamp(6)
+
+  procesos        procesos  @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  proyectos       proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  pm              usuarios? @relation("ActaCierre_PM", fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control_gestion usuarios? @relation("ActaCierre_CG", fields: [control_gestion_asignado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  acta_cierre_metas             acta_cierre_metas[]
+  acta_cierre_valores           acta_cierre_valores[]
+  acta_cierre_flujo_caja        acta_cierre_flujo_caja[]
+  acta_cierre_entregables       acta_cierre_entregables[]
+  acta_cierre_oi_valores_reales acta_cierre_oi_valores_reales[]
+}
+
+// 🎯 Una fila por cada meta que ya existe en la SI — solo se agrega el
+// resultado real al cerrar. Las columnas compromiso/fecha/indicador se leen
+// de "solicitud_metas", no se duplican aquí.
+model acta_cierre_metas {
+  id                Int     @id @default(autoincrement())
+  acta_cierre_id    Int
+  solicitud_meta_id Int
+  resultado_cierre  String?
+
+  actas_cierre    actas_cierre    @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  solicitud_metas solicitud_metas @relation(fields: [solicitud_meta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 💰 Valor Total REAL (Activo/Gasto, USD/COP). Lo "Inicial SI" y lo
+// "Inicial CC" se leen de solicitud_valores / oi_valores, no se duplican.
+model acta_cierre_valores {
+  id             Int      @id @default(autoincrement())
+  acta_cierre_id Int
+  categoria      String   @db.VarChar(20) // ACTIVO | GASTO
+  real_usd       Decimal? @db.Decimal(15, 2)
+  real_cop       Decimal? @db.Decimal(15, 2)
+
+  actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 📅 Flujo de Caja REAL, mes a mes — misma estructura que solicitud_flujo_caja
+// (que guarda lo Planeado) para poder comparar lado a lado.
+model acta_cierre_flujo_caja {
+  id             Int      @id @default(autoincrement())
+  acta_cierre_id Int
+  tipo           String   @db.VarChar(20) // CAPEX | GCAPEX | OPEX
+  moneda         String   @default("COP") @db.VarChar(3)
+  anio           Int
+  mes            Int      @default(1)
+  monto_real     Decimal? @default(0) @db.Decimal(15, 2)
+
+  actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 🏗️ Tabla dinámica de entregables físicos (equipos/sistemas).
+model acta_cierre_entregables {
+  id                       Int     @id @default(autoincrement())
+  acta_cierre_id           Int
+  equipo_sistema           String
+  codigo_activo_produccion String?
+  codigo_activo_montaje    String?
+  unidad_vida_util         String?
+  vida_util                Int?
+  observaciones            String?
+  anexo_url                String?
+
+  actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 💵 Valor Real por cada Orden Interna del proyecto (manual). El "PPT OI" no
+// se guarda aquí — se lee directo de ordenes_internas.presupuesto.
+model acta_cierre_oi_valores_reales {
+  id                Int      @id @default(autoincrement())
+  acta_cierre_id    Int
+  orden_interna_id  Int
+  valor_real        Decimal? @db.Decimal(15, 2)
+  valor_real_moneda String   @default("COP") @db.VarChar(3)
+
+  actas_cierre     actas_cierre     @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  ordenes_internas ordenes_internas @relation(fields: [orden_interna_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
 }

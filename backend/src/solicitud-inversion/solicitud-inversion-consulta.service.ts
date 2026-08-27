@@ -44,7 +44,7 @@ export class SolicitudInversionConsultaService {
     const tieneRolEnCompania = companiaId
       ? await this.permisos.tieneRolParaCompania(
           usuarioId,
-          ['PMO', 'DIRECTOR_PMO', 'GERENCIA', 'PRESIDENCIA'],
+          ['PMO', 'DIRECTOR_PMO', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION'],
           companiaId,
         )
       : false;

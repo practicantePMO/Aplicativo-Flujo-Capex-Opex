@@ -26,6 +26,7 @@ const ESTADO_CONFIG: Record<string, { label: string; color: 'success' | 'warning
   CANCELADO: { label: 'Cancelado', color: 'error' },
   EN_PROCESO_DE_CANCELACION: { label: 'En proceso de cancelación', color: 'warning' },
   SUSPENDIDO: { label: 'Suspendido', color: 'default' },
+  FINALIZADO: { label: 'Finalizado', color: 'success' },
 };
 
 export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {

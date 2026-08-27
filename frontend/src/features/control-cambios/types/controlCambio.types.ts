@@ -5,6 +5,8 @@ export interface AnexoControlCambio {
   descripcion?: string;
 }
 
+export type TipoControlCambio = 'GENERAL' | 'APLAZAMIENTO';
+
 export interface CrearControlCambioPayload {
   proyecto_id: string;
   requiere_orden_interna: boolean;
@@ -14,6 +16,8 @@ export interface CrearControlCambioPayload {
   impacto_alcance?: string;
   impacto_tiempo?: string;
   anexos?: AnexoControlCambio[];
+  tipo_control_cambio?: TipoControlCambio;
+  anio_nuevo_propuesto?: number;
 }
 
 export interface UsuarioResumenCc {
@@ -51,6 +55,16 @@ export interface HistoricoAprobacionCc {
   usuarios?: UsuarioResumenCc | null;
 }
 
+// 🔗 Orden Interna vinculada a este CC — forma reducida (solo lo que
+// devuelve control-cambios-consulta.service.ts en su "select").
+export interface OrdenInternaRelacionadaCc {
+  id: number;
+  proceso_id: number;
+  numero_oi: string;
+  nombre_descriptivo: string;
+  procesos: { estado_actual: string };
+}
+
 export interface ControlCambioDetalle {
   id: number;
   proceso_id: number;
@@ -65,6 +79,9 @@ export interface ControlCambioDetalle {
   fecha_creacion: string;
   usuarios?: UsuarioResumenCc | null;
   control_cambio_anexos: AnexoControlCambio[];
+  ordenes_internas: OrdenInternaRelacionadaCc[];
+  tipo_control_cambio: TipoControlCambio;
+  anio_nuevo_propuesto?: number | null;
   procesos: {
     estado_actual: string;
     historico_aprobaciones: HistoricoAprobacionCc[];

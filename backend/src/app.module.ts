@@ -16,6 +16,7 @@ import { PendientesModule } from './pendientes/pendientes.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { CompaniasModule } from './companias/companias.module';
+import { ActasCierreModule } from './acta-cierre/actas-cierre.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { CompaniasModule } from './companias/companias.module';
     SolicitudInversionModule,
     OrdenesInternasModule,
     ControlCambiosModule,
+    ActasCierreModule,
     PendientesModule,
     PermisosModule,
     NotificacionesModule,

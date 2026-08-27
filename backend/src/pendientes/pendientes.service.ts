@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { SolicitudInversionConsultaService } from '../solicitud-inversion/solicitud-inversion-consulta.service';
 import { OrdenesInternasConsultaService } from '../ordenes-internas/ordenes-internas-consulta.service';
 import { ControlCambiosConsultaService } from '../control-cambios/control-cambios-consulta.service';
+import { ActasCierreConsultaService } from '../acta-cierre/actas-cierre-consulta.service';
 
 @Injectable()
 export class PendientesService {
@@ -9,16 +10,18 @@ export class PendientesService {
     private readonly solicitudInversionConsulta: SolicitudInversionConsultaService,
     private readonly ordenesInternasConsulta: OrdenesInternasConsultaService,
     private readonly controlCambiosConsulta: ControlCambiosConsultaService,
+    private readonly actasCierreConsulta: ActasCierreConsultaService,
   ) {}
 
   async obtenerMisPendientes(usuarioId: number) {
-    const [pendientesSi, pendientesOi, pendientesCc] = await Promise.all([
+    const [pendientesSi, pendientesOi, pendientesCc, pendientesAc] = await Promise.all([
       this.solicitudInversionConsulta.obtenerMisPendientes(usuarioId),
       this.ordenesInternasConsulta.obtenerMisPendientes(usuarioId),
       this.controlCambiosConsulta.obtenerMisPendientes(usuarioId),
+      this.actasCierreConsulta.obtenerMisPendientes(usuarioId),
     ]);
 
-    const pendientesOiNormalizados = pendientesOi.map((oi) => ({
+    const pendientesOiNormalizados = pendientesOi.map((oi: any) => ({
       id: oi.proceso_id,
       tipo_proceso: 'ORDEN_INTERNA',
       estado_actual: oi.procesos.estado_actual,
@@ -30,7 +33,7 @@ export class PendientesService {
       nombre_descriptivo: oi.nombre_descriptivo,
     }));
 
-    return [...pendientesSi, ...pendientesOiNormalizados, ...pendientesCc].sort((a: any, b: any) => {
+    return [...pendientesSi, ...pendientesOiNormalizados, ...pendientesCc, ...pendientesAc].sort((a: any, b: any) => {
       const fechaA = a.historico_aprobaciones?.[0]?.fecha_registro || a.fecha_creacion;
       const fechaB = b.historico_aprobaciones?.[0]?.fecha_registro || b.fecha_creacion;
       return new Date(fechaB).getTime() - new Date(fechaA).getTime();

@@ -15,7 +15,7 @@ export interface Proyecto {
   consecutivo?: number;
   creado_por?: number;
   fecha_creacion?: string;
-  estado?: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'SUSPENDIDO';
+  estado?: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'FINALIZADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO';
 }
 
 export interface CrearProyectoDto {

@@ -5,6 +5,7 @@ import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import SyncAltIcon from '@mui/icons-material/SyncAlt';
+import GavelIcon from '@mui/icons-material/Gavel';
 import type { Proyecto, Proceso } from '../types/proyecto.types';
 import { obtenerProcesosPorProyecto } from '../services/proyectos.service';
 import { useAuth } from '../../../auth/AuthContext';
@@ -12,6 +13,7 @@ import { FormularioSolicitudInversion } from '../../solicitud-inversion/componen
 import { VistaSolicitudInversion } from '../../solicitud-inversion/components/VistaSolicitudInversion';
 import { PanelOrdenesInternas } from '../../ordenes-internas/components/PanelOrdenesInternas';
 import { PanelControlCambios } from '../../control-cambios/components/PanelControlCambios';
+import { PanelActaCierre } from '../../acta-cierre/components/PanelActaCierre';
 
 interface DetalleProyectoProps {
   proyecto: Proyecto;
@@ -26,6 +28,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const [procesoAbierto, setProcesoAbierto] = useState<number | null>(null);
   const [verOrdenesInternas, setVerOrdenesInternas] = useState(false);
   const [verControlCambios, setVerControlCambios] = useState(false);
+  const [verActaCierre, setVerActaCierre] = useState(false);
 
   // 🔗 Navegación cruzada entre los dos paneles: al crear un CC que requiere
   // OI, o al querer ver el CC ligado a una OI, cambiamos de panel y le
@@ -123,6 +126,21 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     );
   }
 
+  if (verActaCierre) {
+    return (
+      <Box>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => setVerActaCierre(false)} sx={styles.backBtn}>
+          Volver a Procesos
+        </Button>
+        <PanelActaCierre
+          proyectoId={proyecto.id}
+          companiaId={proyecto.companias?.id ?? proyecto.compania_id}
+          creadoPor={proyecto.creado_por}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Button startIcon={<ArrowBackIcon />} onClick={onVolver} sx={styles.backBtn}>
@@ -203,6 +221,23 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Cambios registrados sobre este proyecto
+                  </Typography>
+                </Box>
+                <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+              </CardContent>
+            </Card>
+          )}
+
+          {tieneSolicitudAprobada && (
+            <Card sx={styles.processCard} onClick={() => setVerActaCierre(true)}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={styles.processIcon}><GavelIcon /></Avatar>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
+                    ACTA DE CIERRE
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Cierre por culminación o cancelación del proyecto
                   </Typography>
                 </Box>
                 <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
