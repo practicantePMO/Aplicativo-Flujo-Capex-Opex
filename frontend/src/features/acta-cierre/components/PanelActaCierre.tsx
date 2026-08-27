@@ -4,6 +4,7 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import { useAuth } from '../../../auth/AuthContext';
 import type { ActaCierreResumen } from '../types/actaCierre.types';
 import { obtenerActaCierrePorProyecto } from '../service/actasCierre.service';
+import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
 import { FormularioActaCierre } from './FormularioActaCierre';
 import { DetalleActaCierre } from './DetalleActaCierre';
 
@@ -11,11 +12,13 @@ interface Props {
   proyectoId: string;
   companiaId: number;
   creadoPor?: number | null;
+  onIrAOrdenesInternas?: () => void;
 }
 
-export function PanelActaCierre({ proyectoId, companiaId, creadoPor }: Props) {
+export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdenesInternas }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [acta, setActa] = useState<ActaCierreResumen | null | undefined>(undefined); // undefined = cargando
+  const [oiPendientesPorCerrar, setOiPendientesPorCerrar] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const puedeCrear = tieneRol('ADMIN') || (tieneRol('PM') && Number(creadoPor) === Number(usuario?.id));
@@ -24,6 +27,17 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor }: Props) {
     try {
       const data = await obtenerActaCierrePorProyecto(proyectoId);
       setActa(data);
+
+      // 🔒 Si todavía no hay Acta, revisamos si hay Órdenes Internas sin cerrar
+      // ANTES de dejar entrar al formulario (evita llenar todo y toparse con
+      // el 400 al final).
+      if (!data) {
+        const grupo = await obtenerOrdenesInternasPorProyecto(proyectoId).catch(() => null);
+        const ordenesInternas = grupo?.ordenes_internas || [];
+        setOiPendientesPorCerrar(ordenesInternas.length > 0 && grupo?.estado !== 'CERRADO');
+      } else {
+        setOiPendientesPorCerrar(false);
+      }
     } catch {
       setActa(null);
     }
@@ -50,11 +64,27 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor }: Props) {
     return (
       <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
         <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 1 }}>Acta de Cierre</Typography>
-        <Alert severity="info" sx={{ mb: 2 }}>Este proyecto todavía no tiene un Acta de Cierre.</Alert>
-        {puedeCrear && (
-          <Button variant="contained" color="error" startIcon={<GavelIcon />} onClick={() => setMostrarFormulario(true)}>
-            Crear Acta de Cierre
-          </Button>
+        {oiPendientesPorCerrar ? (
+          <>
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              Este proyecto todavía tiene Órdenes Internas sin cerrar. Antes de crear el Acta de Cierre debes solicitar
+              y completar el cierre de todas las Órdenes Internas.
+            </Alert>
+            {onIrAOrdenesInternas && (
+              <Button variant="outlined" color="warning" onClick={onIrAOrdenesInternas}>
+                Ir a Órdenes Internas
+              </Button>
+            )}
+          </>
+        ) : (
+          <>
+            <Alert severity="info" sx={{ mb: 2 }}>Este proyecto todavía no tiene un Acta de Cierre.</Alert>
+            {puedeCrear && (
+              <Button variant="contained" color="error" startIcon={<GavelIcon />} onClick={() => setMostrarFormulario(true)}>
+                Crear Acta de Cierre
+              </Button>
+            )}
+          </>
         )}
       </Box>
     );

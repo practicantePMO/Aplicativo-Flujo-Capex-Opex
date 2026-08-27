@@ -132,10 +132,11 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
         <Button startIcon={<ArrowBackIcon />} onClick={() => setVerActaCierre(false)} sx={styles.backBtn}>
           Volver a Procesos
         </Button>
-        <PanelActaCierre
+          <PanelActaCierre
           proyectoId={proyecto.id}
           companiaId={proyecto.companias?.id ?? proyecto.compania_id}
           creadoPor={proyecto.creado_por}
+          onIrAOrdenesInternas={() => { setVerActaCierre(false); setVerOrdenesInternas(true); }}
         />
       </Box>
     );
