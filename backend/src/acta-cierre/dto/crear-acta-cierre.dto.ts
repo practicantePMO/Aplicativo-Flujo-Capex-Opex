@@ -1,6 +1,6 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsIn, IsInt, IsNumber, Min, Max,
-  IsArray, ValidateNested, IsUrl,
+  IsArray, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -49,7 +49,7 @@ export class CrearActaCierreDto {
   @IsInt({ message: 'Debes elegir quién de Control Gestión revisará este cierre.' })
   control_gestion_asignado_id: number;
 
-  @IsUrl({}, { message: 'El link de la presentación de puertas 5 no es válido.' })
+@IsString()
   @IsOptional()
   presentacion_p5_link?: string;
 

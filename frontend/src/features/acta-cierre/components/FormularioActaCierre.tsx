@@ -99,14 +99,14 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         setUsuariosDisponibles(partesDisponibles);
 
         // --- Datos de la SI aprobada (entregable, metas, flujo de caja planeado) ---
-        const procesoSi = procesos.find((p) => p.tipo_proceso === 'SOLICITUD_INVERSION' && p.estado_actual === 'APROBADO_FINAL');
+                const procesoSi = procesos.find((p) => p.tipo_proceso === 'SOLICITUD_INVERSION' && p.estado_actual === 'APROBADO_FINAL');
         if (procesoSi) {
           const si = await obtenerSolicitudInversion(procesoSi.id);
-          setEntregableInicial(si.entregable_planeado ?? null);
+          setEntregableInicial(si.solicitudes_inversion?.entregable_planeado ?? null);
 
           if (!procesoId) {
             setMetas(
-              (si.solicitud_metas || []).map((m: any) => ({
+              (si.solicitudes_inversion?.solicitud_metas || []).map((m: any) => ({
                 solicitud_meta_id: m.id,
                 compromiso: m.compromiso,
                 fecha_inicio: m.fecha_inicio,
@@ -115,7 +115,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
               })),
             );
             setFlujoCaja(
-              (si.solicitud_flujo_caja || []).map((f: any) => ({
+              (si.solicitudes_inversion?.solicitud_flujo_caja || []).map((f: any) => ({
                 tipo: f.tipo,
                 moneda: f.moneda,
                 anio: f.anio,
