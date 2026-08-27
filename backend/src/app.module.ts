@@ -11,6 +11,7 @@ import { ProyectosModule } from './proyectos/proyectos.module';
 import { CatalogosModule } from './catalogos/catalogos.module';
 import { SolicitudInversionModule } from './solicitud-inversion/solicitud-inversion.module';
 import { OrdenesInternasModule } from './ordenes-internas/ordenes-internas.module';
+import { ControlCambiosModule } from './control-cambios/control-cambios.module';
 import { PendientesModule } from './pendientes/pendientes.module';
 import { PermisosModule } from './permisos/permisos.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
@@ -32,6 +33,7 @@ import { CompaniasModule } from './companias/companias.module';
     CatalogosModule,
     SolicitudInversionModule,
     OrdenesInternasModule,
+    ControlCambiosModule,
     PendientesModule,
     PermisosModule,
     NotificacionesModule,

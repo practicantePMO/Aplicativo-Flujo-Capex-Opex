@@ -78,6 +78,7 @@ model procesos {
   proyectos              proyectos?               @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   solicitudes_inversion  solicitudes_inversion?
   ordenes_internas       ordenes_internas?
+  controles_cambio       controles_cambio?
 }
 
 model programas {
@@ -105,6 +106,7 @@ model proyectos {
   procesos  procesos[]
   proyectos_aplazamientos proyectos_aplazamientos[]   // 👈 AGREGAR esta línea
   grupos_ordenes_internas grupos_ordenes_internas? 
+  controles_cambio controles_cambio[]
 }
 
 model proyectos_aplazamientos {
@@ -231,7 +233,8 @@ model usuarios {
   ordenes_internas_como_pm ordenes_internas[] @relation("OI_PM")
   ordenes_internas_como_cg ordenes_internas[] @relation("OI_CG")
   grupo_oi_historico_cierre grupo_oi_historico_cierre[]
-}
+  controles_cambio controles_cambio[]
+} 
 
 // =====================================================================
 // PROCESO: ÓRDENES INTERNAS
@@ -288,12 +291,14 @@ model ordenes_internas {
 
   responsable_pm_id           Int?
   control_gestion_asignado_id Int?
+  control_cambio_id           Int?
   fecha_creacion               DateTime? @default(now()) @db.Timestamp(6)
 
   grupos_ordenes_internas grupos_ordenes_internas @relation(fields: [grupo_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   procesos                procesos                @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   pm                      usuarios?               @relation("OI_PM", fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   control_gestion         usuarios?               @relation("OI_CG", fields: [control_gestion_asignado_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  controles_cambio        controles_cambio?       @relation(fields: [control_cambio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   oi_valores              oi_valores[]
 }
 
@@ -323,3 +328,45 @@ model grupo_oi_historico_cierre {
   usuarios                usuarios                @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 }
 
+// =====================================================================
+// PROCESO: CONTROL DE CAMBIOS
+// =====================================================================
+
+// 📝 Cada Control de Cambios individual. Es su propia fila en la tabla
+// genérica "procesos" (para reutilizar historico_aprobaciones y
+// asignaciones_proceso, mismo patrón que Solicitud de Inversión y Órdenes
+// Internas). A diferencia de Órdenes Internas, NO tiene tabla de "grupo"
+// contenedor propia — acá el grupo no guarda ningún estado propio (es
+// meramente informativo), así que el panel simplemente lista todos los
+// Control de Cambios del proyecto directo, sin tabla intermedia.
+model controles_cambio {
+  id                     Int       @id @default(autoincrement())
+  proceso_id             Int       @unique
+  proyecto_id            String    @db.VarChar(20)
+  responsable_pm_id      Int?
+  requiere_orden_interna Boolean   @default(false)
+  descripcion_cambio     String?
+  antecedentes           String?
+  justificacion          String?
+  impacto_alcance        String?
+  impacto_tiempo         String?
+  fecha_creacion         DateTime? @default(now()) @db.Timestamp(6)
+
+  procesos              procesos                @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  proyectos             proyectos               @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  usuarios              usuarios?               @relation(fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  control_cambio_anexos control_cambio_anexos[]
+  ordenes_internas      ordenes_internas[]
+}
+
+// 🔗 Anexos del Control de Cambios — solo links (a documentos, imágenes,
+// cotizaciones, correos, etc.), no archivos subidos al servidor.
+model control_cambio_anexos {
+  id                Int     @id @default(autoincrement())
+  control_cambio_id Int
+  tipo              String  @db.VarChar(30) // DOCUMENTO | IMAGEN | COTIZACION | CORREO | GRABACION | TICKET | ORDEN_INTERNA | PLANO | OTRO
+  url               String
+  descripcion       String? @db.VarChar(255)
+
+  controles_cambio controles_cambio @relation(fields: [control_cambio_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}

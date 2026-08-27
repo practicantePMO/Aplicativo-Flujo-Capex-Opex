@@ -6,10 +6,13 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import type { CrearOrdenInternaPayload } from '../types/ordenInterna.types';
 import { crearOrdenInterna, actualizarOrdenInterna, obtenerOrdenInternaDetalle } from '../services/ordenesInternas.service';
+import { obtenerControlCambiosPorProyecto } from '../../control-cambios/services/controlCambios.service';
+import type { ControlCambioResumen } from '../../control-cambios/types/controlCambio.types';
 
 interface Props {
   proyectoId: string;
   ordenInternaId?: number; // si viene, es edición de un Borrador existente
+  prefillControlCambioId?: number; // si viene, es un atajo desde un Control de Cambios
   onCancelar: () => void;
   onGuardada: (ordenInternaId: number) => void;
 }
@@ -26,6 +29,7 @@ const CAMPO_VACIO: CrearOrdenInternaPayload = {
   ramo: '',
   porcentaje_1: undefined,
   es_control_cambios: false,
+  control_cambio_id: undefined,
   activo_fijo_curso: '',
   tipo_activo: '',
   porcentaje_2: undefined,
@@ -38,13 +42,24 @@ const CAMPO_VACIO: CrearOrdenInternaPayload = {
   ],
 };
 
-export function FormularioOrdenInterna({ proyectoId, ordenInternaId, onCancelar, onGuardada }: Props) {
-  // null = todavía no respondió la pregunta inicial (solo aplica al crear una nueva)
-  const [preguntaRespondida, setPreguntaRespondida] = useState(!!ordenInternaId);
-  const [form, setForm] = useState<CrearOrdenInternaPayload>({ ...CAMPO_VACIO, proyecto_id: proyectoId });
+export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillControlCambioId, onCancelar, onGuardada }: Props) {
+  // null = todavía no respondió la pregunta inicial. Si viene prefillControlCambioId,
+  // ya sabemos la respuesta (es un atajo desde el Control de Cambios).
+  const [preguntaRespondida, setPreguntaRespondida] = useState(!!ordenInternaId || !!prefillControlCambioId);
+  const [form, setForm] = useState<CrearOrdenInternaPayload>({
+    ...CAMPO_VACIO,
+    proyecto_id: proyectoId,
+    ...(prefillControlCambioId ? { es_control_cambios: true, control_cambio_id: prefillControlCambioId } : {}),
+  });
   const [cargando, setCargando] = useState(!!ordenInternaId);
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const [controlesCambio, setControlesCambio] = useState<ControlCambioResumen[]>([]);
+
+  useEffect(() => {
+    obtenerControlCambiosPorProyecto(proyectoId).then(setControlesCambio).catch(() => setControlesCambio([]));
+  }, [proyectoId]);
 
   useEffect(() => {
     if (!ordenInternaId) return;
@@ -63,6 +78,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, onCancelar,
           ramo: detalle.ramo || '',
           porcentaje_1: detalle.porcentaje_1 ?? undefined,
           es_control_cambios: detalle.es_control_cambios,
+          control_cambio_id: detalle.control_cambio_id ?? undefined,
           activo_fijo_curso: detalle.activo_fijo_curso || '',
           tipo_activo: detalle.tipo_activo || '',
           porcentaje_2: detalle.porcentaje_2 ?? undefined,
@@ -102,6 +118,9 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, onCancelar,
         if (!form.tipo_activo?.trim()) throw new Error('El Tipo de activo es obligatorio.');
         if (!form.activo_real_productivo?.trim()) throw new Error('El Activo Real Productivo es obligatorio.');
       }
+      if (form.es_control_cambios && !form.control_cambio_id) {
+        throw new Error('Debes elegir a qué Control de Cambios corresponde esta Orden Interna.');
+      }
 
       const payload: CrearOrdenInternaPayload = {
         ...form,
@@ -124,7 +143,10 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, onCancelar,
 
   if (cargando) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress color="secondary" /></Box>;
 
-  // 🔀 Primera pregunta: ¿es una OI por Control de Cambios? Decide si se ve la Sección 3.
+  const controlesCambioElegibles = controlesCambio.filter((cc) => cc.requiere_orden_interna);
+
+  // 🔀 Primera pregunta: ¿es una OI por Control de Cambios? Decide si se ve la Sección 3
+  // Y, si es "Sí", exige elegir un Control de Cambios real que ya exista para este proyecto.
   if (!preguntaRespondida) {
     return (
       <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
@@ -132,14 +154,49 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, onCancelar,
         <Typography variant="body1" sx={{ mb: 2 }}>¿Esta Orden Interna es por Control de Cambios?</Typography>
         <RadioGroup
           value={form.es_control_cambios ? 'si' : 'no'}
-          onChange={(e) => actualizar({ es_control_cambios: e.target.value === 'si' })}
+          onChange={(e) => {
+            const esCC = e.target.value === 'si';
+            actualizar({ es_control_cambios: esCC, control_cambio_id: esCC ? form.control_cambio_id : undefined });
+          }}
         >
           <FormControlLabel value="no" control={<Radio />} label="No" />
           <FormControlLabel value="si" control={<Radio />} label="Sí, es por Control de Cambios" />
         </RadioGroup>
+
+        {form.es_control_cambios && (
+          <Box sx={{ mt: 2 }}>
+            {controlesCambioElegibles.length === 0 ? (
+              <Alert severity="warning">
+                No hay ningún Control de Cambios de este proyecto marcado como "Requiere Orden Interna". Primero crea (o marca) el Control de Cambios correspondiente.
+              </Alert>
+            ) : (
+              <TextField
+                select
+                fullWidth
+                label="¿A qué Control de Cambios corresponde? *"
+                value={form.control_cambio_id ?? ''}
+                onChange={(e) => actualizar({ control_cambio_id: Number(e.target.value) })}
+              >
+                {controlesCambioElegibles.map((cc) => (
+                  <MenuItem key={cc.id} value={cc.id}>
+                    #{cc.id} — {cc.descripcion_cambio ? cc.descripcion_cambio.slice(0, 60) : 'Sin descripción'}
+                  </MenuItem>
+                ))}
+              </TextField>
+            )}
+          </Box>
+        )}
+
         <Box sx={{ display: 'flex', gap: 2, mt: 3 }}>
           <Button onClick={onCancelar}>Cancelar</Button>
-          <Button variant="contained" color="secondary" onClick={() => setPreguntaRespondida(true)}>Continuar</Button>
+          <Button
+            variant="contained"
+            color="secondary"
+            onClick={() => setPreguntaRespondida(true)}
+            disabled={form.es_control_cambios && !form.control_cambio_id}
+          >
+            Continuar
+          </Button>
         </Box>
       </Box>
     );

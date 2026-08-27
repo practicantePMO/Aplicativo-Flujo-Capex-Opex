@@ -35,12 +35,13 @@ export class SolicitudInversionService {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe.');
 
-    // 🛡️ Validamos que el usuario tenga rol PM/PMO/ADMIN para la compañía de este proyecto
-    if (proyecto.compania_id) {
-      const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
-      if (!esAdmin) {
-        await this.permisos.exigirRolParaCompania(usuarioId, ['PM'], proyecto.compania_id);
-      }
+    // 🛡️ Solo el PM dueño de este proyecto (o un Administrador) puede crear su
+    // Solicitud de Inversión — antes cualquier PM de la compañía podía crearla
+    // en un proyecto ajeno con solo adivinar el ID (mismo bug que encontraste en
+    // Control de Cambios).
+    const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
+    if (!esAdmin && proyecto.creado_por !== usuarioId) {
+      throw new ForbiddenException('Solo el PM dueño de este proyecto (o un Administrador) puede crear su Solicitud de Inversión.');
     }
 
     const procesoExistente = await this.prisma.procesos.findFirst({

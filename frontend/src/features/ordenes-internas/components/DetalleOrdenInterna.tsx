@@ -24,9 +24,11 @@ interface Props {
   grupoEstado: 'ABIERTO' | 'SOLICITADO_CIERRE' | 'CERRADO';
   onCambio: () => void;
   onEditar: () => void;
+  onVerControlCambio?: (procesoId: number) => void;
 }
 
-export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio, onEditar }: Props) {
+
+export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio, onEditar, onVerControlCambio }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [detalle, setDetalle] = useState<OrdenInternaDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -171,6 +173,28 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Grid>
   );
 
+  // 🆕 Versión "tablita" para Datos Generales — filas de [etiqueta, valor].
+  const tablaCampos = (filas: [string, string | number | null | undefined][]) => (
+    <TableContainer component={Card} variant="outlined" sx={{ borderRadius: 2, boxShadow: 'none' }}>
+      <Table size="small">
+        <TableHead>
+          <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
+            <TableCell sx={{ fontWeight: 700, width: '40%' }}>Campo</TableCell>
+            <TableCell sx={{ fontWeight: 700 }}>Valor</TableCell>
+          </TableRow>
+        </TableHead>
+        <TableBody>
+          {filas.map(([label, valor]) => (
+            <TableRow key={label}>
+              <TableCell sx={{ fontWeight: 600 }}>{label}</TableCell>
+              <TableCell sx={{ wordBreak: 'break-word' }}>{valor === undefined || valor === null || valor === '' ? '—' : valor}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+
   const tarjeta = (children: React.ReactNode) => (
     <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
       <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>{children}</CardContent>
@@ -207,30 +231,33 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
       {tituloSeccion('Datos Generales')}
       {tarjeta(
-        <Grid container spacing={2}>
-          {campo('Centro de Costos', detalle.centro_costos)}
-          {campo('Oficina de Ventas', detalle.oficina_ventas)}
-          {campo('Línea de Marca', detalle.linea_marca)}
-          {campo('Cliente', detalle.cliente)}
-          {campo('Ramo', detalle.ramo)}
-          {campo('%', detalle.porcentaje_1)}
-        </Grid>
+        tablaCampos([
+          ['Centro de Costos', detalle.centro_costos],
+          ['Oficina de Ventas', detalle.oficina_ventas],
+          ['Línea de Marca', detalle.linea_marca],
+          ['Cliente', detalle.cliente],
+          ['Ramo', detalle.ramo],
+          ['%', detalle.porcentaje_1],
+        ])
       )}
 
       {tarjeta(
-        <Grid container spacing={2}>
-          {detalle.tipo_orden === 'ACTIVO' && (
-            <>
-              {campo('Activo Fijo en curso', detalle.activo_fijo_curso)}
-              {campo('Tipo de activo', detalle.tipo_activo)}
-              {campo('%', detalle.porcentaje_2)}
-              {campo('Activo Real Productivo', detalle.activo_real_productivo)}
-            </>
-          )}
-          {campo('Presupuesto', detalle.presupuesto
-            ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
-            : undefined)}
-        </Grid>
+        tablaCampos([
+          ...(detalle.tipo_orden === 'ACTIVO'
+            ? ([
+                ['Activo Fijo en curso', detalle.activo_fijo_curso],
+                ['Tipo de activo', detalle.tipo_activo],
+                ['%', detalle.porcentaje_2],
+                ['Activo Real Productivo', detalle.activo_real_productivo],
+              ] as [string, string | number | null | undefined][])
+            : []),
+          [
+            'Presupuesto',
+            detalle.presupuesto
+              ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
+              : undefined,
+          ],
+        ])
       )}
 
       {detalle.es_control_cambios && detalle.oi_valores?.length > 0 && (
@@ -315,8 +342,16 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
               </Table>
             </TableContainer>
           )}
-        </CardContent>
+                </CardContent>
       </Card>
+
+      {detalle.controles_cambio && onVerControlCambio && (
+        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
+          <Button variant="contained" color="info" onClick={() => onVerControlCambio(detalle.controles_cambio!.proceso_id)}>
+            Ver Control de Cambios relacionado
+          </Button>
+        </Box>
+      )}
 
       {/* Diálogo: enviar */}
       <Dialog open={dialogoEnviar} onClose={() => setDialogoEnviar(false)} fullWidth maxWidth="xs">

@@ -28,12 +28,14 @@ const ESTADO_GRUPO_CONFIG: Record<string, { label: string; color: 'success' | 'w
 interface Props {
   proyectoId: string;
   companiaId: number;
+  crearParaControlCambioId?: number | null;
+  onVerControlCambio?: (procesoId: number) => void;
 }
 
-export function PanelOrdenesInternas({ proyectoId, companiaId }: Props) {
+export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlCambioId, onVerControlCambio }: Props) {
   const { tieneRol } = useAuth();
   const [grupo, setGrupo] = useState<GrupoOrdenesInternas | null | undefined>(undefined); // undefined = cargando
-  const [mostrarFormulario, setMostrarFormulario] = useState(false);
+  const [mostrarFormulario, setMostrarFormulario] = useState(!!crearParaControlCambioId);
   const [mostrarLista, setMostrarLista] = useState(false);
   const [ordenExpandidaId, setOrdenExpandidaId] = useState<number | false>(false);
   const [ordenEnEdicionId, setOrdenEnEdicionId] = useState<number | null>(null);
@@ -59,8 +61,6 @@ export function PanelOrdenesInternas({ proyectoId, companiaId }: Props) {
   // APROBADO_FINAL (se crea automáticamente en ese momento). No mostramos nada.
   if (grupo === null) return null;
 
-  // 🛡️ Defensivo: si por algún motivo la respuesta llega con forma distinta
-  // a la esperada, no tronamos — tratamos las listas faltantes como vacías.
   const ordenesInternas = Array.isArray(grupo.ordenes_internas) ? grupo.ordenes_internas : [];
   const historicoCierre = Array.isArray(grupo.grupo_oi_historico_cierre) ? grupo.grupo_oi_historico_cierre : [];
 
@@ -69,6 +69,7 @@ export function PanelOrdenesInternas({ proyectoId, companiaId }: Props) {
       <FormularioOrdenInterna
         proyectoId={proyectoId}
         ordenInternaId={ordenEnEdicionId ?? undefined}
+        prefillControlCambioId={ordenEnEdicionId === null ? (crearParaControlCambioId ?? undefined) : undefined}
         onCancelar={() => { setMostrarFormulario(false); setOrdenEnEdicionId(null); }}
         onGuardada={(ordenId) => {
           setMostrarFormulario(false);
@@ -143,6 +144,7 @@ export function PanelOrdenesInternas({ proyectoId, companiaId }: Props) {
                     grupoEstado={grupo.estado}
                     onCambio={cargar}
                     onEditar={() => setOrdenEnEdicionId(oi.id)}
+                    onVerControlCambio={onVerControlCambio}
                   />
                 )}
               </AccordionDetails>

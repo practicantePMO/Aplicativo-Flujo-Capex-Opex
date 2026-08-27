@@ -89,12 +89,13 @@ export class OrdenesInternasConsultaService {
   async obtenerDetalle(usuarioId: number, ordenInternaId: number) {
     const orden = await this.prisma.ordenes_internas.findUnique({
       where: { id: ordenInternaId },
-      include: {
+        include: {
         procesos: { include: { historico_aprobaciones: { include: { usuarios: { select: { id: true, nombre: true } } }, orderBy: { fecha_registro: 'desc' } } } },
         grupos_ordenes_internas: true,
         pm: { select: { id: true, nombre: true, email: true } },
         control_gestion: { select: { id: true, nombre: true, email: true } },
         oi_valores: true,
+        controles_cambio: { select: { id: true, proceso_id: true, descripcion_cambio: true } },
       },
     });
     if (!orden) throw new NotFoundException('Orden Interna no encontrada.');

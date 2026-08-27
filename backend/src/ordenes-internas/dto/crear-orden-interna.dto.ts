@@ -1,5 +1,5 @@
 import {
-  IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsNumber, Min, Max,
+  IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsNumber, IsInt, Min, Max,
   ValidateIf, IsArray, ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -30,10 +30,17 @@ export class CrearOrdenInternaDto {
   @IsString() @IsOptional() ramo?: string;
   @IsNumber() @IsOptional() porcentaje_1?: number;
 
-  // 🎯 Decide si se muestra/exige la Sección 3 (por ahora es solo un booleano;
-  // el proceso "Control de Cambios" en sí se construirá más adelante).
+  // 🎯 Decide si se muestra/exige la Sección 3.
   @IsBoolean() @IsOptional()
   es_control_cambios?: boolean;
+
+  // 🔗 Obligatorio si es_control_cambios = true — a qué Control de Cambios
+  // real corresponde esta Orden Interna. Se valida en el servicio que ese
+  // Control de Cambios exista, sea del mismo proyecto, y de verdad tenga
+  // marcado "Requiere Orden Interna".
+  @ValidateIf((o) => o.es_control_cambios === true)
+  @IsInt({ message: 'Debes indicar a qué Control de Cambios corresponde esta Orden Interna.' })
+  control_cambio_id?: number;
 
   // --- Sección 2 (solo si tipo_orden = ACTIVO se exigen todos; si es GASTO solo "presupuesto") ---
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')

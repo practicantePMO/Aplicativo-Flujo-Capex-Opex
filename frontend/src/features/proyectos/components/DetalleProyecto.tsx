@@ -4,12 +4,14 @@ import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
+import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import type { Proyecto, Proceso } from '../types/proyecto.types';
 import { obtenerProcesosPorProyecto } from '../services/proyectos.service';
 import { useAuth } from '../../../auth/AuthContext';
 import { FormularioSolicitudInversion } from '../../solicitud-inversion/components/FormularioSolicitudInversion';
 import { VistaSolicitudInversion } from '../../solicitud-inversion/components/VistaSolicitudInversion';
 import { PanelOrdenesInternas } from '../../ordenes-internas/components/PanelOrdenesInternas';
+import { PanelControlCambios } from '../../control-cambios/components/PanelControlCambios';
 
 interface DetalleProyectoProps {
   proyecto: Proyecto;
@@ -23,6 +25,13 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [procesoAbierto, setProcesoAbierto] = useState<number | null>(null);
   const [verOrdenesInternas, setVerOrdenesInternas] = useState(false);
+  const [verControlCambios, setVerControlCambios] = useState(false);
+
+  // 🔗 Navegación cruzada entre los dos paneles: al crear un CC que requiere
+  // OI, o al querer ver el CC ligado a una OI, cambiamos de panel y le
+  // decimos al panel destino con qué abrirse (crear pre-llenado, o expandido).
+  const [oiPrefillControlCambioId, setOiPrefillControlCambioId] = useState<number | null>(null);
+  const [ccProcesoIdParaAbrir, setCcProcesoIdParaAbrir] = useState<number | null>(null);
 
   const puedeCrearProceso = tieneRol('PM') || tieneRol('ADMIN');
 
@@ -40,17 +49,28 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     }
   };
 
-  // 1. Filtramos solo las solicitudes de inversión principales (excluimos ORDEN_INTERNA del listado general)
   const solicitudesInversion = procesos.filter(
     (p) => p.tipo_proceso === 'SOLICITUD_INVERSION'
   );
 
-  // 2. Comprobamos si la solicitud de inversión fue aprobada para habilitar el módulo de Órdenes Internas
   const tieneSolicitudAprobada = solicitudesInversion.some(
     (p) => p.estado_actual === 'APROBADO_FINAL'
   );
 
-  // Vista: Formulario de creación
+  const manejarCrearOiDesdeCc = (controlCambioId: number) => {
+    setVerControlCambios(false);
+    setCcProcesoIdParaAbrir(null);
+    setOiPrefillControlCambioId(controlCambioId);
+    setVerOrdenesInternas(true);
+  };
+
+  const manejarVerControlCambio = (procesoId: number) => {
+    setVerOrdenesInternas(false);
+    setOiPrefillControlCambioId(null);
+    setCcProcesoIdParaAbrir(procesoId);
+    setVerControlCambios(true);
+  };
+
   if (mostrarFormulario) {
     return (
       <FormularioSolicitudInversion
@@ -61,7 +81,6 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     );
   }
 
-  // Vista: Detalle de Solicitud de Inversión
   if (procesoAbierto !== null) {
     return (
       <VistaSolicitudInversion
@@ -71,19 +90,39 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     );
   }
 
-  // Vista: Detalle de Órdenes Internas
   if (verOrdenesInternas) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => setVerOrdenesInternas(false)} sx={styles.backBtn}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerOrdenesInternas(false); setOiPrefillControlCambioId(null); }} sx={styles.backBtn}>
           Volver a Procesos
         </Button>
-        <PanelOrdenesInternas proyectoId={proyecto.id} companiaId={proyecto.companias?.id ?? proyecto.compania_id} />
+        <PanelOrdenesInternas
+          proyectoId={proyecto.id}
+          companiaId={proyecto.companias?.id ?? proyecto.compania_id}
+          crearParaControlCambioId={oiPrefillControlCambioId}
+          onVerControlCambio={manejarVerControlCambio}
+        />
       </Box>
     );
   }
 
-  // Vista Principal: Lista en columna vertical (Stack)
+  if (verControlCambios) {
+    return (
+      <Box>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerControlCambios(false); setCcProcesoIdParaAbrir(null); }} sx={styles.backBtn}>
+          Volver a Procesos
+        </Button>
+        <PanelControlCambios
+          proyectoId={proyecto.id}
+          companiaId={proyecto.companias?.id ?? proyecto.compania_id}
+          creadoPor={proyecto.creado_por}
+          procesoIdInicial={ccProcesoIdParaAbrir}
+          onCrearOi={manejarCrearOiDesdeCc}
+        />
+      </Box>
+    );
+  }
+
   return (
     <Box>
       <Button startIcon={<ArrowBackIcon />} onClick={onVolver} sx={styles.backBtn}>
@@ -118,7 +157,6 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
         </Box>
       ) : (
         <Stack spacing={2} sx={{ width: '100%' }}>
-          {/* Tarjeta 1 (Arriba): Solicitud de Inversión */}
           {solicitudesInversion.map((proceso) => (
             <Card key={proceso.id} sx={styles.processCard} onClick={() => setProcesoAbierto(proceso.id)}>
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -138,7 +176,6 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
             </Card>
           ))}
 
-          {/* Tarjeta 2 (Abajo): Módulo de Órdenes Internas */}
           {tieneSolicitudAprobada && (
             <Card sx={styles.processCard} onClick={() => setVerOrdenesInternas(true)}>
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -149,6 +186,23 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                   </Typography>
                   <Typography variant="caption" color="text.secondary">
                     Gestión y seguimiento de Órdenes Internas
+                  </Typography>
+                </Box>
+                <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+              </CardContent>
+            </Card>
+          )}
+
+          {tieneSolicitudAprobada && (
+            <Card sx={styles.processCard} onClick={() => setVerControlCambios(true)}>
+              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <Avatar sx={styles.processIcon}><SyncAltIcon /></Avatar>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
+                    CONTROL DE CAMBIOS
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Cambios registrados sobre este proyecto
                   </Typography>
                 </Box>
                 <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />

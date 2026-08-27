@@ -39,12 +39,28 @@ export class OrdenesInternasService {
     }
   }
 
+  // 🔒 Que una OI "por Control de Cambios" de verdad tenga un CC real detrás
+  // — de este mismo proyecto, y que ese CC realmente diga que necesita OI.
+  private async validarControlCambioVinculado(proyectoId: string, controlCambioId?: number) {
+    if (!controlCambioId) {
+      throw new BadRequestException('Debes indicar a qué Control de Cambios corresponde esta Orden Interna.');
+    }
+    const controlCambio = await this.prisma.controles_cambio.findUnique({ where: { id: controlCambioId } });
+    if (!controlCambio || controlCambio.proyecto_id !== proyectoId) {
+      throw new BadRequestException('El Control de Cambios seleccionado no existe o no pertenece a este proyecto.');
+    }
+    if (!controlCambio.requiere_orden_interna) {
+      throw new BadRequestException('Ese Control de Cambios no está marcado como que requiera Orden Interna.');
+    }
+  }
+
   private mapearDatosOi(dto: CrearOrdenInternaDto) {
     return {
       numero_oi: dto.numero_oi,
       nombre_descriptivo: dto.nombre_descriptivo,
       tipo_orden: dto.tipo_orden,
       es_control_cambios: Boolean(dto.es_control_cambios),
+      control_cambio_id: dto.es_control_cambios ? dto.control_cambio_id : null,
       centro_costos: dto.centro_costos,
       oficina_ventas: dto.oficina_ventas,
       linea_marca: dto.linea_marca,
@@ -67,6 +83,10 @@ export class OrdenesInternasService {
 
     if (grupo.estado !== 'ABIERTO') {
       throw new BadRequestException('El grupo de Órdenes Internas ya no admite nuevas órdenes (está en proceso de cierre o cerrado).');
+    }
+
+    if (dto.es_control_cambios) {
+      await this.validarControlCambioVinculado(dto.proyecto_id, dto.control_cambio_id);
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -103,6 +123,10 @@ export class OrdenesInternasService {
     const esDueno = orden.responsable_pm_id === usuarioId;
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de esta Orden Interna.');
+
+    if (dto.es_control_cambios) {
+      await this.validarControlCambioVinculado(dto.proyecto_id, dto.control_cambio_id);
+    }
 
     return this.prisma.$transaction(async (tx) => {
       await tx.ordenes_internas.update({

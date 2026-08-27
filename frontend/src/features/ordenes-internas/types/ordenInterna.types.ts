@@ -17,6 +17,7 @@ export interface CrearOrdenInternaPayload {
   ramo?: string;
   porcentaje_1?: number;
   es_control_cambios?: boolean;
+  control_cambio_id?: number;
   activo_fijo_curso?: string;
   tipo_activo?: string;
   porcentaje_2?: number;
@@ -84,6 +85,8 @@ export interface OrdenInternaDetalle extends OrdenInternaResumen {
   ramo?: string | null;
   porcentaje_1?: number | null;
   es_control_cambios: boolean;
+  control_cambio_id?: number | null;
+  controles_cambio?: { id: number; proceso_id: number; descripcion_cambio?: string | null } | null;
   activo_fijo_curso?: string | null;
   tipo_activo?: string | null;
   porcentaje_2?: number | null;

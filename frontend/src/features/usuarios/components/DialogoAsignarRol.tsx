@@ -12,9 +12,11 @@ interface Props {
   onAsignado: () => void;
 }
 
+const GLOBAL = 'GLOBAL';
+
 export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsignado }: Props) {
   const [rolId, setRolId] = useState('');
-  const [companiaId, setCompaniaId] = useState(''); // vacío = Global (todas las compañías)
+  const [companiaId, setCompaniaId] = useState(GLOBAL); // GLOBAL = todas las compañías
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -30,14 +32,14 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
     const dto: AsignarRolDto = {
       usuario_id: usuario.id,
       rol_id: Number(rolId),
-      compania_id: companiaId ? Number(companiaId) : undefined,
+      compania_id: companiaId === GLOBAL ? undefined : Number(companiaId),
     };
 
     setEnviando(true);
     try {
       await asignarRol(dto);
       setRolId('');
-      setCompaniaId('');
+      setCompaniaId(GLOBAL);
       onAsignado();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Error al asignar el rol.');
@@ -62,8 +64,8 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
         <TextField
           select fullWidth label="Compañía" value={companiaId} onChange={(e) => setCompaniaId(e.target.value)}
         >
-          <MenuItem value="">Global (todas las compañías)</MenuItem>
-          {companias.map((c) => <MenuItem key={c.id} value={c.id}>{c.nombre}</MenuItem>)}
+          <MenuItem value={GLOBAL}>Global (todas las compañías)</MenuItem>
+          {companias.map((c) => <MenuItem key={c.id} value={String(c.id)}>{c.nombre}</MenuItem>)}
         </TextField>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>

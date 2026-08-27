@@ -9,11 +9,21 @@ import * as path from 'path';
 import * as handlebars from 'handlebars';
 
 export interface EventoNotificacion {
-  tipo: 'NUEVA_SOLICITUD' | 'SOLICITUD_APROBADA' | 'SOLICITUD_RECHAZADA' | 'USUARIO_NUEVO_PENDIENTE' | 'ROL_ASIGNADO' | 'OI_PENDIENTE' | 'OI_APROBADA' | 'OI_RECHAZADA';
+  tipo:
+    | 'NUEVA_SOLICITUD'
+    | 'SOLICITUD_APROBADA'
+    | 'SOLICITUD_RECHAZADA'
+    | 'USUARIO_NUEVO_PENDIENTE'
+    | 'ROL_ASIGNADO'
+    | 'OI_PENDIENTE'
+    | 'OI_APROBADA'
+    | 'OI_RECHAZADA'
+    | 'CC_NUEVA_ETAPA'
+    | 'CC_APROBADO'
+    | 'CC_RECHAZADO';
   destinatarios: string[];
   datos: Record<string, any>;
 }
-
 @Injectable()
 export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificacionesService.name);
@@ -127,9 +137,12 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
         SOLICITUD_RECHAZADA: { template: 'solicitud-rechazada', subject: `❌ Devuelta: ${contenido.datos.codigoProyecto}` },
         USUARIO_NUEVO_PENDIENTE: { template: 'usuario-nuevo-pendiente', subject: `👤 Nuevo Usuario Pendiente` },
         ROL_ASIGNADO: { template: 'rol-asignado', subject: `🔑 Se te asignó un rol en el Sistema de Proyectos` },
-        OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
+                OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
         OI_APROBADA: { template: 'oi-aprobada', subject: `✅ Orden Interna aprobada: ${contenido.datos.numeroOi}` },
         OI_RECHAZADA: { template: 'oi-rechazada', subject: `❌ Orden Interna devuelta: ${contenido.datos.numeroOi}` },
+        CC_NUEVA_ETAPA: { template: 'cc-nueva-etapa', subject: `📌 Control de Cambios pendiente: ${contenido.datos.codigoProyecto}` },
+        CC_APROBADO: { template: 'cc-aprobado', subject: `✅ Control de Cambios aprobado: ${contenido.datos.codigoProyecto}` },
+        CC_RECHAZADO: { template: 'cc-rechazado', subject: `❌ Control de Cambios devuelto: ${contenido.datos.codigoProyecto}` },
       };
       
       const config = configMap[contenido.tipo];

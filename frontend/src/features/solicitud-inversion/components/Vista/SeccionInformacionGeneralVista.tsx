@@ -1,4 +1,4 @@
-import { Card, CardContent, Typography, Grid } from '@mui/material';
+import { Card, CardContent, Typography, Stack, Divider } from '@mui/material';
 
 interface Props {
   nombrePm?: string;
@@ -8,6 +8,29 @@ interface Props {
 }
 
 export function SeccionInformacionGeneralVista({ nombrePm, categoriaTradicional, categoriaNueva, entregablePlaneado }: Props) {
+  const campo = (label: string, contenido: React.ReactNode) => (
+    <div>
+      <Typography
+        variant="caption"
+        sx={{
+          color: 'text.secondary',
+          fontWeight: 600,
+          fontSize: '0.725rem',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          mb: 0.5,
+          display: 'block',
+          textAlign: 'left',
+        }}
+      >
+        {label}
+      </Typography>
+      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', display: 'block', textAlign: 'left' }}>
+        {contenido}
+      </Typography>
+    </div>
+  );
+
   return (
     <Card
       elevation={0}
@@ -43,45 +66,12 @@ export function SeccionInformacionGeneralVista({ nombrePm, categoriaTradicional,
           Información General
         </Typography>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={4} sx={{ textAlign: 'left' }}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 600,
-                fontSize: '0.725rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                mb: 0.5,
-                display: 'block',
-                textAlign: 'left',
-              }}
-            >
-              PM Responsable
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', display: 'block', textAlign: 'left' }}>
-              {nombrePm || '—'}
-            </Typography>
-          </Grid>
+        <Stack divider={<Divider flexItem />} spacing={2}>
+          {campo('PM Responsable', nombrePm || '—')}
 
-          <Grid item xs={12} md={4} sx={{ textAlign: 'left' }}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 600,
-                fontSize: '0.725rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                mb: 0.5,
-                display: 'block',
-                textAlign: 'left',
-              }}
-            >
-              Categoría
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', display: 'block', textAlign: 'left' }}>
+          {campo(
+            'Categoría',
+            <>
               {!categoriaTradicional && !categoriaNueva && '—'}
               {categoriaTradicional && (
                 <Typography component="span" variant="body2" sx={{ display: 'block', fontWeight: 600 }}>
@@ -95,30 +85,11 @@ export function SeccionInformacionGeneralVista({ nombrePm, categoriaTradicional,
                   {categoriaNueva}
                 </Typography>
               )}
-            </Typography>
-          </Grid>
+            </>
+          )}
 
-          <Grid item xs={12} md={4} sx={{ textAlign: 'left' }}>
-            <Typography
-              variant="caption"
-              sx={{
-                color: 'text.secondary',
-                fontWeight: 600,
-                fontSize: '0.725rem',
-                textTransform: 'uppercase',
-                letterSpacing: '0.5px',
-                mb: 0.5,
-                display: 'block',
-                textAlign: 'left',
-              }}
-            >
-              Entregable Planeado
-            </Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', display: 'block', textAlign: 'left' }}>
-              {entregablePlaneado || '—'}
-            </Typography>
-          </Grid>
-        </Grid>
+          {campo('Entregable Planeado', entregablePlaneado || '—')}
+        </Stack>
       </CardContent>
     </Card>
   );
