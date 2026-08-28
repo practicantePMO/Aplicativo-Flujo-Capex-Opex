@@ -10,6 +10,7 @@ import {
   obtenerOrdenInternaDetalle, enviarOrdenInterna, aprobarOrdenInterna, rechazarOrdenInterna, cerrarOrdenInterna,
 } from '../services/ordenesInternas.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
+import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 
 const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -208,6 +209,12 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
   return (
     <Box>
+      <EncabezadoProceso
+        nombreProyecto={detalle.proyecto_nombre || ''}
+        nombreProceso={`Orden Interna — ${detalle.numero_oi}`}
+        estado={estado}
+      />
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
         <Chip label={detalle.tipo_orden} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         {detalle.es_control_cambios && <Chip label="Control de Cambios" size="small" color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />}

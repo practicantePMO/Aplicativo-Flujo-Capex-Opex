@@ -14,7 +14,7 @@ interface Props {
   onAbrirProyecto: (proyecto: any, procesoId: number) => void;
 }
 
-const getEstadoChip = (estado: string) => {
+export const getEstadoChip = (estado: string) => {
   const configs: Record<string, { label: string; color: 'warning' | 'info' | 'primary' | 'secondary' | 'default' | 'success' }> = {
     // Solicitud de Inversión
     PENDIENTE_PMO: { label: 'Revisión PMO', color: 'warning' },

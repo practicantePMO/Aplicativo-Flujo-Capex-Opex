@@ -81,7 +81,7 @@ export class ControlCambiosConsultaService {
 
     await this.validarAcceso(usuarioId, proyecto, controlCambio.proyecto_id);
 
-    return controlCambio;
+    return { ...controlCambio, proyecto_nombre: proyecto.nombre };
   }
 
   // 🔔 Usado por "Mis Pendientes" — mismo patrón que Solicitud de Inversión,

@@ -106,6 +106,7 @@ export class ActasCierreConsultaService {
 
     return {
       ...acta,
+      proyecto_nombre: proyecto.nombre,
       comparacion: {
         entregable_inicial: si?.entregable_planeado ?? null,
         valores_si: si?.solicitud_valores ?? [],

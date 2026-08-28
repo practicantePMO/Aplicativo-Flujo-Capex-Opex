@@ -16,7 +16,7 @@ import {
 import { FormularioSolicitudInversion } from './FormularioSolicitudInversion';
 
 // Subcomponentes modulares
-import { EncabezadoSolicitud } from './Vista/EncabezadoSolicitud';
+import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { BarraAccionesSolicitud } from './Vista/BarraAccionesSolicitud';
 import { SeccionInformacionGeneralVista } from './Vista/SeccionInformacionGeneralVista';
 import { SeccionEvaluacionFinancieraVista } from './Vista/SeccionEvaluacionFinancieraVista';
@@ -271,11 +271,9 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         Volver al proyecto
       </Button>
 
-      <EncabezadoSolicitud
+      <EncabezadoProceso
         nombreProyecto={data.proyectos.nombre}
-        idProyecto={data.proyectos.id}
-        nombreCompania={data.proyectos.companias?.nombre}
-        nombrePm={nombrePmExtraido}
+        nombreProceso="Solicitud de Inversión"
         estado={estado}
       />
 

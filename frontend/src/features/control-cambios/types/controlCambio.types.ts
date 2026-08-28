@@ -87,4 +87,5 @@ export interface ControlCambioDetalle {
     historico_aprobaciones: HistoricoAprobacionCc[];
     asignaciones_proceso: AsignacionCc[];
   };
+  proyecto_nombre?: string;
 }

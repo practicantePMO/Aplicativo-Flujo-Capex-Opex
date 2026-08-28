@@ -8,7 +8,9 @@ import SyncAltIcon from '@mui/icons-material/SyncAlt';
 import GavelIcon from '@mui/icons-material/Gavel';
 import type { Proyecto, Proceso } from '../types/proyecto.types';
 import { obtenerProcesosPorProyecto } from '../services/proyectos.service';
+import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
 import { useAuth } from '../../../auth/AuthContext';
+import { EncabezadoProyecto } from '../../../components/EncabezadoProyecto';
 import { FormularioSolicitudInversion } from '../../solicitud-inversion/components/FormularioSolicitudInversion';
 import { VistaSolicitudInversion } from '../../solicitud-inversion/components/VistaSolicitudInversion';
 import { PanelOrdenesInternas } from '../../ordenes-internas/components/PanelOrdenesInternas';
@@ -20,9 +22,16 @@ interface DetalleProyectoProps {
   onVolver: () => void;
 }
 
+const ESTADO_GRUPO_OI_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'default' }> = {
+  ABIERTO: { label: 'Activo', color: 'success' },
+  SOLICITADO_CIERRE: { label: 'Cierre solicitado', color: 'warning' },
+  CERRADO: { label: 'Cerrado', color: 'default' },
+};
+
 export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const { tieneRol } = useAuth();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
+  const [grupoOiEstado, setGrupoOiEstado] = useState<string | null>(null);
   const [cargando, setCargando] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [procesoAbierto, setProcesoAbierto] = useState<number | null>(null);
@@ -50,6 +59,17 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     } finally {
       setCargando(false);
     }
+    cargarEstadoOi();
+  };
+
+  // 🎯 Estado real del grupo de Órdenes Internas (Activo/Cierre solicitado/Cerrado).
+  const cargarEstadoOi = async () => {
+    try {
+      const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
+      setGrupoOiEstado(grupo?.estado ?? null);
+    } catch {
+      setGrupoOiEstado(null);
+    }
   };
 
   const solicitudesInversion = procesos.filter(
@@ -58,6 +78,13 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
 
   const tieneSolicitudAprobada = solicitudesInversion.some(
     (p) => p.estado_actual === 'APROBADO_FINAL'
+  );
+
+  // 🎯 Si ya existe un Acta de Cierre en CERRADO, el proyecto terminó
+  // (Finalizado o Cancelado) — Control de Cambios y el Acta misma deben
+  // reflejarlo en vez de seguir mostrando "Activo".
+  const proyectoCerrado = procesos.some(
+    (p) => p.tipo_proceso === 'ACTA_CIERRE' && p.estado_actual === 'CERRADO'
   );
 
   const manejarCrearOiDesdeCc = (controlCambioId: number) => {
@@ -96,7 +123,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   if (verOrdenesInternas) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerOrdenesInternas(false); setOiPrefillControlCambioId(null); }} sx={styles.backBtn}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerOrdenesInternas(false); setOiPrefillControlCambioId(null); cargarEstadoOi(); }} sx={styles.backBtn}>
           Volver a Procesos
         </Button>
         <PanelOrdenesInternas
@@ -129,10 +156,10 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   if (verActaCierre) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => setVerActaCierre(false)} sx={styles.backBtn}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerActaCierre(false); cargarProcesos(); }} sx={styles.backBtn}>
           Volver a Procesos
         </Button>
-          <PanelActaCierre
+        <PanelActaCierre
           proyectoId={proyecto.id}
           companiaId={proyecto.companias?.id ?? proyecto.compania_id}
           creadoPor={proyecto.creado_por}
@@ -148,14 +175,13 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
         Volver al Portafolio
       </Button>
 
-      <Card sx={styles.headerCard}>
-        <Box sx={styles.headerAccent} />
-        <CardContent sx={{ p: '24px !important' }}>
-          <Typography variant="caption" sx={styles.projectId}>PROYECTO: {proyecto.id}</Typography>
-          <Typography variant="h5" sx={styles.projectTitle}>{proyecto.nombre}</Typography>
-          <Chip label={proyecto.companias?.nombre || 'Compañía General'} size="small" sx={styles.companyChip} />
-        </CardContent>
-      </Card>
+      <EncabezadoProyecto
+        nombreProyecto={proyecto.nombre}
+        idProyecto={proyecto.id}
+        nombreCompania={proyecto.companias?.nombre}
+        nombrePm={proyecto.usuarios?.nombre}
+        estado={proyecto.estado}
+      />
 
       <Typography variant="h6" sx={styles.sectionTitle}>Procesos del Proyecto</Typography>
       <Divider sx={{ mb: 3 }} />
@@ -207,7 +233,11 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                     Gestión y seguimiento de Órdenes Internas
                   </Typography>
                 </Box>
-                <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+                <Chip
+                  label={grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.label || grupoOiEstado : 'Sin Órdenes'}
+                  color={grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.color || 'default' : 'default'}
+                  size="small" sx={{ fontWeight: 'bold' }}
+                />
               </CardContent>
             </Card>
           )}
@@ -224,7 +254,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                     Cambios registrados sobre este proyecto
                   </Typography>
                 </Box>
-                <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+                <Chip label={proyectoCerrado ? 'Cerrado' : 'ACTIVO'} color={proyectoCerrado ? 'default' : 'secondary'} size="small" sx={{ fontWeight: 'bold' }} />
               </CardContent>
             </Card>
           )}
@@ -241,7 +271,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                     Cierre por culminación o cancelación del proyecto
                   </Typography>
                 </Box>
-                <Chip label="ACTIVO" color="secondary" size="small" sx={{ fontWeight: 'bold' }} />
+                <Chip label={proyectoCerrado ? 'Cerrado' : 'ACTIVO'} color={proyectoCerrado ? 'default' : 'secondary'} size="small" sx={{ fontWeight: 'bold' }} />
               </CardContent>
             </Card>
           )}
@@ -253,11 +283,6 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
 
 const styles = {
   backBtn: { mb: 2, color: '#64748b', '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' } },
-  headerCard: { position: 'relative', mb: 4, borderRadius: 3, boxShadow: '0 4px 15px rgba(0,0,0,0.05)', overflow: 'hidden' },
-  headerAccent: { position: 'absolute', left: 0, top: 0, bottom: 0, width: '6px', backgroundColor: '#75b70e' },
-  projectId: { color: '#64748b', fontWeight: 700, letterSpacing: '1px', display: 'block', mb: 0.5 },
-  projectTitle: { fontWeight: 800, color: '#0e381e', mb: 1 },
-  companyChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 600 },
   sectionTitle: { fontWeight: 700, color: '#0e381e', mb: 1 },
   centerBox: { display: 'flex', justifyContent: 'center', py: 5 },
   emptyBox: { textAlign: 'center', py: 6, backgroundColor: '#ffffff', borderRadius: 3, border: '1px dashed #cbd5e1' },

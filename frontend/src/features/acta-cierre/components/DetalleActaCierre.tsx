@@ -3,8 +3,13 @@ import {
   Box, Typography, Chip, Button, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Autocomplete, CircularProgress, Card, CardContent, RadioGroup,
   FormControlLabel, Radio, Link, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  Paper, Tabs, Tab,
 } from '@mui/material';
+import InfoIcon from '@mui/icons-material/Info';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import HistoryIcon from '@mui/icons-material/History';
 import { useAuth } from '../../../auth/AuthContext';
+import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import type { ActaCierreDetalle } from '../types/actaCierre.types';
 import type { UsuarioActivo } from '../../solicitud-inversion/types/solicitud.types';
 import {
@@ -13,17 +18,6 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-
-const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
-  BORRADOR: { label: 'Borrador', color: 'default' },
-  PENDIENTE_PMO: { label: 'Pendiente PMO', color: 'warning' },
-  CONTROL_GESTION: { label: 'Control Gestión', color: 'warning' },
-  VERIFICACION_PARTES_INTERESADAS: { label: 'Verificación Partes Interesadas', color: 'warning' },
-  DIRECCION_PMO: { label: 'Dirección PMO', color: 'warning' },
-  GERENCIA: { label: 'Gerencia', color: 'warning' },
-  PRESIDENCIA: { label: 'Presidencia', color: 'warning' },
-  CERRADO: { label: 'Cerrado', color: 'success' },
-};
 
 const ROLES_POR_ETAPA: Record<string, string[]> = {
   PENDIENTE_PMO: ['PMO', 'ADMIN'],
@@ -46,6 +40,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   const [detalle, setDetalle] = useState<ActaCierreDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
+  const [tabActual, setTabActual] = useState(0);
 
   const [dialogoAprobar, setDialogoAprobar] = useState(false);
   const [dialogoElegirGerente, setDialogoElegirGerente] = useState(false);
@@ -218,7 +213,6 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
   const hayCc = detalle.comparacion.valores_cc.length > 0;
 
-  // 🔗 Cruzamos flujo de caja Planeado (SI) con Real (Acta) por tipo/moneda/año/mes
   const filasFlujo = detalle.comparacion.flujo_caja_planeado.map((p) => {
     const real = detalle.acta_cierre_flujo_caja.find(
       (r) => r.tipo === p.tipo && r.moneda === p.moneda && r.anio === p.anio && r.mes === p.mes,
@@ -228,7 +222,13 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+      <EncabezadoProceso
+        nombreProyecto={detalle.proyecto_nombre || ''}
+        nombreProceso="Acta de Cierre"
+        estado={estado}
+      />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
         <Chip label={detalle.tipo_cierre === 'CULMINACION' ? 'Culminación' : 'Cancelación'} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         <Box sx={{ flexGrow: 1 }} />
         {puedeEditarYEnviar && (
@@ -245,269 +245,292 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         )}
       </Box>
 
-      {tituloSeccion('Información General')}
-      {tarjeta(
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-          {campo('Control Gestión asignado', detalle.control_gestion?.nombre)}
-          {detalle.presentacion_p5_link
-            ? (
-              <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
-                  Presentación de Puertas 5
-                </Typography>
-                <Link href={detalle.presentacion_p5_link} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{detalle.presentacion_p5_link}</Link>
-              </Box>
-            )
-            : campo('Presentación de Puertas 5', null)}
-        </Box>
-      )}
+      <Paper sx={{ borderRadius: 3, mb: 3, backgroundColor: '#ffffff' }} elevation={0} variant="outlined">
+        <Tabs
+          value={tabActual}
+          onChange={(_, nuevoTab) => setTabActual(nuevoTab)}
+          indicatorColor="secondary"
+          textColor="secondary"
+          variant="fullWidth"
+        >
+          <Tab icon={<InfoIcon />} iconPosition="start" label="Información General" sx={{ fontWeight: 700 }} />
+          <Tab icon={<AttachMoneyIcon />} iconPosition="start" label="Valores y Flujo de Caja" sx={{ fontWeight: 700 }} />
+          <Tab icon={<HistoryIcon />} iconPosition="start" label="Histórico" sx={{ fontWeight: 700 }} />
+        </Tabs>
+      </Paper>
 
-      {tituloSeccion('Entregable Planeado')}
-      {tarjeta(
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-          {campo('Entregable Inicial (SI)', detalle.comparacion.entregable_inicial)}
-          {campo('Entregable Real', detalle.entregable_real)}
-        </Box>
-      )}
-
-      {detalle.acta_cierre_metas.length > 0 && (
-        <>
-          {tituloSeccion('Metas')}
-          <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-            <CardContent sx={{ p: 3 }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small">
-                  <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>Compromiso P3</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Fecha inicio medición</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Indicador</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Resultados del escalamiento / Cierre</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detalle.acta_cierre_metas.map((m) => (
-                      <TableRow key={m.id}>
-                        <TableCell>{m.solicitud_metas.compromiso}</TableCell>
-                        <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
-                        <TableCell>{m.solicitud_metas.indicador}</TableCell>
-                        <TableCell>{m.resultado_cierre || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {tituloSeccion('Valor Total del Proyecto')}
-      <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-        <CardContent sx={{ p: 3 }}>
-          <TableContainer sx={{ overflowX: 'auto' }}>
-            <Table size="small" sx={{ minWidth: 650 }}>
-              <TableHead>
-                <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                  <TableCell sx={{ fontWeight: 700 }}>Categoría</TableCell>
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Inicial (SI)</TableCell>
-                  {hayCc && <TableCell align="center" sx={{ fontWeight: 700 }}>Inicial (Control de Cambios)</TableCell>}
-                  <TableCell align="center" sx={{ fontWeight: 700 }}>Real</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(['ACTIVO', 'GASTO'] as const).map((cat) => {
-                  const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
-                  const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
-                  const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
-                  return (
-                    <TableRow key={cat}>
-                      <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                      <TableCell align="center">{fmt(si?.usd, 'US$')} / {fmt(si?.cop, '$')}</TableCell>
-                      {hayCc && <TableCell align="center">{fmt(cc?.usd, 'US$')} / {fmt(cc?.cop, '$')}</TableCell>}
-                      <TableCell align="center">{fmt(real?.real_usd, 'US$')} / {fmt(real?.real_cop, '$')}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          {detalle.explicacion_ejecucion && (
-            <Box sx={{ mt: 2 }}>{campo('Explicación de sobre/sub-ejecución', detalle.explicacion_ejecucion)}</Box>
+      {tabActual === 0 && (
+        <Box>
+          {tituloSeccion('Información General')}
+          {tarjeta(
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              {campo('Control Gestión asignado', detalle.control_gestion?.nombre)}
+              {detalle.presentacion_p5_link
+                ? (
+                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
+                      Presentación de Puertas 5
+                    </Typography>
+                    <Link href={detalle.presentacion_p5_link} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{detalle.presentacion_p5_link}</Link>
+                  </Box>
+                )
+                : campo('Presentación de Puertas 5', null)}
+            </Box>
           )}
-        </CardContent>
-      </Card>
 
-      {filasFlujo.length > 0 && (
-        <>
-          {tituloSeccion('Flujo de Caja — Planeado vs. Real')}
-          <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-            <CardContent sx={{ p: 3 }}>
-              {(['CAPEX', 'GCAPEX', 'OPEX'] as const).map((tipo) => {
-                const filas = filasFlujo.filter((f) => f.tipo === tipo);
-                if (filas.length === 0) return null;
-                return (
-                  <Box key={tipo} sx={{ mb: 2 }}>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>{tipo}</Typography>
-                    <TableContainer sx={{ overflowX: 'auto' }}>
-                      <Table size="small">
+          {tituloSeccion('Entregable Planeado')}
+          {tarjeta(
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+              {campo('Entregable Inicial (SI)', detalle.comparacion.entregable_inicial)}
+              {campo('Entregable Real', detalle.entregable_real)}
+            </Box>
+          )}
+
+          {detalle.acta_cierre_metas.length > 0 && (
+            <>
+              {tituloSeccion('Metas')}
+              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Compromiso P3</TableCell>
+                          <TableCell>Fecha inicio medición</TableCell>
+                          <TableCell>Indicador</TableCell>
+                          <TableCell>Resultados del escalamiento / Cierre</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {detalle.acta_cierre_metas.map((m) => (
+                          <TableRow key={m.id}>
+                            <TableCell>{m.solicitud_metas.compromiso}</TableCell>
+                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
+                            <TableCell>{m.solicitud_metas.indicador}</TableCell>
+                            <TableCell>{m.resultado_cierre || '—'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {(detalle.acta_cierre_entregables.length > 0 || detalle.otros_entregables) && (
+            <>
+              {tituloSeccion('Entregable')}
+              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  {detalle.acta_cierre_entregables.length > 0 && (
+                    <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
+                      <Table size="small" sx={{ minWidth: 750 }}>
                         <TableHead>
-                          <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                            <TableCell sx={{ fontWeight: 700 }}>Mes</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Año</TableCell>
-                            <TableCell sx={{ fontWeight: 700 }}>Moneda</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>Planeado</TableCell>
-                            <TableCell align="right" sx={{ fontWeight: 700 }}>Real</TableCell>
+                          <TableRow>
+                            <TableCell>Equipo / Sistema</TableCell>
+                            <TableCell>Cód. activo en producción</TableCell>
+                            <TableCell>Cód. activo en montaje</TableCell>
+                            <TableCell>Unidad vida útil</TableCell>
+                            <TableCell>Vida útil</TableCell>
+                            <TableCell>Observaciones</TableCell>
+                            <TableCell>Anexo</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {filas.map((f, i) => (
-                            <TableRow key={i}>
-                              <TableCell>{MESES[f.mes - 1]}</TableCell>
-                              <TableCell>{f.anio}</TableCell>
-                              <TableCell>{f.moneda}</TableCell>
-                              <TableCell align="right">{Number(f.monto || 0).toLocaleString()}</TableCell>
-                              <TableCell align="right">{f.real.toLocaleString()}</TableCell>
+                          {detalle.acta_cierre_entregables.map((e) => (
+                            <TableRow key={e.id}>
+                              <TableCell sx={{ fontWeight: 600 }}>{e.equipo_sistema}</TableCell>
+                              <TableCell>{e.codigo_activo_produccion || '—'}</TableCell>
+                              <TableCell>{e.codigo_activo_montaje || '—'}</TableCell>
+                              <TableCell>{e.unidad_vida_util || '—'}</TableCell>
+                              <TableCell>{e.vida_util ?? '—'}</TableCell>
+                              <TableCell>{e.observaciones || '—'}</TableCell>
+                              <TableCell>{e.anexo_url ? <Link href={e.anexo_url} target="_blank" rel="noopener noreferrer">Ver</Link> : '—'}</TableCell>
                             </TableRow>
                           ))}
                         </TableBody>
                       </Table>
                     </TableContainer>
-                  </Box>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </>
+                  )}
+                  {detalle.otros_entregables && campo('Otros entregables', detalle.otros_entregables)}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {tituloSeccion('Partes Interesadas')}
+          {tarjeta(
+            partesActuales.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">Sin partes interesadas asignadas.</Typography>
+            ) : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {partesActuales.map((a) => (
+                  <Chip
+                    key={a.id}
+                    label={a.usuarios?.nombre || 'Usuario'}
+                    size="small"
+                    color={a.estado_asignacion === 'RESUELTA' ? 'success' : 'default'}
+                    variant={a.estado_asignacion === 'PENDIENTE' ? 'outlined' : 'filled'}
+                  />
+                ))}
+              </Box>
+            )
+          )}
+        </Box>
       )}
 
-      {detalle.acta_cierre_oi_valores_reales.length > 0 && (
-        <>
-          {tituloSeccion('Órdenes Internas y de Mantenimiento')}
+      {tabActual === 1 && (
+        <Box>
+          {tituloSeccion('Valor Total del Proyecto')}
           <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
             <CardContent sx={{ p: 3 }}>
               <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small">
+                <Table size="small" sx={{ minWidth: 650 }}>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>N° OI</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Nombre descriptivo</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Activo/Gasto</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>PPT OI</TableCell>
-                      <TableCell align="right" sx={{ fontWeight: 700 }}>Valor Real</TableCell>
+                    <TableRow>
+                      <TableCell>Categoría</TableCell>
+                      <TableCell align="center">Inicial (SI)</TableCell>
+                      {hayCc && <TableCell align="center">Inicial (Control de Cambios)</TableCell>}
+                      <TableCell align="center">Real</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
-                    {detalle.acta_cierre_oi_valores_reales.map((o) => (
-                      <TableRow key={o.id}>
-                        <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
-                        <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
-                        <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                        <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
-                        <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+                    {(['ACTIVO', 'GASTO'] as const).map((cat) => {
+                      const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
+                      const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
+                      const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
+                      return (
+                        <TableRow key={cat}>
+                          <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+                          <TableCell align="center">{fmt(si?.usd, 'US$')} / {fmt(si?.cop, '$')}</TableCell>
+                          {hayCc && <TableCell align="center">{fmt(cc?.usd, 'US$')} / {fmt(cc?.cop, '$')}</TableCell>}
+                          <TableCell align="center">{fmt(real?.real_usd, 'US$')} / {fmt(real?.real_cop, '$')}</TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+              {detalle.explicacion_ejecucion && (
+                <Box sx={{ mt: 2 }}>{campo('Explicación de sobre/sub-ejecución', detalle.explicacion_ejecucion)}</Box>
+              )}
+            </CardContent>
+          </Card>
+
+          {filasFlujo.length > 0 && (
+            <>
+              {tituloSeccion('Flujo de Caja — Planeado vs. Real')}
+              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  {(['CAPEX', 'GCAPEX', 'OPEX'] as const).map((tipo) => {
+                    const filas = filasFlujo.filter((f) => f.tipo === tipo);
+                    if (filas.length === 0) return null;
+                    return (
+                      <Box key={tipo} sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>{tipo}</Typography>
+                        <TableContainer sx={{ overflowX: 'auto' }}>
+                          <Table size="small">
+                            <TableHead>
+                              <TableRow>
+                                <TableCell>Mes</TableCell>
+                                <TableCell>Año</TableCell>
+                                <TableCell>Moneda</TableCell>
+                                <TableCell align="right">Planeado</TableCell>
+                                <TableCell align="right">Real</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {filas.map((f, i) => (
+                                <TableRow key={i}>
+                                  <TableCell>{MESES[f.mes - 1]}</TableCell>
+                                  <TableCell>{f.anio}</TableCell>
+                                  <TableCell>{f.moneda}</TableCell>
+                                  <TableCell align="right">{Number(f.monto || 0).toLocaleString()}</TableCell>
+                                  <TableCell align="right">{f.real.toLocaleString()}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      </Box>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {detalle.acta_cierre_oi_valores_reales.length > 0 && (
+            <>
+              {tituloSeccion('Órdenes Internas y de Mantenimiento')}
+              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+                <CardContent sx={{ p: 3 }}>
+                  <TableContainer sx={{ overflowX: 'auto' }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>N° OI</TableCell>
+                          <TableCell>Nombre descriptivo</TableCell>
+                          <TableCell>Activo/Gasto</TableCell>
+                          <TableCell align="right">PPT OI</TableCell>
+                          <TableCell align="right">Valor Real</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {detalle.acta_cierre_oi_valores_reales.map((o) => (
+                          <TableRow key={o.id}>
+                            <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
+                            <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
+                            <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+                            <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+                            <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </CardContent>
+              </Card>
+            </>
+          )}
+        </Box>
+      )}
+
+      {tabActual === 2 && (
+        <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+          <CardContent sx={{ p: 3 }}>
+            {detalle.procesos.historico_aprobaciones.length === 0 ? (
+              <Typography variant="body2" color="text.secondary">Sin movimientos todavía.</Typography>
+            ) : (
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 650 }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+                      <TableCell>Usuario</TableCell>
+                      <TableCell>Acción</TableCell>
+                      <TableCell>Observación</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {detalle.procesos.historico_aprobaciones.map((h) => (
+                      <TableRow key={h.id}>
+                        <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{new Date(h.fecha_registro).toLocaleString()}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>{h.usuarios?.nombre || 'Sistema'}</TableCell>
+                        <TableCell>
+                          <Chip size="small" label={h.accion} color={h.accion === 'RECHAZADO' ? 'error' : 'success'} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>{h.observaciones || h.razon_rechazo || '—'}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </TableContainer>
-            </CardContent>
-          </Card>
-        </>
+            )}
+          </CardContent>
+        </Card>
       )}
-
-      {(detalle.acta_cierre_entregables.length > 0 || detalle.otros_entregables) && (
-        <>
-          {tituloSeccion('Entregable')}
-          <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-            <CardContent sx={{ p: 3 }}>
-              {detalle.acta_cierre_entregables.length > 0 && (
-                <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
-                  <Table size="small" sx={{ minWidth: 750 }}>
-                    <TableHead>
-                      <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                        <TableCell sx={{ fontWeight: 700 }}>Equipo / Sistema</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Cód. activo en producción</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Cód. activo en montaje</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Unidad vida útil</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Vida útil</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Observaciones</TableCell>
-                        <TableCell sx={{ fontWeight: 700 }}>Anexo</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {detalle.acta_cierre_entregables.map((e) => (
-                        <TableRow key={e.id}>
-                          <TableCell sx={{ fontWeight: 600 }}>{e.equipo_sistema}</TableCell>
-                          <TableCell>{e.codigo_activo_produccion || '—'}</TableCell>
-                          <TableCell>{e.codigo_activo_montaje || '—'}</TableCell>
-                          <TableCell>{e.unidad_vida_util || '—'}</TableCell>
-                          <TableCell>{e.vida_util ?? '—'}</TableCell>
-                          <TableCell>{e.observaciones || '—'}</TableCell>
-                          <TableCell>{e.anexo_url ? <Link href={e.anexo_url} target="_blank" rel="noopener noreferrer">Ver</Link> : '—'}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              )}
-              {detalle.otros_entregables && campo('Otros entregables', detalle.otros_entregables)}
-            </CardContent>
-          </Card>
-        </>
-      )}
-
-      {tituloSeccion('Partes Interesadas')}
-      {tarjeta(
-        partesActuales.length === 0 ? (
-          <Typography variant="body2" color="text.secondary">Sin partes interesadas asignadas.</Typography>
-        ) : (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {partesActuales.map((a) => (
-              <Chip
-                key={a.id}
-                label={a.usuarios?.nombre || 'Usuario'}
-                size="small"
-                color={a.estado_asignacion === 'RESUELTA' ? 'success' : 'default'}
-                variant={a.estado_asignacion === 'PENDIENTE' ? 'outlined' : 'filled'}
-              />
-            ))}
-          </Box>
-        )
-      )}
-
-      {tituloSeccion('Histórico de este Acta de Cierre')}
-      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-        <CardContent sx={{ p: 3 }}>
-          {detalle.procesos.historico_aprobaciones.length === 0 ? (
-            <Typography variant="body2" color="text.secondary">Sin movimientos todavía.</Typography>
-          ) : (
-            <TableContainer sx={{ overflowX: 'auto' }}>
-              <Table size="small" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Usuario</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Acción</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Observación</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {detalle.procesos.historico_aprobaciones.map((h) => (
-                    <TableRow key={h.id}>
-                      <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{new Date(h.fecha_registro).toLocaleString()}</TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>{h.usuarios?.nombre || 'Sistema'}</TableCell>
-                      <TableCell>
-                        <Chip size="small" label={h.accion} color={h.accion === 'RECHAZADO' ? 'error' : 'success'} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                      </TableCell>
-                      <TableCell sx={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>{h.observaciones || h.razon_rechazo || '—'}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </CardContent>
-      </Card>
 
       {/* Diálogo: aprobar simple */}
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">

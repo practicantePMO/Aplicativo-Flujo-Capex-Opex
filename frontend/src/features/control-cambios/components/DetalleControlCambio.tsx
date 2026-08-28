@@ -11,6 +11,7 @@ import {
   obtenerControlCambioDetalle, enviarControlCambio, aprobarControlCambio, rechazarControlCambio,
 } from '../services/controlCambios.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
+import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 
 const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -216,6 +217,12 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
 
   return (
     <Box>
+      <EncabezadoProceso
+        nombreProyecto={(detalle as any).proyecto_nombre || ''}
+        nombreProceso="Control de Cambios"
+        estado={estado}
+      />
+
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
         <Chip label={detalle.requiere_orden_interna ? 'Requiere Orden Interna' : 'No requiere Orden Interna'} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         <Box sx={{ flexGrow: 1 }} />

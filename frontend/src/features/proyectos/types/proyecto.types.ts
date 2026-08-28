@@ -9,6 +9,7 @@ export interface Proyecto {
   nombre: string;
   compania_id: number;
   companias?: Compania;
+  usuarios?: { id: number; nombre: string }; // 👈 AGREGAR — es el PM/creador del proyecto
   fecha_proyecto: string;
   anio_proyecto?: number;
   anio_asignado?: number;

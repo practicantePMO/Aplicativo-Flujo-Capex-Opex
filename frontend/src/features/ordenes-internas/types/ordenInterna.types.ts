@@ -99,4 +99,5 @@ export interface OrdenInternaDetalle extends OrdenInternaResumen {
   };
   grupos_ordenes_internas: GrupoOrdenesInternas;
   oi_valores: OiValor[];
+  proyecto_nombre?: string;
 }

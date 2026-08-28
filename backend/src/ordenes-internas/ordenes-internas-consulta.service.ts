@@ -105,7 +105,7 @@ export class OrdenesInternasConsultaService {
 
     await this.validarAcceso(usuarioId, proyecto, orden.grupos_ordenes_internas.proyecto_id);
 
-    return orden;
+    return { ...orden, proyecto_nombre: proyecto.nombre };
   }
 
   // 🔔 Usado por el módulo general "Mis Pendientes" (ver backend/src/pendientes/).

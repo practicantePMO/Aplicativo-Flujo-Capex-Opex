@@ -164,4 +164,5 @@ export interface ActaCierreDetalle {
     historico_aprobaciones: HistoricoAprobacionAc[];
     asignaciones_proceso: AsignacionAc[];
   };
+  proyecto_nombre?: string;
 }
