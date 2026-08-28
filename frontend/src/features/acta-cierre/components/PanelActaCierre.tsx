@@ -54,6 +54,7 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdene
       <FormularioActaCierre
         proyectoId={proyectoId}
         companiaId={companiaId}
+        procesoId={acta?.procesos?.id}
         onCancelar={() => setMostrarFormulario(false)}
         onGuardado={() => { setMostrarFormulario(false); cargar(); }}
       />
@@ -62,8 +63,8 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdene
 
   if (!acta) {
     return (
-      <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 1 }}>Acta de Cierre</Typography>
+            <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Acta de Cierre</Typography>
         {oiPendientesPorCerrar ? (
           <>
             <Alert severity="warning" sx={{ mb: 2 }}>
@@ -91,7 +92,7 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdene
   }
 
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box sx={{ mt: 4 }}>
       <DetalleActaCierre
         procesoId={acta.procesos.id}
         companiaId={companiaId}

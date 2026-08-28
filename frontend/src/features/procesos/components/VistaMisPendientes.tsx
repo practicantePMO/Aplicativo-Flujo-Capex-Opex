@@ -79,9 +79,9 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
 
   return (
     <Box>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-        <InboxIcon sx={{ color: '#0e381e', fontSize: 32 }} />
-        <Typography variant="h5" sx={{ fontWeight: 800, color: '#0e381e' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 4 }}>
+        <InboxIcon sx={{ color: '#0e381e', fontSize: 28 }} />
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Mis Pendientes
         </Typography>
       </Box>
@@ -142,7 +142,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
       )}
 
       {pendientesFiltrados.length === 0 && !error ? (
-        <Paper sx={{ p: 6, textAlign: 'center', borderRadius: 3, backgroundColor: '#f8fafc' }} elevation={0} variant="outlined">
+        <Paper sx={{ p: 6, textAlign: 'center' }} elevation={0} variant="outlined">
           <Typography variant="h6" color="text.secondary">
             {pendientes.length === 0 ? '¡Todo al día!' : 'Nada coincide con estos filtros'}
           </Typography>
@@ -153,23 +153,23 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
           </Typography>
         </Paper>
       ) : (
-        <TableContainer component={Paper} elevation={0} variant="outlined" sx={{ borderRadius: 3 }}>
+        <TableContainer component={Paper} elevation={0} variant="outlined">
           <Table sx={{ minWidth: 650 }}>
-            <TableHead sx={{ backgroundColor: '#f8fafc' }}>
+            <TableHead>
               <TableRow>
-                <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Proyecto</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Tipo de Proceso</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Compañía</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Etapa Actual</TableCell>
-                <TableCell sx={{ fontWeight: 700, color: '#64748b' }}>Fecha Ingreso</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700, color: '#64748b' }}>Acción</TableCell>
+                <TableCell>Proyecto</TableCell>
+                <TableCell>Tipo de Proceso</TableCell>
+                <TableCell>Compañía</TableCell>
+                <TableCell>Etapa Actual</TableCell>
+                <TableCell>Fecha Ingreso</TableCell>
+                <TableCell align="right">Acción</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {pendientesFiltrados.map((proceso) => (
                 <TableRow key={proceso.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={700} color="#0e381e">
+                    <Typography variant="body2" fontWeight={700}>
                       {proceso.proyectos.id}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">
@@ -206,7 +206,6 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
                       size="small"
                       endIcon={<PlayArrowIcon />}
                       onClick={() => onAbrirProyecto(proceso.proyectos, proceso.id)}
-                      sx={{ borderRadius: 2, textTransform: 'none' }}
                     >
                       Revisar
                     </Button>

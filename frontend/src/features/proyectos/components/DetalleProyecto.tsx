@@ -87,6 +87,9 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     (p) => p.tipo_proceso === 'ACTA_CIERRE' && p.estado_actual === 'CERRADO'
   );
 
+  const tieneControlCambios = procesos.some((p) => p.tipo_proceso === 'CONTROL_CAMBIO');
+  const tieneActaCierre = procesos.some((p) => p.tipo_proceso === 'ACTA_CIERRE');
+
   const manejarCrearOiDesdeCc = (controlCambioId: number) => {
     setVerControlCambios(false);
     setCcProcesoIdParaAbrir(null);
@@ -254,7 +257,11 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                     Cambios registrados sobre este proyecto
                   </Typography>
                 </Box>
-                <Chip label={proyectoCerrado ? 'Cerrado' : 'ACTIVO'} color={proyectoCerrado ? 'default' : 'secondary'} size="small" sx={{ fontWeight: 'bold' }} />
+                <Chip
+                  label={!tieneControlCambios ? 'Sin CC' : proyectoCerrado ? 'Cerrado' : 'Activo'}
+                  color={!tieneControlCambios ? 'default' : proyectoCerrado ? 'default' : 'secondary'}
+                  size="small" sx={{ fontWeight: 'bold' }}
+                />
               </CardContent>
             </Card>
           )}
@@ -271,8 +278,12 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                     Cierre por culminación o cancelación del proyecto
                   </Typography>
                 </Box>
-                <Chip label={proyectoCerrado ? 'Cerrado' : 'ACTIVO'} color={proyectoCerrado ? 'default' : 'secondary'} size="small" sx={{ fontWeight: 'bold' }} />
-              </CardContent>
+                <Chip
+                  label={!tieneActaCierre ? 'Sin Acta' : proyectoCerrado ? 'Cerrado' : 'Activo'}
+                  color={!tieneActaCierre ? 'default' : proyectoCerrado ? 'default' : 'secondary'}
+                  size="small" sx={{ fontWeight: 'bold' }}
+                />
+                </CardContent>
             </Card>
           )}
         </Stack>

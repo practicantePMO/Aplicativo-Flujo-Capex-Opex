@@ -37,66 +37,48 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
   const nombreRol = primerRol?.rol?.nombre || primerRol?.roles?.nombre;
   const nombreCompania = primerRol?.compania?.nombre || primerRol?.companias?.nombre || 'Global';
 
+  const stat = (
+    icon: React.ReactNode,
+    label: string,
+    value: number | null,
+    onClick: () => void,
+  ) => (
+    <Card variant="outlined" sx={styles.statCard} onClick={onClick}>
+      <Box sx={styles.iconBox}>{icon}</Box>
+      <Box sx={{ flex: 1 }}>
+        <Typography variant="body2" color="text.secondary">{label}</Typography>
+        {value === null ? (
+          <CircularProgress size={18} sx={{ mt: 0.5 }} />
+        ) : (
+          <Typography variant="h5" sx={{ fontWeight: 700, mt: 0.25 }}>{value}</Typography>
+        )}
+      </Box>
+      <ArrowForwardIcon sx={{ color: '#94a3b8', fontSize: '1.2rem' }} />
+    </Card>
+  );
+
   return (
     <Box>
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h4" sx={{ fontWeight: 800, color: '#0e381e' }}>
+      <Box sx={{ mb: 5 }}>
+        <Typography variant="h5" sx={{ fontWeight: 700 }}>
           Bienvenido de nuevo, {usuario?.nombre?.split(' ')[0] || ''}
         </Typography>
         {nombreRol && (
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
             {nombreRol} · {nombreCompania}
           </Typography>
         )}
       </Box>
 
       <Box sx={styles.cardsRow}>
-        <Card sx={styles.statCard} onClick={onIrAPendientes}>
-          <Box sx={{ ...styles.iconBox, backgroundColor: '#fef3c7' }}>
-            <AssignmentLateIcon sx={{ color: '#b45309' }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" color="text.secondary">Pendientes de tu revisión</Typography>
-            {totalPendientes === null ? (
-              <CircularProgress size={20} sx={{ mt: 0.5 }} />
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#0e381e' }}>{totalPendientes}</Typography>
-            )}
-          </Box>
-          <ArrowForwardIcon sx={{ color: '#94a3b8' }} />
-        </Card>
-
-        <Card sx={styles.statCard} onClick={onIrAProyectos}>
-          <Box sx={{ ...styles.iconBox, backgroundColor: '#e6f7ed' }}>
-            <TrendingUpIcon sx={{ color: '#0e381e' }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" color="text.secondary">Proyectos activos</Typography>
-            {proyectosActivos === null ? (
-              <CircularProgress size={20} sx={{ mt: 0.5 }} />
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#0e381e' }}>{proyectosActivos}</Typography>
-            )}
-          </Box>
-          <ArrowForwardIcon sx={{ color: '#94a3b8' }} />
-        </Card>
-
-        <Card sx={styles.statCard} onClick={onIrAProyectos}>
-          <Box sx={{ ...styles.iconBox, backgroundColor: '#eef2ff' }}>
-            <FolderIcon sx={{ color: '#312e81' }} />
-          </Box>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="body2" color="text.secondary">
-              {tieneRol('PMO') || tieneRol('ADMIN') || tieneRol('DIRECTOR_PMO') ? 'Proyectos en el portafolio' : 'Tus proyectos'}
-            </Typography>
-            {totalProyectos === null ? (
-              <CircularProgress size={20} sx={{ mt: 0.5 }} />
-            ) : (
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#0e381e' }}>{totalProyectos}</Typography>
-            )}
-          </Box>
-          <ArrowForwardIcon sx={{ color: '#94a3b8' }} />
-        </Card>
+        {stat(<AssignmentLateIcon sx={{ color: '#64748b' }} />, 'Pendientes de tu revisión', totalPendientes, onIrAPendientes)}
+        {stat(<TrendingUpIcon sx={{ color: '#0e381e' }} />, 'Proyectos activos', proyectosActivos, onIrAProyectos)}
+        {stat(
+          <FolderIcon sx={{ color: '#64748b' }} />,
+          tieneRol('PMO') || tieneRol('ADMIN') || tieneRol('DIRECTOR_PMO') ? 'Proyectos en el portafolio' : 'Tus proyectos',
+          totalProyectos,
+          onIrAProyectos,
+        )}
       </Box>
     </Box>
   );
@@ -107,16 +89,15 @@ const styles = {
   statCard: {
     flex: '1 1 240px',
     p: 2.5,
-    borderRadius: 3,
     display: 'flex',
     alignItems: 'center',
     gap: 2,
     cursor: 'pointer',
-    transition: 'box-shadow 0.15s ease, transform 0.15s ease',
-    '&:hover': { boxShadow: '0 6px 20px rgba(0,0,0,0.08)', transform: 'translateY(-2px)' },
+    transition: 'border-color 0.15s ease, background-color 0.15s ease',
+    '&:hover': { borderColor: '#94a3b8', backgroundColor: '#f8fafc' },
   },
   iconBox: {
-    width: 44, height: 44, borderRadius: 2,
+    width: 40, height: 40,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
 };

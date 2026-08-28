@@ -73,8 +73,8 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
   const hayItems = items.length > 0;
 
   return (
-    <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
-      <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 2 }}>
+        <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+      <Typography variant="h6" sx={{ mb: 3 }}>
         Control de Cambios
       </Typography>
 
@@ -112,7 +112,7 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
               expanded={expandidoId === cc.procesos.id}
               onChange={(_, expandido) => setExpandidoId(expandido ? cc.procesos.id : false)}
               disableGutters
-              sx={{ mb: 1, borderRadius: 2, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}
+              sx={{ mb: 1, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', flexWrap: 'wrap' }}>

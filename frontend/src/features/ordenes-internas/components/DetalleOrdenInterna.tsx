@@ -11,6 +11,7 @@ import {
 } from '../services/ordenesInternas.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
+import { StepperProceso } from '../../../components/StepperProceso';
 
 const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -148,13 +149,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   };
 
   const tituloSeccion = (texto: string) => (
-    <Typography
-      variant="subtitle1"
-      sx={{
-        fontWeight: 700, mb: 2, mt: 3, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1.25,
-        '&::before': { content: '""', display: 'block', width: 4, height: 18, bgcolor: 'primary.main', borderRadius: 1 },
-      }}
-    >
+    <Typography variant="h6" sx={{ mb: 2 }}>
       {texto}
     </Typography>
   );
@@ -163,7 +158,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   // que se distingan mejor unos de otros en vez de verse todos pegados.
   const campo = (label: string, valor?: string | number | null) => (
     <Grid item xs={12} sm={6} md={4}>
-      <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6', height: '100%' }}>
+      <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6', height: '100%' }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
           {label}
         </Typography>
@@ -176,12 +171,12 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
   // 🆕 Versión "tablita" para Datos Generales — filas de [etiqueta, valor].
   const tablaCampos = (filas: [string, string | number | null | undefined][]) => (
-    <TableContainer component={Card} variant="outlined" sx={{ borderRadius: 2, boxShadow: 'none' }}>
+    <TableContainer component={Card} variant="outlined">
       <Table size="small">
         <TableHead>
-          <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-            <TableCell sx={{ fontWeight: 700, width: '40%' }}>Campo</TableCell>
-            <TableCell sx={{ fontWeight: 700 }}>Valor</TableCell>
+          <TableRow>
+            <TableCell sx={{ width: '40%' }}>Campo</TableCell>
+            <TableCell>Valor</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -197,8 +192,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   );
 
   const tarjeta = (children: React.ReactNode) => (
-    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>{children}</CardContent>
+    <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+      <CardContent sx={{ p: 3 }}>{children}</CardContent>
     </Card>
   );
 
@@ -207,16 +202,25 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
     valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
 
+  const ETAPAS_OI = [
+    { key: 'PENDIENTE', label: 'Control Gestión' },
+    { key: 'APROBADA', label: 'Aprobada' },
+    { key: 'CERRADA', label: 'Cerrada' },
+  ];
+
   return (
     <Box>
       <EncabezadoProceso
         nombreProyecto={detalle.proyecto_nombre || ''}
         nombreProceso={`Orden Interna — ${detalle.numero_oi}`}
         estado={estado}
+        chipLabel={detalle.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}
+        chipColor="default"
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
-        <Chip label={detalle.tipo_orden} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
+      <StepperProceso etapas={ETAPAS_OI} etapaActual={estado} estadoFinal="CERRADA" />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
         {detalle.es_control_cambios && <Chip label="Control de Cambios" size="small" color="secondary" variant="outlined" sx={{ fontWeight: 600 }} />}
         <Box sx={{ flexGrow: 1 }} />
         {puedeEditarYEnviar && (
@@ -270,15 +274,15 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       {detalle.es_control_cambios && detalle.oi_valores?.length > 0 && (
         <>
           {tituloSeccion('Valor Total del Proyecto')}
-          <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-              <TableContainer component={Card} variant="outlined" sx={{ borderRadius: 2, boxShadow: 'none' }}>
+          <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+            <CardContent sx={{ p: 3 }}>
+              <TableContainer component={Card} variant="outlined">
                 <Table size="small">
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                      <TableCell sx={{ fontWeight: 700, width: '34%' }}>Categoría</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>Valor USD</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>Valor COP</TableCell>
+                    <TableRow>
+                      <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
+                      <TableCell align="center">Valor USD</TableCell>
+                      <TableCell align="center">Valor COP</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -290,11 +294,11 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
                       </TableRow>
                     ))}
                     <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>TOTAL</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 800, color: '#0e381e' }}>
+                      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>
                         {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.usd || 0), 0), 'US$') || '—'}
                       </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 800, color: '#0e381e' }}>
+                      <TableCell align="center" sx={{ fontWeight: 700 }}>
                         {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.cop || 0), 0), '$', ' COP') || '—'}
                       </TableCell>
                     </TableRow>
@@ -319,7 +323,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       )}
 
       {tituloSeccion('Histórico de esta Orden Interna')}
-      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+      <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
         <CardContent sx={{ p: 3 }}>
           {detalle.procesos.historico_aprobaciones.length === 0 ? (
             <Typography variant="body2" color="text.secondary">Sin movimientos todavía.</Typography>
@@ -327,11 +331,11 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Usuario</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Acción</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Observación</TableCell>
+                  <TableRow>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+                    <TableCell>Usuario</TableCell>
+                    <TableCell>Acción</TableCell>
+                    <TableCell>Observación</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -349,7 +353,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
               </Table>
             </TableContainer>
           )}
-                </CardContent>
+        </CardContent>
       </Card>
 
       {detalle.controles_cambio && onVerControlCambio && (

@@ -14,9 +14,6 @@ export const nutresaTheme = createTheme({
       dark: '#528308',
       contrastText: '#ffffff',
     },
-    // 🎯 Formalizamos estos 3 colores al mismo tono que ya se usa a mano en
-    // varias pantallas y en las plantillas de correo — así el sistema queda
-    // consistente sin tener que salir a cambiar cada archivo.
     success: {
       main: '#1a7f37',
       light: '#3fa35a',
@@ -52,51 +49,62 @@ export const nutresaTheme = createTheme({
     divider: '#e2e8f0',
   },
   shape: {
-    borderRadius: 12,
+    borderRadius: 6,
   },
   typography: {
     fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
-    h4: { fontWeight: 800, letterSpacing: '-0.5px' },
-    h5: { fontWeight: 800, letterSpacing: '-0.3px' },
-    h6: { fontWeight: 700 },
-    subtitle1: { fontWeight: 700 },
-    subtitle2: { fontWeight: 700 },
+    h4: { fontWeight: 700, letterSpacing: '-0.3px' },
+    h5: { fontWeight: 700, letterSpacing: '-0.2px' },
+    h6: { fontWeight: 600 },
+    subtitle1: { fontWeight: 600 },
+    subtitle2: { fontWeight: 600 },
+    body1: { fontWeight: 400 },
+    body2: { fontWeight: 400 },
     button: { fontWeight: 600, textTransform: 'none' },
-    overline: { fontWeight: 700, letterSpacing: '1px' },
-    caption: { fontWeight: 600 },
+    overline: { fontWeight: 600, letterSpacing: '0.6px' },
+    caption: { fontWeight: 500 },
   },
   components: {
     MuiCssBaseline: {
       styleOverrides: {
         body: {
-          scrollbarColor: '#c7d2c9 #f1f5f9',
+          scrollbarColor: '#cbd5e1 #f1f5f9',
         },
         '*::-webkit-scrollbar': { width: 10, height: 10 },
         '*::-webkit-scrollbar-track': { background: '#f1f5f9' },
-        '*::-webkit-scrollbar-thumb': { background: '#c7d2c9', borderRadius: 8 },
-        '*::-webkit-scrollbar-thumb:hover': { background: '#9fb3a2' },
-        '*::selection': { backgroundColor: 'rgba(117, 183, 14, 0.28)' },
+        '*::-webkit-scrollbar-thumb': { background: '#cbd5e1', borderRadius: 8 },
+        '*::-webkit-scrollbar-thumb:hover': { background: '#94a3b8' },
+        '*::selection': { backgroundColor: 'rgba(14, 56, 30, 0.15)' },
       },
     },
+    // 🔘 Botones: sin sombra ni siquiera en hover — solo un cambio sutil de
+    // tono (eso ya lo hace MUI por defecto al mezclar con el fondo).
     MuiButton: {
+      defaultProps: {
+        disableElevation: true,
+      },
       styleOverrides: {
         root: {
-          borderRadius: 10,
+          borderRadius: 6,
           textTransform: 'none',
           fontWeight: 600,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0 4px 12px rgba(117, 183, 14, 0.25)',
+            boxShadow: 'none',
           },
+        },
+        outlined: {
+          borderColor: '#e2e8f0',
         },
       },
     },
+    // 🃏 Cards planas: borde 1px, sin sombra decorativa, radio bajo.
     MuiCard: {
       styleOverrides: {
         root: {
-          borderRadius: 16,
-          boxShadow: '0 4px 20px -2px rgba(14, 56, 30, 0.06)',
-          border: '1px solid #f1f5f9',
+          borderRadius: 6,
+          boxShadow: 'none',
+          border: '1px solid #e2e8f0',
         },
       },
     },
@@ -105,33 +113,35 @@ export const nutresaTheme = createTheme({
         root: {
           backgroundImage: 'none',
         },
-        elevation1: {
-          boxShadow: '0 2px 12px -2px rgba(14, 56, 30, 0.06)',
-        },
       },
     },
     MuiChip: {
       styleOverrides: {
         root: {
-          fontWeight: 700,
-          borderRadius: 8,
+          fontWeight: 600,
+          borderRadius: 6,
         },
         sizeSmall: {
           fontSize: '0.72rem',
         },
       },
     },
+    // 📊 Tablas: encabezado discreto, mayúsculas pequeñas, líneas finas
+    // entre filas — nada de zebra-striping ni bordes gruesos.
     MuiTableCell: {
       styleOverrides: {
         head: {
-          fontWeight: 700,
-          fontSize: '0.78rem',
-          color: '#334155',
+          fontWeight: 600,
+          fontSize: '0.7rem',
+          color: '#64748b',
           backgroundColor: '#f8fafc',
-          borderBottom: '2px solid #e2e8f0',
+          textTransform: 'uppercase',
+          letterSpacing: '0.5px',
+          borderBottom: '1px solid #e2e8f0',
         },
         body: {
           fontSize: '0.85rem',
+          borderBottom: '1px solid #f1f5f9',
         },
       },
     },
@@ -142,64 +152,74 @@ export const nutresaTheme = createTheme({
         },
       },
     },
-    MuiOutlinedInput: {
-      styleOverrides: {
-        root: {
-          borderRadius: 10,
-        },
-      },
-    },
+    // 📝 Inputs: borde simple, radio bajo, y label SIEMPRE arriba del campo
+    // (nunca flotando adentro) — esto se logra forzando "shrink" por defecto.
     MuiInputLabel: {
+      defaultProps: {
+        shrink: true,
+      },
       styleOverrides: {
         root: {
           fontWeight: 500,
+          color: '#64748b',
+        },
+      },
+    },
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          borderRadius: 6,
+        },
+        notchedOutline: {
+          borderColor: '#e2e8f0',
         },
       },
     },
     MuiDialog: {
       styleOverrides: {
         paper: {
-          borderRadius: 18,
+          borderRadius: 8,
         },
       },
     },
     MuiDialogTitle: {
       styleOverrides: {
         root: {
-          fontWeight: 800,
-          fontSize: '1.15rem',
+          fontWeight: 700,
+          fontSize: '1.1rem',
         },
       },
     },
     MuiAlert: {
       styleOverrides: {
         root: {
-          borderRadius: 12,
-          fontWeight: 500,
+          borderRadius: 6,
+          fontWeight: 400,
+          border: '1px solid transparent',
         },
       },
     },
     MuiTabs: {
       styleOverrides: {
         indicator: {
-          height: 3,
-          borderRadius: 3,
+          height: 2,
         },
       },
     },
     MuiTab: {
       styleOverrides: {
         root: {
-          fontWeight: 700,
+          fontWeight: 600,
         },
       },
     },
+    // 💬 Tooltips: elemento flotante — sombra sutil sí permitida aquí.
     MuiTooltip: {
       styleOverrides: {
         tooltip: {
           backgroundColor: '#0f172a',
           fontSize: '0.75rem',
-          borderRadius: 8,
+          borderRadius: 6,
         },
       },
     },

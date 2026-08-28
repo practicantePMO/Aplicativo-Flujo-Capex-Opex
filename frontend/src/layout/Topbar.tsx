@@ -9,7 +9,6 @@ import {
   Avatar,
 } from '@mui/material';
 import LogoutIcon from '@mui/icons-material/Logout';
-import AccountCircleIcon from '@mui/icons-material/AccountCircle';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import { useAuth } from '../auth/AuthContext';
 
@@ -17,53 +16,39 @@ export function Topbar() {
   const { usuario, logout } = useAuth();
 
   const rolPrincipal = usuario?.roles?.[0]?.rol.nombre || 'Sin Rol';
+  const inicial = usuario?.nombre?.charAt(0)?.toUpperCase() || 'U';
 
   return (
     <AppBar position="fixed" elevation={0} sx={styles.appBar}>
       <Toolbar sx={styles.toolbar}>
-        {/* Marca */}
         <Box sx={styles.brandBox}>
-
+          <BusinessCenterIcon sx={styles.brandIcon} />
           <Box>
             <Typography sx={styles.brandTitle}>
               Aplicativo Flujo CAPEX - OPEX
             </Typography>
-
             <Typography sx={styles.brandSubtitle}>
-               Grupo Nutresa
+              Grupo Nutresa
             </Typography>
           </Box>
         </Box>
 
-        {/* Usuario */}
         {usuario && (
           <Box sx={styles.userSection}>
-            <Box sx={styles.userPill}>
-              <AccountCircleIcon sx={styles.userIcon} />
-
+            <Box sx={styles.userInfo}>
+              <Avatar sx={styles.avatar}>{inicial}</Avatar>
               <Box sx={styles.userDetails}>
-                <Typography sx={styles.userName}>
-                  {usuario.nombre}
-                </Typography>
-
-                <Typography sx={styles.userEmail}>
-                  {usuario.email}
-                </Typography>
+                <Typography sx={styles.userName}>{usuario.nombre}</Typography>
+                <Typography sx={styles.userEmail}>{usuario.email}</Typography>
               </Box>
             </Box>
 
-            <Chip
-              label={rolPrincipal}
-              sx={styles.roleChip}
-            />
+            <Chip label={rolPrincipal} sx={styles.roleChip} />
 
             <Box sx={styles.separator} />
 
             <Tooltip title="Cerrar sesión">
-              <IconButton
-                onClick={logout}
-                sx={styles.logoutBtn}
-              >
+              <IconButton onClick={logout} sx={styles.logoutBtn}>
                 <LogoutIcon />
               </IconButton>
             </Tooltip>
@@ -77,27 +62,14 @@ export function Topbar() {
 const styles = {
   appBar: {
     zIndex: (theme: any) => theme.zIndex.drawer + 1,
-    background:
-      'linear-gradient(135deg,#0b3118 0%,#155228 45%,#1b6a36 100%)',
-    borderBottom: '1px solid rgba(255,255,255,.08)',
-    boxShadow: '0 8px 25px rgba(0,0,0,.18)',
-    position: 'fixed',
-
-    '&::after': {
-      content: '""',
-      position: 'absolute',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      height: '3px',
-      background:
-        'linear-gradient(90deg,#75b70e,#b4db52,#75b70e)',
-    },
+    backgroundColor: '#ffffff',
+    borderBottom: '1px solid #e2e8f0',
+    boxShadow: '0 1px 3px rgba(0,0,0,.04)',
   },
 
   toolbar: {
-    minHeight: '78px !important',
-    px: 4,
+    minHeight: '76px !important',
+    px: { xs: 2, md: 3 },
     display: 'flex',
     justifyContent: 'space-between',
     width: '100%',
@@ -106,59 +78,46 @@ const styles = {
   brandBox: {
     display: 'flex',
     alignItems: 'center',
-    gap: 2,
+    gap: 1.5,
   },
 
-  logo: {
-    width: 50,
-    height: 50,
-    bgcolor: '#75b70e',
-    color: '#fff',
-    boxShadow: '0 6px 16px rgba(117,183,14,.45)',
+  brandIcon: {
+    color: '#0e381e',
+    fontSize: '1.7rem',
   },
 
   brandTitle: {
-    color: '#fff',
-    fontWeight: 800,
-    fontSize: '1.35rem',
-    lineHeight: 1.1,
-    letterSpacing: '-0.4px',
+    color: '#0f172a',
+    fontWeight: 700,
+    fontSize: { xs: '1rem', md: '1.1rem' },
+    lineHeight: 1.2,
   },
 
   brandSubtitle: {
-    color: 'rgba(255,255,255,.72)',
-    fontSize: '.8rem',
-    mt: .3,
-    letterSpacing: '.3px',
+    color: '#64748b',
+    fontSize: '.75rem',
+    mt: 0.3,
   },
 
   userSection: {
     display: 'flex',
     alignItems: 'center',
-    gap: 2,
+    gap: 1.5,
   },
 
-  userPill: {
+  userInfo: {
     display: 'flex',
     alignItems: 'center',
-    gap: 1.4,
-    px: 2,
-    py: 1,
-    borderRadius: '28px',
-    background: 'rgba(255,255,255,.09)',
-    border: '1px solid rgba(255,255,255,.12)',
-    backdropFilter: 'blur(12px)',
-
-    transition: '.25s',
-
-    '&:hover': {
-      background: 'rgba(255,255,255,.14)',
-    },
+    gap: 1.1,
   },
 
-  userIcon: {
-    color: '#91d61a',
-    fontSize: '1.8rem',
+  avatar: {
+    width: 34,
+    height: 34,
+    backgroundColor: '#0e381e',
+    color: '#fff',
+    fontSize: '.8rem',
+    fontWeight: 700,
   },
 
   userDetails: {
@@ -166,51 +125,41 @@ const styles = {
   },
 
   userName: {
-    color: '#fff',
-    fontWeight: 700,
-    fontSize: '.92rem',
+    color: '#0f172a',
+    fontWeight: 600,
+    fontSize: '.84rem',
     lineHeight: 1.2,
   },
 
   userEmail: {
-    color: 'rgba(255,255,255,.70)',
-    fontSize: '.73rem',
+    color: '#64748b',
+    fontSize: '.7rem',
+    mt: 0.2,
   },
 
   roleChip: {
-    background: '#75b70e',
+    backgroundColor: '#75b70e',
     color: '#fff',
-    fontWeight: 700,
-    fontSize: '.74rem',
-    height: 30,
-    px: .5,
-
-    boxShadow:
-      '0 4px 12px rgba(117,183,14,.35)',
-
-    '& .MuiChip-label': {
-      px: 1.3,
-    },
+    fontWeight: 600,
+    fontSize: '.7rem',
+    height: 28,
+    '& .MuiChip-label': { px: 1.1 },
   },
 
   separator: {
     width: '1px',
-    height: 30,
-    bgcolor: 'rgba(255,255,255,.18)',
+    height: 28,
+    backgroundColor: '#e2e8f0',
   },
 
   logoutBtn: {
-    width: 42,
-    height: 42,
-    color: '#fff',
-    background: 'rgba(255,255,255,.08)',
-
-    transition: '.25s',
-
+    width: 38,
+    height: 38,
+    color: '#64748b',
+    backgroundColor: 'transparent',
     '&:hover': {
-      background: 'rgba(220,38,38,.18)',
-      color: '#ffb4b4',
-      transform: 'translateY(-2px)',
+      backgroundColor: '#fef2f2',
+      color: '#dc2626',
     },
   },
 };

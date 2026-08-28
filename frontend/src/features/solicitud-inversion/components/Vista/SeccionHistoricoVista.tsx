@@ -23,22 +23,22 @@ interface Props {
 
 export function SeccionHistoricoVista({ historico }: Props) {
   return (
-    <Card sx={{ borderRadius: 3 }}>
-      <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+    <Card>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
           Histórico de Aprobaciones
         </Typography>
-        
+
         <TableContainer sx={{ overflowX: 'auto' }}>
           <Table size="small" sx={{ minWidth: 800 }}>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Usuario / Responsable</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Etapa Origen</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Etapa Destino</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Acción</TableCell>
-                <TableCell sx={{ fontWeight: 700 }}>Razón / Comentario</TableCell>
+              <TableRow>
+                <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+                <TableCell>Usuario / Responsable</TableCell>
+                <TableCell>Etapa Origen</TableCell>
+                <TableCell>Etapa Destino</TableCell>
+                <TableCell>Acción</TableCell>
+                <TableCell>Razón / Comentario</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -47,7 +47,7 @@ export function SeccionHistoricoVista({ historico }: Props) {
                   <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
                     {new Date(h.fecha_registro).toLocaleString()}
                   </TableCell>
-                  
+
                   {/* Muestra el Nombre y Área de la persona que actuó */}
                   <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>
                     {h.usuarios?.nombre || '—'}
@@ -58,11 +58,10 @@ export function SeccionHistoricoVista({ historico }: Props) {
                     )}
                   </TableCell>
 
-                  
                   <TableCell sx={{ fontSize: '0.8rem', color: '#64748b' }}>
                     {h.etapa_origen.replace(/_/g, ' ')}
                   </TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem', color: '#0e381e', fontWeight: 600 }}>
+                  <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
                     {h.etapa_destino.replace(/_/g, ' ')}
                   </TableCell>
                   <TableCell>
@@ -76,7 +75,6 @@ export function SeccionHistoricoVista({ historico }: Props) {
                   <TableCell sx={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>
                     {h.razon_rechazo || h.observaciones || '—'}
                   </TableCell>
-                  
                 </TableRow>
               ))}
             </TableBody>

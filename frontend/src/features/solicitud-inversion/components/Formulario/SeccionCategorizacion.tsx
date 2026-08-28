@@ -36,12 +36,12 @@ export function SeccionCategorizacion({
   categoriaId, categorias, categoriaSeleccionada, onChangeCategoria,
 }: Props) {
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
           Categorización del Proyecto *
         </Typography>
-        <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 1 }}>
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1 }}>
           Marca las que apliquen — un proyecto puede tener clasificación Tradicional, Nueva, o ambas a la vez.
         </Typography>
 

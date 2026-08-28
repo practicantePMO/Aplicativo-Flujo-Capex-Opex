@@ -31,27 +31,19 @@ interface Props {
 
 export function SeccionMetasYValoresVista({ metas, valores }: Props) {
   return (
-    <Grid container spacing={3} sx={{ mb: 3 }} justifyContent="center">
+    <Grid container spacing={3} sx={{ mb: 4 }} justifyContent="center">
       {/* METAS */}
       <Grid item xs={12} md={6}>
         <Card
           elevation={0}
           sx={{
             height: '100%',
-            borderRadius: 3,
             border: '1px solid',
             borderColor: 'divider',
           }}
         >
           <CardContent sx={{ p: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                color: '#0e381e',
-                mb: 3,
-              }}
-            >
+            <Typography variant="h6" sx={{ mb: 3 }}>
               Metas
             </Typography>
 
@@ -62,44 +54,25 @@ export function SeccionMetasYValoresVista({ metas, valores }: Props) {
                   sx={{
                     p: 2,
                     mb: 2,
-                    borderRadius: 2,
                     backgroundColor: '#f8fafc',
                     border: '1px solid #e2e8f0',
                   }}
                 >
-                  <Typography
-                    sx={{
-                      fontWeight: 700,
-                      mb: 1,
-                    }}
-                  >
+                  <Typography sx={{ fontWeight: 700, mb: 1 }}>
                     {m.compromiso}
                   </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     <strong>Inicio:</strong> {m.fecha_inicio}
                   </Typography>
 
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                  >
+                  <Typography variant="body2" color="text.secondary">
                     <strong>Indicador:</strong> {m.indicador}
                   </Typography>
                 </Box>
               ))
             ) : (
-              <Box
-                sx={{
-                  p: 3,
-                  borderRadius: 2,
-                  textAlign: 'center',
-                  backgroundColor: '#f8fafc',
-                }}
-              >
+              <Box sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8fafc' }}>
                 <Typography color="text.secondary">
                   Sin metas registradas.
                 </Typography>
@@ -115,20 +88,12 @@ export function SeccionMetasYValoresVista({ metas, valores }: Props) {
           elevation={0}
           sx={{
             height: '100%',
-            borderRadius: 3,
             border: '1px solid',
             borderColor: 'divider',
           }}
         >
           <CardContent sx={{ p: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 700,
-                color: '#0e381e',
-                mb: 3,
-              }}
-            >
+            <Typography variant="h6" sx={{ mb: 3 }}>
               Valor del Proyecto
             </Typography>
 
@@ -136,28 +101,10 @@ export function SeccionMetasYValoresVista({ metas, valores }: Props) {
               <TableContainer>
                 <Table size="small">
                   <TableHead>
-                    <TableRow
-                      sx={{
-                        backgroundColor: '#f8fafc',
-                      }}
-                    >
-                      <TableCell sx={{ fontWeight: 700 }}>
-                        Categoría
-                      </TableCell>
-
-                      <TableCell
-                        align="right"
-                        sx={{ fontWeight: 700 }}
-                      >
-                        USD
-                      </TableCell>
-
-                      <TableCell
-                        align="right"
-                        sx={{ fontWeight: 700 }}
-                      >
-                        COP
-                      </TableCell>
+                    <TableRow>
+                      <TableCell>Categoría</TableCell>
+                      <TableCell align="right">USD</TableCell>
+                      <TableCell align="right">COP</TableCell>
                     </TableRow>
                   </TableHead>
 
@@ -172,13 +119,7 @@ export function SeccionMetasYValoresVista({ metas, valores }: Props) {
                           ${v.usd.toLocaleString()}
                         </TableCell>
 
-                        <TableCell
-                          align="right"
-                          sx={{
-                            fontWeight: 600,
-                            color: '#0e381e',
-                          }}
-                        >
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
                           ${v.cop.toLocaleString()}
                         </TableCell>
                       </TableRow>
@@ -187,14 +128,7 @@ export function SeccionMetasYValoresVista({ metas, valores }: Props) {
                 </Table>
               </TableContainer>
             ) : (
-              <Box
-                sx={{
-                  p: 3,
-                  borderRadius: 2,
-                  textAlign: 'center',
-                  backgroundColor: '#f8fafc',
-                }}
-              >
+              <Box sx={{ p: 3, textAlign: 'center', backgroundColor: '#f8fafc' }}>
                 <Typography color="text.secondary">
                   Sin valores registrados.
                 </Typography>

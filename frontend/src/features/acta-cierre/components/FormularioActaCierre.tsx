@@ -271,16 +271,16 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
   const flujoPorTipo = (tipo: 'CAPEX' | 'GCAPEX' | 'OPEX') => flujoCaja.filter((f) => f.tipo === tipo);
 
   return (
-    <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+    <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onCancelar} sx={{ mb: 2, color: '#64748b' }}>Cancelar</Button>
-      <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 0.5 }}>Acta de Cierre</Typography>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>Acta de Cierre</Typography>
 
       {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
 
       {/* Información General */}
-      <Card sx={{ mb: 2, mt: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Información General</Typography>
+      <Card sx={{ mb: 4, mt: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Información General</Typography>
 
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>Tipo de cierre</FormLabel>
           <RadioGroup row value={tipoCierre} onChange={(e) => setTipoCierre(e.target.value as TipoCierre)} sx={{ mb: 2 }}>
@@ -302,31 +302,31 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Entregable Planeado */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Entregable Planeado</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Entregable Planeado</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <TextField label="Entregable Inicial (de la SI)" value={entregableInicial || '—'} InputProps={{ readOnly: true }} sx={{ bgcolor: '#f1f5f9' }} />
+                        <TextField label="Entregable Inicial (de la SI)" value={entregableInicial || '—'} slotProps={{ input: { readOnly: true } }} sx={{ bgcolor: '#f1f5f9' }} />
             <TextField label="Entregable Real" multiline minRows={2} value={entregableReal} onChange={(e) => setEntregableReal(e.target.value)} />
           </Box>
         </CardContent>
       </Card>
 
       {/* Metas */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Metas</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Metas</Typography>
           {metas.length === 0 ? (
             <Typography variant="body2" color="text.secondary">La Solicitud de Inversión de este proyecto no registró metas.</Typography>
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>Compromiso P3</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Fecha inicio medición</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Indicador</TableCell>
-                    <TableCell sx={{ fontWeight: 700, minWidth: 220 }}>Resultados del escalamiento / Cierre</TableCell>
+                  <TableRow>
+                    <TableCell>Compromiso P3</TableCell>
+                    <TableCell>Fecha inicio medición</TableCell>
+                    <TableCell>Indicador</TableCell>
+                    <TableCell sx={{ minWidth: 220 }}>Resultados del escalamiento / Cierre</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -349,10 +349,10 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Valor Total del Proyecto */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Valor Total del Proyecto (Real)</Typography>
-          <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 2 }}>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Valor Total del Proyecto (Real)</Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
             El comparativo contra lo planeado en la SI (y contra Control de Cambios, si aplica) se muestra en la vista una vez guardada el Acta.
           </Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 2, alignItems: 'center', mb: 1 }}>
@@ -369,9 +369,9 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Flujo de Caja */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Flujo de Caja — Planeado vs. Real</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Flujo de Caja — Planeado vs. Real</Typography>
           {flujoCaja.length === 0 ? (
             <Typography variant="body2" color="text.secondary">La SI de este proyecto no registró flujo de caja.</Typography>
           ) : (
@@ -384,12 +384,12 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
                   <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
                       <TableHead>
-                        <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                          <TableCell sx={{ fontWeight: 700 }}>Mes</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Año</TableCell>
-                          <TableCell sx={{ fontWeight: 700 }}>Moneda</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700 }}>Planeado</TableCell>
-                          <TableCell align="right" sx={{ fontWeight: 700, minWidth: 140 }}>Real</TableCell>
+                        <TableRow>
+                          <TableCell>Mes</TableCell>
+                          <TableCell>Año</TableCell>
+                          <TableCell>Moneda</TableCell>
+                          <TableCell align="right">Planeado</TableCell>
+                          <TableCell align="right" sx={{ minWidth: 140 }}>Real</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -419,21 +419,21 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Órdenes Internas y de Mantenimiento */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Órdenes Internas y de Mantenimiento</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Órdenes Internas y de Mantenimiento</Typography>
           {oiValoresReales.length === 0 ? (
             <Typography variant="body2" color="text.secondary">Este proyecto no tiene Órdenes Internas.</Typography>
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                    <TableCell sx={{ fontWeight: 700 }}>N° OI</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Nombre descriptivo</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Activo/Gasto</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700 }}>PPT OI</TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 700, minWidth: 140 }}>Valor Real</TableCell>
+                  <TableRow>
+                    <TableCell>N° OI</TableCell>
+                    <TableCell>Nombre descriptivo</TableCell>
+                    <TableCell>Activo/Gasto</TableCell>
+                    <TableCell align="right">PPT OI</TableCell>
+                    <TableCell align="right" sx={{ minWidth: 140 }}>Valor Real</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -457,9 +457,9 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Entregable (equipos/sistemas) */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Entregable</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Entregable</Typography>
           {entregables.map((ent, i) => (
             <Box key={i} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
               <TextField size="small" label="Equipo / Sistema *" value={ent.equipo_sistema} onChange={(e) => actualizarEntregable(i, { equipo_sistema: e.target.value })} />
@@ -479,9 +479,9 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       </Card>
 
       {/* Partes Interesadas */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Partes Interesadas</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Partes Interesadas</Typography>
           <Autocomplete
             multiple
             options={usuariosDisponibles}

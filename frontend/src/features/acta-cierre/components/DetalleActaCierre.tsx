@@ -16,6 +16,7 @@ import {
   obtenerActaCierreDetalle, enviarActaCierre, aprobarActaCierre, rechazarActaCierre,
 } from '../service/actasCierre.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
+import { StepperProceso } from '../../../components/StepperProceso';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -179,19 +180,13 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const tituloSeccion = (texto: string) => (
-    <Typography
-      variant="subtitle1"
-      sx={{
-        fontWeight: 700, mb: 2, mt: 3, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1.25,
-        '&::before': { content: '""', display: 'block', width: 4, height: 18, bgcolor: 'primary.main', borderRadius: 1 },
-      }}
-    >
+    <Typography variant="h6" sx={{ mb: 2 }}>
       {texto}
     </Typography>
   );
 
   const campo = (label: string, valor?: string | number | null) => (
-    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+    <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
         {label}
       </Typography>
@@ -202,14 +197,22 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   );
 
   const tarjeta = (children: React.ReactNode) => (
-    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>{children}</CardContent>
+    <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+      <CardContent sx={{ p: 3 }}>{children}</CardContent>
     </Card>
   );
 
   const fmt = (valor: number | null | undefined, simbolo: string) =>
     valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}` : '—';
 
+  const fmtPar = (usd: number | null | undefined, cop: number | null | undefined) => {
+    const partes = [
+      usd && usd > 0 ? `US$${Number(usd).toLocaleString()}` : null,
+      cop && cop > 0 ? `$${Number(cop).toLocaleString()} COP` : null,
+    ].filter(Boolean);
+    return partes.length ? partes.join(' / ') : '—';
+  };
+  
   const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
   const hayCc = detalle.comparacion.valores_cc.length > 0;
 
@@ -220,6 +223,15 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     return { ...p, real: Number(real?.monto_real) || 0 };
   });
 
+  const ETAPAS_ACTA = [
+    { key: 'PENDIENTE_PMO', label: 'PMO' },
+    { key: 'CONTROL_GESTION', label: 'Control Gestión' },
+    { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
+    { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
+    { key: 'GERENCIA', label: 'Gerencia' },
+    { key: 'PRESIDENCIA', label: 'Presidencia' },
+  ];
+
   return (
     <Box>
       <EncabezadoProceso
@@ -228,7 +240,9 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         estado={estado}
       />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2, flexWrap: 'wrap' }}>
+      <StepperProceso etapas={ETAPAS_ACTA} etapaActual={estado} estadoFinal="CERRADO" />
+
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
         <Chip label={detalle.tipo_cierre === 'CULMINACION' ? 'Culminación' : 'Cancelación'} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         <Box sx={{ flexGrow: 1 }} />
         {puedeEditarYEnviar && (
@@ -245,7 +259,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         )}
       </Box>
 
-      <Paper sx={{ borderRadius: 3, mb: 3, backgroundColor: '#ffffff' }} elevation={0} variant="outlined">
+      <Paper sx={{ mb: 4 }} elevation={0} variant="outlined">
         <Tabs
           value={tabActual}
           onChange={(_, nuevoTab) => setTabActual(nuevoTab)}
@@ -267,7 +281,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
               {campo('Control Gestión asignado', detalle.control_gestion?.nombre)}
               {detalle.presentacion_p5_link
                 ? (
-                  <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+                  <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
                     <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
                       Presentación de Puertas 5
                     </Typography>
@@ -289,7 +303,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
           {detalle.acta_cierre_metas.length > 0 && (
             <>
               {tituloSeccion('Metas')}
-              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+              <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
                   <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
@@ -321,7 +335,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
           {(detalle.acta_cierre_entregables.length > 0 || detalle.otros_entregables) && (
             <>
               {tituloSeccion('Entregable')}
-              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+              <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
                   {detalle.acta_cierre_entregables.length > 0 && (
                     <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
@@ -383,7 +397,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       {tabActual === 1 && (
         <Box>
           {tituloSeccion('Valor Total del Proyecto')}
-          <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+          <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
               <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 650 }}>
@@ -403,9 +417,9 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                       return (
                         <TableRow key={cat}>
                           <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                          <TableCell align="center">{fmt(si?.usd, 'US$')} / {fmt(si?.cop, '$')}</TableCell>
-                          {hayCc && <TableCell align="center">{fmt(cc?.usd, 'US$')} / {fmt(cc?.cop, '$')}</TableCell>}
-                          <TableCell align="center">{fmt(real?.real_usd, 'US$')} / {fmt(real?.real_cop, '$')}</TableCell>
+                          <TableCell align="center">{fmtPar(si?.usd, si?.cop)}</TableCell>
+                          {hayCc && <TableCell align="center">{fmtPar(cc?.usd, cc?.cop)}</TableCell>}
+                          <TableCell align="center">{fmtPar(real?.real_usd, real?.real_cop)}</TableCell>
                         </TableRow>
                       );
                     })}
@@ -421,7 +435,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
           {filasFlujo.length > 0 && (
             <>
               {tituloSeccion('Flujo de Caja — Planeado vs. Real')}
-              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+              <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
                   {(['CAPEX', 'GCAPEX', 'OPEX'] as const).map((tipo) => {
                     const filas = filasFlujo.filter((f) => f.tipo === tipo);
@@ -464,7 +478,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
           {detalle.acta_cierre_oi_valores_reales.length > 0 && (
             <>
               {tituloSeccion('Órdenes Internas y de Mantenimiento')}
-              <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+              <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
                   <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
@@ -498,7 +512,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       )}
 
       {tabActual === 2 && (
-        <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+        <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
           <CardContent sx={{ p: 3 }}>
             {detalle.procesos.historico_aprobaciones.length === 0 ? (
               <Typography variant="body2" color="text.secondary">Sin movimientos todavía.</Typography>

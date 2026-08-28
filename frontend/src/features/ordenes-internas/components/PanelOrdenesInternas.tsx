@@ -105,9 +105,9 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
   const hayOrdenes = ordenesInternas.length > 0;
 
   return (
-    <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e' }}>
+        <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+        <Typography variant="h6">
           Órdenes Internas {grupo.nombre ? `— ${grupo.nombre}` : ''}
         </Typography>
         <Chip label={ESTADO_GRUPO_CONFIG[grupo.estado]?.label || grupo.estado} color={ESTADO_GRUPO_CONFIG[grupo.estado]?.color || 'default'} size="small" />

@@ -229,10 +229,10 @@ export function SeccionFlujoCaja({
       .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
 
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Flujo de Caja Planeado</Typography>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">Flujo de Caja Planeado</Typography>
           <Button size="small" startIcon={<AddIcon />} onClick={agregarAnioFlujo} variant="contained" color="primary">
             Agregar Año
           </Button>
@@ -267,15 +267,15 @@ export function SeccionFlujoCaja({
               expanded={anioExpandido === anio}
               onChange={(_, expandido) => setAnioExpandido(expandido ? anio : false)}
               disableGutters
-              sx={{ mb: 1.5, borderRadius: 2, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}
+              sx={{ mb: 1.5, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}
             >
-              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: '#f8fafc', borderRadius: 2 }}>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} sx={{ backgroundColor: '#f8fafc' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', width: '100%', pr: 1 }}>
-                  <Typography sx={{ fontWeight: 700, color: '#0e381e' }}>Año {anio}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>Año {anio}</Typography>
                   {tiposColumnasActivos.map((t) => (
                     <Chip key={t} label={t} size="small" color={mesesIncompletos.length > 0 ? 'default' : 'success'} variant="outlined" />
                   ))}
-                  <Typography variant="caption" sx={{ color: '#64748b' }}>{resumenMeses}</Typography>
+                  <Typography variant="caption" color="text.secondary">{resumenMeses}</Typography>
                   {mesesIncompletos.length > 0 && (
                     <Chip label={`${mesesIncompletos.length} sin completar`} size="small" color="error" />
                   )}
@@ -361,13 +361,13 @@ export function SeccionFlujoCaja({
                 ) : mesesListados.length === 0 ? (
                   <Alert severity="warning">Elige al menos un mes arriba para empezar a cargar montos.</Alert>
                 ) : (
-                  <TableContainer sx={{ overflowX: 'auto', width: '100%', borderRadius: 1.5, border: '1px solid #e2e8f0' }}>
+                  <TableContainer sx={{ overflowX: 'auto', width: '100%', border: '1px solid #e2e8f0' }}>
                     <Table size="small" sx={{ width: '100%', '& .MuiTableCell-root': { py: 0.5 } }}>
-                      <TableHead sx={{ backgroundColor: '#f1f5f9' }}>
-                        <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                          <TableCell sx={{ fontWeight: 700, minWidth: 70, width: 70 }}>Mes</TableCell>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ minWidth: 70, width: 70 }}>Mes</TableCell>
                           {tiposColumnasActivos.map((tipo) => (
-                            <TableCell key={tipo} align="center" sx={{ fontWeight: 700, minWidth: 210 }}>
+                            <TableCell key={tipo} align="center" sx={{ minWidth: 210 }}>
                               <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
                                 <span>{tipo}</span>
                                 <ToggleButtonGroup
@@ -429,9 +429,9 @@ export function SeccionFlujoCaja({
                         })}
 
                         <TableRow sx={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
-                          <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>Total</TableCell>
+                          <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
                           {tiposColumnasActivos.map((tipo) => (
-                            <TableCell key={tipo} align="center" sx={{ fontWeight: 800, color: '#0e381e' }}>
+                            <TableCell key={tipo} align="center" sx={{ fontWeight: 700 }}>
                               {monedaDeColumna(anio, tipo) === 'USD' ? 'US$' : '$'}{calcularTotalColumna(anio, tipo).toLocaleString()}
                               {monedaDeColumna(anio, tipo) === 'COP' ? ' COP' : ''}
                             </TableCell>

@@ -134,15 +134,15 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
   if (cargando) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}><CircularProgress color="secondary" /></Box>;
 
   return (
-    <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+    <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onCancelar} sx={{ mb: 2, color: '#64748b' }}>Cancelar</Button>
-      <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 0.5 }}>Control de Cambios</Typography>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>Control de Cambios</Typography>
 
       {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
 
-      <Card sx={{ mb: 2, mt: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Información General</Typography>
+      <Card sx={{ mb: 4, mt: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Información General</Typography>
 
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>Tipo de Control de Cambios</FormLabel>
           <RadioGroup
@@ -177,7 +177,6 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
             <FormControlLabel value="si" control={<Radio />} label="Sí" />
           </RadioGroup>
 
-          
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Anexos</Typography>
           {(form.anexos || []).map((anexo, i) => (
             <Box key={i} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '200px 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
@@ -193,9 +192,9 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
         </CardContent>
       </Card>
 
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Descripción del Cambio</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Descripción del Cambio</Typography>
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField label="Descripción del cambio" multiline minRows={2} value={form.descripcion_cambio} onChange={(e) => actualizar({ descripcion_cambio: e.target.value })} />
             <TextField label="Antecedentes" multiline minRows={2} value={form.antecedentes} onChange={(e) => actualizar({ antecedentes: e.target.value })} />
@@ -205,9 +204,10 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
           </Box>
         </CardContent>
       </Card>
-          <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Partes Interesadas</Typography>
+
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Partes Interesadas</Typography>
           <Autocomplete
             multiple
             options={usuariosDisponibles}

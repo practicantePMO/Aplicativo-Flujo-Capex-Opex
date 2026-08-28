@@ -17,10 +17,10 @@ export function SeccionPartesInteresadasVista({ asignaciones, puedeEditar, onEdi
   const partesFiltradas = asignaciones.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
 
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+          <Typography variant="h6">
             Partes Interesadas
           </Typography>
           {puedeEditar && (

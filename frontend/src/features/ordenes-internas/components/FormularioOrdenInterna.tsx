@@ -155,8 +155,8 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
   // Y, si es "Sí", exige elegir un Control de Cambios real que ya exista para este proyecto.
   if (!preguntaRespondida) {
     return (
-      <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
-        <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 2 }}>Solicitud de Ordenes Interna</Typography>
+      <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>Solicitud de Ordenes Interna</Typography>
         <Typography variant="body1" sx={{ mb: 2 }}>¿Esta Orden Interna es por Control de Cambios?</Typography>
         <RadioGroup
           value={form.es_control_cambios ? 'si' : 'no'}
@@ -209,18 +209,18 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
   }
 
   return (
-    <Box sx={{ mt: 3, p: 3, borderRadius: 3, border: '1px solid #e2e8f0', backgroundColor: '#fafafa' }}>
+    <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onCancelar} sx={{ mb: 2, color: '#64748b' }}>Cancelar</Button>
-      <Typography variant="h6" sx={{ fontWeight: 800, color: '#0e381e', mb: 0.5 }}>
+      <Typography variant="h6" sx={{ mb: 0.5 }}>
         Solicitud de Ordenes Interna {form.es_control_cambios ? '(Control de Cambios)' : ''}
       </Typography>
 
       {error && <Alert severity="error" sx={{ my: 2 }}>{error}</Alert>}
 
       {/* Sección 1 */}
-      <Card sx={{ mb: 2, mt: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Sección 1</Typography>
+      <Card sx={{ mb: 4, mt: 3 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Sección 1</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             <TextField label="Número de Orden Interna *" value={form.numero_oi} onChange={(e) => actualizar({ numero_oi: e.target.value })} />
             <TextField label="Nombre Descriptivo *" value={form.nombre_descriptivo} onChange={(e) => actualizar({ nombre_descriptivo: e.target.value })} />
@@ -239,9 +239,9 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
       </Card>
 
       {/* Sección 2 */}
-      <Card sx={{ mb: 2, borderRadius: 2 }}>
-        <CardContent>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Sección 2</Typography>
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Sección 2</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
             {form.tipo_orden === 'ACTIVO' && (
               <>
@@ -264,10 +264,10 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
 
       {/* Sección 3 (solo si es Control de Cambios) */}
       {form.es_control_cambios && (
-        <Card sx={{ mb: 2, borderRadius: 2 }}>
-          <CardContent>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Sección 3 — Valor Total del Proyecto</Typography>
-            <Typography variant="caption" sx={{ color: '#64748b', display: 'block', mb: 2 }}>
+        <Card sx={{ mb: 4 }}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography variant="h6" sx={{ mb: 2 }}>Sección 3 — Valor Total del Proyecto</Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
               A diferencia de Solicitud de Inversión, aquí se llena manual.
             </Typography>
             {(['ACTIVO', 'GASTO'] as const).map((cat) => {

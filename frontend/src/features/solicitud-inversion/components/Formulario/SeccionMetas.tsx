@@ -12,10 +12,10 @@ export function SeccionMetas({ metas, setMetas }: Props) {
   const agregarMeta = () => setMetas([...metas, { compromiso: '', fecha_inicio: '', indicador: '' }]);
 
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-          <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>Metas</Typography>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Typography variant="h6">Metas</Typography>
           <Button size="small" startIcon={<AddIcon />} onClick={agregarMeta}>Agregar meta</Button>
         </Box>
         {metas.map((m, i) => (

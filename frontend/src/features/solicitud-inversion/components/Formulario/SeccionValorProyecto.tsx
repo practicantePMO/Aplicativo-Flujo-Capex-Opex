@@ -14,18 +14,18 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
   const totalCop = activoCop + gastoCop;
 
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 2 }}>
           Valor Total del Proyecto
         </Typography>
 
-        <Alert severity="info" sx={{ mb: 2 }}>
+        <Alert severity="info" sx={{ mb: 3 }}>
           Estos valores se calculan automáticamente sumando la sección "Flujo de Caja Planeado" de abajo
           (CAPEX = Activo; GCAPEX + OPEX = Gasto), separados por la moneda de cada fila. Para cambiarlos, edita el flujo de caja.
         </Alert>
 
-        <Box sx={{ mb: 2, maxWidth: 220 }}>
+        <Box sx={{ mb: 3, maxWidth: 220 }}>
           <TextField
             label="TRM" type="number" fullWidth size="small" placeholder="0.00"
             value={trm}
@@ -33,13 +33,13 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
           />
         </Box>
 
-        <TableContainer component={Paper} variant="outlined" sx={{ borderRadius: 2 }}>
+        <TableContainer component={Paper} variant="outlined">
           <Table size="small">
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                <TableCell sx={{ fontWeight: 700, width: '34%' }}>Categoría</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, width: '33%' }}>Valor USD</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, width: '33%' }}>Valor COP</TableCell>
+              <TableRow>
+                <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
+                <TableCell align="center" sx={{ width: '33%' }}>Valor USD</TableCell>
+                <TableCell align="center" sx={{ width: '33%' }}>Valor COP</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -53,12 +53,12 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
                 <TableCell align="center">${gastoUsd.toLocaleString()}</TableCell>
                 <TableCell align="center">COP{gastoCop.toLocaleString()}</TableCell>
               </TableRow>
-              <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                <TableCell sx={{ fontWeight: 800, color: '#0e381e' }}>TOTAL</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, color: '#0e381e', fontSize: '1rem' }}>
+              <TableRow>
+                <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
+                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
                   ${totalUsd.toLocaleString()}
                 </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 800, color: '#0e381e', fontSize: '1rem' }}>
+                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
                   COP{totalCop.toLocaleString()}
                 </TableCell>
               </TableRow>

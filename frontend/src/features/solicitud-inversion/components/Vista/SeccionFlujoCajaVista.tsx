@@ -22,9 +22,9 @@ export function SeccionFlujoCajaVista({ flujosGrabados }: Props) {
   };
 
   return (
-    <Card sx={{ mb: 3, borderRadius: 3 }}>
-      <CardContent>
-        <Typography variant="subtitle1" sx={{ fontWeight: 700, mb: 2 }}>Flujo de Caja Planeado</Typography>
+    <Card sx={{ mb: 4 }}>
+      <CardContent sx={{ p: 3 }}>
+        <Typography variant="h6" sx={{ mb: 3 }}>Flujo de Caja Planeado</Typography>
         {aniosUnicos.length === 0 ? (
           <Typography variant="body2" color="text.secondary">Sin registros de flujo de caja.</Typography>
         ) : (
@@ -37,9 +37,9 @@ export function SeccionFlujoCajaVista({ flujosGrabados }: Props) {
             ).sort((a, b) => a - b);
 
             return (
-              <Paper key={anio} variant="outlined" sx={{ p: 2, mb: 3, borderRadius: 2 }}>
+              <Paper key={anio} variant="outlined" sx={{ p: 2, mb: 3 }}>
                 <Box sx={{ mb: 1.5 }}>
-                  <Typography variant="h6" sx={{ fontWeight: 700, color: '#0e381e' }}>
+                  <Typography sx={{ fontWeight: 700 }}>
                     Año {anio}
                   </Typography>
                 </Box>
@@ -47,14 +47,14 @@ export function SeccionFlujoCajaVista({ flujosGrabados }: Props) {
                 <TableContainer sx={{ overflowX: 'auto' }}>
                   <Table size="small" sx={{ width: 'auto' }}>
                     <TableHead>
-                      <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                        <TableCell sx={{ fontWeight: 700, minWidth: 100 }}>Tipo</TableCell>
+                      <TableRow>
+                        <TableCell sx={{ minWidth: 100 }}>Tipo</TableCell>
                         {mesesConDatos.map((mesNum) => (
-                          <TableCell key={mesNum} align="center" sx={{ fontWeight: 700, minWidth: 90 }}>
+                          <TableCell key={mesNum} align="center" sx={{ minWidth: 90 }}>
                             {NOMBRES_MES[mesNum]} {anio}
                           </TableCell>
                         ))}
-                        <TableCell align="right" sx={{ fontWeight: 700, minWidth: 100 }}>
+                        <TableCell align="right" sx={{ minWidth: 100 }}>
                           Total {anio}
                         </TableCell>
                       </TableRow>
@@ -71,7 +71,7 @@ export function SeccionFlujoCajaVista({ flujosGrabados }: Props) {
                               </TableCell>
                             );
                           })}
-                          <TableCell align="right" sx={{ fontWeight: 700, color: '#0e381e' }}>
+                          <TableCell align="right" sx={{ fontWeight: 700 }}>
                             ${calcularTotalFilaGrabado(anio, tipo).toLocaleString()}
                           </TableCell>
                         </TableRow>

@@ -26,6 +26,7 @@ import { SeccionPartesInteresadasVista } from './Vista/SeccionPartesInteresadasV
 import { SeccionHistoricoVista } from './Vista/SeccionHistoricoVista';
 import { DialogosAccionVista } from './Vista/DialogosAccionVista';
 import { SeccionDocumentosLinksVista } from './Vista/SeccionDocumentosLinksVista';
+import { StepperProceso } from '../../../components/StepperProceso';
 
 interface Props {
   procesoId: number;
@@ -265,6 +266,14 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   const textoNueva = (solicitud as any)?.categorias?.nombre || undefined;
   const categoriaTradicional = (tipoClasif === 'TRADICIONAL' || tipoClasif === 'AMBAS') ? textoTradicional : undefined;
   const categoriaNueva = (tipoClasif === 'NUEVA' || tipoClasif === 'AMBAS') ? textoNueva : undefined;
+    const ETAPAS_SI = [
+    { key: 'PENDIENTE_PMO', label: 'PMO' },
+    { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
+    { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
+    { key: 'GERENCIA', label: 'Gerencia' },
+    { key: 'PRESIDENCIA', label: 'Presidencia' },
+  ];
+
   return (
     <Box sx={{ maxWidth: '100%' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onVolver} sx={{ mb: 2, color: '#64748b' }}>
@@ -277,7 +286,9 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
         estado={estado}
       />
 
-      <Paper sx={{ borderRadius: 3, mb: 3, backgroundColor: '#ffffff' }} elevation={0} variant="outlined">
+      <StepperProceso etapas={ETAPAS_SI} etapaActual={estado} estadoFinal="APROBADO_FINAL" estadoCancelado="CANCELADO" />
+
+        <Paper sx={{ mb: 4 }} elevation={0} variant="outlined">
         <Tabs
           value={tabActual}
           onChange={(_, nuevoTab) => setTabActual(nuevoTab)}

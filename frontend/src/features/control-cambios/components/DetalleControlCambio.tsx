@@ -12,6 +12,7 @@ import {
 } from '../services/controlCambios.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
+import { StepperProceso } from '../../../components/StepperProceso';
 
 const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -185,19 +186,13 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   };
 
   const tituloSeccion = (texto: string) => (
-    <Typography
-      variant="subtitle1"
-      sx={{
-        fontWeight: 700, mb: 2, mt: 3, color: 'text.primary', display: 'flex', alignItems: 'center', gap: 1.25,
-        '&::before': { content: '""', display: 'block', width: 4, height: 18, bgcolor: 'primary.main', borderRadius: 1 },
-      }}
-    >
+    <Typography variant="h6" sx={{ mb: 2 }}>
       {texto}
     </Typography>
   );
 
   const campo = (label: string, valor?: string | number | null) => (
-    <Box sx={{ p: 1.5, borderRadius: 2, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+    <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
       <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
         {label}
       </Typography>
@@ -208,12 +203,20 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   );
 
   const tarjeta = (children: React.ReactNode) => (
-    <Card elevation={0} sx={{ mb: 2.5, borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
-      <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>{children}</CardContent>
+    <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+      <CardContent sx={{ p: 3 }}>{children}</CardContent>
     </Card>
   );
 
   const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
+
+    const ETAPAS_CC = [
+    { key: 'PENDIENTE_PMO', label: 'PMO' },
+    { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
+    { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
+    { key: 'GERENCIA', label: 'Gerencia' },
+    { key: 'PRESIDENCIA', label: 'Presidencia' },
+  ];
 
   return (
     <Box>
@@ -222,8 +225,10 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
         nombreProceso="Control de Cambios"
         estado={estado}
       />
+    
+      <StepperProceso etapas={ETAPAS_CC} etapaActual={estado} estadoFinal="APROBADO_FINAL" />
 
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1, flexWrap: 'wrap' }}>
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
         <Chip label={detalle.requiere_orden_interna ? 'Requiere Orden Interna' : 'No requiere Orden Interna'} size="small" variant="outlined" sx={{ fontWeight: 600 }} />
         <Box sx={{ flexGrow: 1 }} />
         {puedeEditarYEnviar && (
@@ -288,7 +293,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       )}
 
       {tituloSeccion('Histórico de este Control de Cambios')}
-      <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+      <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
         <CardContent sx={{ p: 3 }}>
           {detalle.procesos.historico_aprobaciones.length === 0 ? (
             <Typography variant="body2" color="text.secondary">Sin movimientos todavía.</Typography>
@@ -296,11 +301,11 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
                 <TableHead>
-                  <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                    <TableCell sx={{ fontWeight: 700, whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Usuario</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Acción</TableCell>
-                    <TableCell sx={{ fontWeight: 700 }}>Observación</TableCell>
+                  <TableRow>
+                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+                    <TableCell>Usuario</TableCell>
+                    <TableCell>Acción</TableCell>
+                    <TableCell>Observación</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -324,15 +329,15 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       {detalle.ordenes_internas?.length > 0 && (
         <>
           {tituloSeccion('Órdenes Internas Relacionadas')}
-          <Card elevation={0} sx={{ borderRadius: 3, border: '1px solid', borderColor: 'divider', boxShadow: '0 2px 12px 0 rgba(0, 0, 0, 0.04)' }}>
+          <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
               <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 500 }}>
                   <TableHead>
-                    <TableRow sx={{ backgroundColor: '#f1f5f9' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>N° OI</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Nombre</TableCell>
-                      <TableCell sx={{ fontWeight: 700 }}>Estado</TableCell>
+                    <TableRow>
+                      <TableCell>N° OI</TableCell>
+                      <TableCell>Nombre</TableCell>
+                      <TableCell>Estado</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
