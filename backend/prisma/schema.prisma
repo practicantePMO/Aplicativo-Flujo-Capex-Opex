@@ -96,7 +96,7 @@ model proyectos {
   compania_id    Int?
   fecha_proyecto DateTime  @db.Date
   anio_proyecto  Int       @default(dbgenerated())
-  anio_asignado  Int       @default(dbgenerated())   // 👈 AGREGAR esta línea
+  anio_asignado  Int       @default(dbgenerated())
   consecutivo    Int       @default(dbgenerated())
   creado_por     Int?
   fecha_creacion DateTime? @default(now()) @db.Timestamp(6)
@@ -105,10 +105,12 @@ model proyectos {
   companias companias? @relation(fields: [compania_id], references: [id])
   usuarios  usuarios?  @relation(fields: [creado_por], references: [id], onDelete: NoAction, onUpdate: NoAction)
   procesos  procesos[]
-  proyectos_aplazamientos proyectos_aplazamientos[]   // 👈 AGREGAR esta línea
+  proyectos_aplazamientos proyectos_aplazamientos[]
   grupos_ordenes_internas grupos_ordenes_internas? 
   controles_cambio controles_cambio[]
   actas_cierre     actas_cierre?
+
+  @@index([anio_proyecto, consecutivo])
 }
 
 model proyectos_aplazamientos {
