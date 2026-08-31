@@ -99,7 +99,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         setUsuariosDisponibles(partesDisponibles);
 
         // --- Datos de la SI aprobada (entregable, metas, flujo de caja planeado) ---
-                const procesoSi = procesos.find((p) => p.tipo_proceso === 'SOLICITUD_INVERSION' && p.estado_actual === 'APROBADO_FINAL');
+        const procesoSi = procesos.find((p) => p.tipo_proceso === 'SOLICITUD_INVERSION');
         if (procesoSi) {
           const si = await obtenerSolicitudInversion(procesoSi.id);
           setEntregableInicial(si.solicitudes_inversion?.entregable_planeado ?? null);
@@ -260,7 +260,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
 
       onGuardado(procesoIdResultante);
     } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar el Acta de Cierre.');
+      setError(err.response?.data?.message || err.message || 'Error al guardar el Acta de Cierre.');
     } finally {
       setGuardando(false);
     }

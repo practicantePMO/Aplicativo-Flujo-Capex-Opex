@@ -41,6 +41,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   const [cgElegido, setCgElegido] = useState<UsuarioResumen | null>(null);
 
   const [dialogoAprobar, setDialogoAprobar] = useState(false);
+  const [numeroOi, setNumeroOi] = useState('');
   const [grupoTexto, setGrupoTexto] = useState('');
   const [observaciones, setObservaciones] = useState('');
 
@@ -74,6 +75,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
   const puedeAprobarORechazar = estado === 'PENDIENTE' && (esCgAsignado || esAdmin);
   const puedeCerrar = estado === 'APROBADA' && grupoEstado === 'SOLICITADO_CIERRE' && (esCgAsignado || esAdmin);
+  const esPrimeraOiDelGrupo = !detalle.grupos_ordenes_internas.nombre;
 
   const abrirDialogoEnviar = async () => {
     try {
@@ -109,12 +111,13 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   };
 
   const confirmarAprobar = async () => {
-    if (!grupoTexto.trim()) return alert('El grupo de órdenes internas es obligatorio.');
+    if (!numeroOi.trim()) return alert('El número de Orden Interna es obligatorio.');
+    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) return alert('El grupo de órdenes internas es obligatorio.');
     setProcesando(true);
     try {
-      await aprobarOrdenInterna(resumen.id, grupoTexto.trim(), observaciones.trim() || undefined);
+      await aprobarOrdenInterna(resumen.id, numeroOi.trim(), esPrimeraOiDelGrupo ? grupoTexto.trim() : undefined, observaciones.trim() || undefined);
       setDialogoAprobar(false);
-      setGrupoTexto(''); setObservaciones('');
+      setNumeroOi(''); setGrupoTexto(''); setObservaciones('');
       await cargar();
       onCambio();
     } catch (e: any) {
@@ -217,7 +220,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     <Box>
       <EncabezadoProceso
         nombreProyecto={detalle.proyecto_nombre || ''}
-        nombreProceso={`Orden Interna — ${detalle.numero_oi}`}
+        nombreProceso={`Orden Interna${detalle.numero_oi ? ` — ${detalle.numero_oi}` : ''}`}
         estado={estado}
         chipLabel={detalle.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}
         chipColor="default"
@@ -391,8 +394,13 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Orden Interna</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth label="Grupo de Órdenes Internas *" value={grupoTexto}
-            onChange={(e) => setGrupoTexto(e.target.value)} sx={{ mt: 1, mb: 2 }} />
+          <TextField autoFocus fullWidth label="Número de Orden Interna *" value={numeroOi}
+            onChange={(e) => setNumeroOi(e.target.value)} sx={{ mt: 1, mb: 2 }} />
+          {esPrimeraOiDelGrupo && (
+            <TextField fullWidth label="Grupo de Órdenes Internas *" value={grupoTexto}
+              onChange={(e) => setGrupoTexto(e.target.value)} sx={{ mb: 2 }}
+              helperText="Es la primera Orden Interna aprobada de este proyecto: define el nombre del grupo." />
+          )}
           <TextField fullWidth multiline minRows={2} label="Observaciones (opcional)" value={observaciones}
             onChange={(e) => setObservaciones(e.target.value)} />
         </DialogContent>
@@ -401,7 +409,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           <Button variant="contained" color="success" onClick={confirmarAprobar} disabled={procesando}>Aprobar</Button>
         </DialogActions>
       </Dialog>
-
+      
       {/* Diálogo: rechazar */}
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Orden Interna</DialogTitle>

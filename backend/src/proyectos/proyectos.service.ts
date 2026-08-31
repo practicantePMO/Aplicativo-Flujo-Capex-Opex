@@ -316,6 +316,7 @@ export class ProyectosService {
         tipo_proceso: true,
         estado_actual: true,
         fecha_creacion: true,
+        actas_cierre: { select: { tipo_cierre: true } },
       },
       orderBy: { fecha_creacion: 'desc' },
     });

@@ -44,4 +44,5 @@ export interface Proceso {
   tipo_proceso: string;
   estado_actual: string;
   fecha_creacion: string;
+  actas_cierre?: { tipo_cierre: 'CANCELACION' | 'CULMINACION' } | null;
 }

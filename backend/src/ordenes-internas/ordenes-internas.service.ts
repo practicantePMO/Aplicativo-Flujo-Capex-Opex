@@ -56,7 +56,6 @@ export class OrdenesInternasService {
 
   private mapearDatosOi(dto: CrearOrdenInternaDto) {
     return {
-      numero_oi: dto.numero_oi,
       nombre_descriptivo: dto.nombre_descriptivo,
       tipo_orden: dto.tipo_orden,
       es_control_cambios: Boolean(dto.es_control_cambios),
@@ -202,7 +201,7 @@ export class OrdenesInternasService {
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna enviada a Control Gestión.' };
   }
   // 3️⃣ Aprobar (Sección 4: grupo + observaciones) — PENDIENTE -> APROBADA
-  async aprobar(ordenInternaId: number, usuarioId: number, dto: AprobarOrdenInternaDto) {
+    async aprobar(ordenInternaId: number, usuarioId: number, dto: AprobarOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'PENDIENTE') {
       throw new BadRequestException('Esta Orden Interna no está pendiente de aprobación.');
@@ -211,6 +210,15 @@ export class OrdenesInternasService {
     const esCgAsignado = orden.control_gestion_asignado_id === usuarioId;
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
+
+    // 🏷️ El nombre del grupo solo se pide la primera vez. Si el grupo ya
+    // tiene nombre, se reutiliza aunque venga vacío en el dto; si no lo
+    // tiene, es obligatorio que esta aprobación lo traiga.
+    const nombreGrupoExistente = orden.grupos_ordenes_internas.nombre;
+    if (!nombreGrupoExistente && !dto.grupo_texto?.trim()) {
+      throw new BadRequestException('El grupo de Órdenes Internas es obligatorio: es la primera Orden Interna de este proyecto.');
+    }
+    const grupoTextoFinal = nombreGrupoExistente || dto.grupo_texto!.trim();
 
     await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.procesos.updateMany({
@@ -223,7 +231,7 @@ export class OrdenesInternasService {
 
       await tx.ordenes_internas.update({
         where: { id: ordenInternaId },
-        data: { grupo_texto: dto.grupo_texto, observaciones_cg: dto.observaciones },
+        data: { numero_oi: dto.numero_oi, grupo_texto: grupoTextoFinal, observaciones_cg: dto.observaciones },
       });
       await tx.asignaciones_proceso.updateMany({
         where: { proceso_id: orden.proceso_id, etapa: 'CONTROL_GESTION', usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
@@ -235,10 +243,10 @@ export class OrdenesInternasService {
 
       // 🏷️ El grupo general adopta el nombre la PRIMERA vez que alguien de
       // Control Gestión lo llena (si ya tenía nombre, no se pisa).
-      if (!orden.grupos_ordenes_internas.nombre) {
+      if (!nombreGrupoExistente) {
         await tx.grupos_ordenes_internas.update({
           where: { id: orden.grupo_id },
-          data: { nombre: dto.grupo_texto },
+          data: { nombre: grupoTextoFinal },
         });
       }
     });
@@ -250,7 +258,7 @@ export class OrdenesInternasService {
         destinatarios: [orden.pm.email],
         datos: {
           nombreUsuario: orden.pm.nombre,
-          numeroOi: orden.numero_oi,
+          numeroOi: dto.numero_oi,
           nombreOi: orden.nombre_descriptivo,
           nombreProyecto: proyecto?.nombre || '',
           codigoProyecto: proyecto?.id || '',
@@ -393,10 +401,15 @@ export class OrdenesInternasService {
         where: { grupo_id: orden.grupo_id, procesos: { estado_actual: { not: 'CERRADA' } } },
       });
       if (pendientesPorCerrar === 0) {
-        await tx.grupos_ordenes_internas.update({ where: { id: orden.grupo_id }, data: { estado: 'CERRADO' } });
-        await tx.grupo_oi_historico_cierre.create({
-          data: { grupo_id: orden.grupo_id, accion: 'CERRADO', usuario_id: usuarioId },
+        const { count: grupoCerrado } = await tx.grupos_ordenes_internas.updateMany({
+          where: { id: orden.grupo_id, estado: 'SOLICITADO_CIERRE' },
+          data: { estado: 'CERRADO' },
         });
+        if (grupoCerrado > 0) {
+          await tx.grupo_oi_historico_cierre.create({
+            data: { grupo_id: orden.grupo_id, accion: 'CERRADO', usuario_id: usuarioId },
+          });
+        }
       }
     });
 

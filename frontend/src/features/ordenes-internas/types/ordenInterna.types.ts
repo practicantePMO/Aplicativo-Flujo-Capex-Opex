@@ -36,8 +36,8 @@ export interface UsuarioResumen {
 export interface OrdenInternaResumen {
   id: number;
   grupo_id: number;
-  proceso_id: number;
-  numero_oi: string;
+  proceso_id: number;  
+  numero_oi: string | null;
   nombre_descriptivo: string;
   tipo_orden: 'ACTIVO' | 'GASTO';
   presupuesto?: number;

@@ -157,7 +157,7 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
             >
               <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, width: '100%', flexWrap: 'wrap' }}>
-                  <Typography sx={{ fontWeight: 700 }}>{oi.numero_oi} — {oi.nombre_descriptivo}</Typography>
+                  <Typography sx={{ fontWeight: 700 }}>{oi.numero_oi || 'Sin número asignado'} — {oi.nombre_descriptivo}</Typography>
                   <Chip label={ESTADO_OI_CONFIG[oi.procesos.estado_actual]?.label || oi.procesos.estado_actual}
                     color={ESTADO_OI_CONFIG[oi.procesos.estado_actual]?.color || 'default'} size="small" />
                 </Box>

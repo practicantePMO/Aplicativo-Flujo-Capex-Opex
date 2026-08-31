@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Box, Typography, Button, Card, CardContent, Chip, Divider, CircularProgress, Stack, Avatar } from '@mui/material';
+import { Box, Typography, Button, Card, CardContent, Chip, Divider, CircularProgress, Stack, Avatar, Alert } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutlined';
@@ -89,6 +89,12 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
 
   const tieneControlCambios = procesos.some((p) => p.tipo_proceso === 'CONTROL_CAMBIO');
   const tieneActaCierre = procesos.some((p) => p.tipo_proceso === 'ACTA_CIERRE');
+    // 🚧 Hay una Acta de Cierre por CANCELACIÓN en curso (creada pero todavía
+  // no CERRADA) — mientras no se resuelva, hay que avisar en todos lados
+  // para que nadie siga avanzando otros procesos sin saberlo.
+  const cancelacionEnCurso = procesos.some(
+    (p) => p.tipo_proceso === 'ACTA_CIERRE' && p.actas_cierre?.tipo_cierre === 'CANCELACION' && p.estado_actual !== 'CERRADO'
+  );
 
   const manejarCrearOiDesdeCc = (controlCambioId: number) => {
     setVerControlCambios(false);
@@ -186,6 +192,12 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
         estado={proyecto.estado}
       />
 
+      {cancelacionEnCurso && (
+        <Alert severity="warning" sx={{ mb: 3 }}>
+          Este proyecto tiene un Acta de Cierre por <strong>Cancelación</strong> en curso. Evita avanzar otros procesos hasta que se resuelva.
+        </Alert>
+      )}
+
       <Typography variant="h6" sx={styles.sectionTitle}>Procesos del Proyecto</Typography>
       <Divider sx={{ mb: 3 }} />
 
@@ -266,7 +278,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
             </Card>
           )}
 
-          {tieneSolicitudAprobada && (
+          {solicitudesInversion.length > 0 && (
             <Card sx={styles.processCard} onClick={() => setVerActaCierre(true)}>
               <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <Avatar sx={styles.processIcon}><GavelIcon /></Avatar>

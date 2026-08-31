@@ -19,7 +19,6 @@ interface Props {
 
 const CAMPO_VACIO: CrearOrdenInternaPayload = {
   proyecto_id: '',
-  numero_oi: '',
   nombre_descriptivo: '',
   tipo_orden: 'ACTIVO',
   centro_costos: '',
@@ -68,7 +67,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
         const detalle = await obtenerOrdenInternaDetalle(ordenInternaId);
         setForm({
           proyecto_id: proyectoId,
-          numero_oi: detalle.numero_oi,
           nombre_descriptivo: detalle.nombre_descriptivo,
           tipo_orden: detalle.tipo_orden,
           centro_costos: detalle.centro_costos || '',
@@ -116,7 +114,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
       setGuardando(true);
       setError(null);
 
-      if (!form.numero_oi.trim()) throw new Error('El número de Orden Interna es obligatorio.');
       if (!form.nombre_descriptivo.trim()) throw new Error('El nombre descriptivo es obligatorio.');
       if (!form.presupuesto || form.presupuesto <= 0) throw new Error('El presupuesto debe ser mayor a 0.');
       if (form.tipo_orden === 'ACTIVO') {
@@ -222,7 +219,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Sección 1</Typography>
           <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <TextField label="Número de Orden Interna *" value={form.numero_oi} onChange={(e) => actualizar({ numero_oi: e.target.value })} />
             <TextField label="Nombre Descriptivo *" value={form.nombre_descriptivo} onChange={(e) => actualizar({ nombre_descriptivo: e.target.value })} />
             <TextField select label="Tipo de orden *" value={form.tipo_orden} onChange={(e) => actualizar({ tipo_orden: e.target.value as 'ACTIVO' | 'GASTO' })}>
               <MenuItem value="ACTIVO">Activo</MenuItem>

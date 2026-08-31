@@ -26,8 +26,8 @@ export const enviarOrdenInterna = async (id: number, controlGestionId: number) =
   return data;
 };
 
-export const aprobarOrdenInterna = async (id: number, grupoTexto: string, observaciones?: string) => {
-  const { data } = await axiosClient.post(`/ordenes-internas/${id}/aprobar`, { grupo_texto: grupoTexto, observaciones });
+export const aprobarOrdenInterna = async (id: number, numeroOi: string, grupoTexto?: string, observaciones?: string) => {
+  const { data } = await axiosClient.post(`/ordenes-internas/${id}/aprobar`, { numero_oi: numeroOi, grupo_texto: grupoTexto, observaciones });
   return data;
 };
 

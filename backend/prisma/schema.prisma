@@ -271,7 +271,7 @@ model ordenes_internas {
   id                  Int      @id @default(autoincrement())
   grupo_id            Int
   proceso_id          Int      @unique
-  numero_oi           String   @db.VarChar(50) // Lo escribe el PM a mano
+    numero_oi           String?  @db.VarChar(50) // Lo asigna Control Gestión al aprobar (ya no lo llena el PM)
   nombre_descriptivo  String   @db.VarChar(255)
   tipo_orden          String   @db.VarChar(10) // ACTIVO | GASTO
   es_control_cambios  Boolean  @default(false) // Decide si se llena la Sección 3

@@ -27,12 +27,17 @@ export class ActasCierreService {
   // 🔒 SI aprobada, proyecto sin Acta de Cierre previa, y si tiene Órdenes
   // Internas, TODAS deben estar ya cerradas (grupo en estado CERRADO) —
   // si nunca existió ninguna OI, no hay nada que exigir.
-  private async validarCreacionPermitida(proyectoId: string) {
-    const siAprobada = await this.prisma.procesos.findFirst({
-      where: { proyecto_id: proyectoId, tipo_proceso: 'SOLICITUD_INVERSION', estado_actual: 'APROBADO_FINAL', eliminado_el: null },
-    });
-    if (!siAprobada) {
-      throw new BadRequestException('El Acta de Cierre solo se habilita cuando la Solicitud de Inversión del proyecto llegó a Aprobado Final.');
+  private async validarCreacionPermitida(proyectoId: string, tipoCierre: 'CANCELACION' | 'CULMINACION') {
+    // 🎯 Cancelar un proyecto NO requiere que la Solicitud de Inversión haya
+    // llegado a Aprobado Final — se puede cancelar antes de eso. La
+    // culminación normal sí lo sigue exigiendo.
+    if (tipoCierre !== 'CANCELACION') {
+      const siAprobada = await this.prisma.procesos.findFirst({
+        where: { proyecto_id: proyectoId, tipo_proceso: 'SOLICITUD_INVERSION', estado_actual: 'APROBADO_FINAL', eliminado_el: null },
+      });
+      if (!siAprobada) {
+        throw new BadRequestException('El Acta de Cierre solo se habilita cuando la Solicitud de Inversión del proyecto llegó a Aprobado Final.');
+      }
     }
 
     const actaExistente = await this.prisma.actas_cierre.findUnique({ where: { proyecto_id: proyectoId } });
@@ -64,7 +69,7 @@ export class ActasCierreService {
     const tieneRolCG = await this.permisos.tieneAlgunRol(dto.control_gestion_asignado_id, ['CONTROL_GESTION']);
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
-    await this.validarCreacionPermitida(dto.proyecto_id);
+    await this.validarCreacionPermitida(dto.proyecto_id, dto.tipo_cierre);
 
     return this.prisma.$transaction(async (tx) => {
       const proceso = await tx.procesos.create({

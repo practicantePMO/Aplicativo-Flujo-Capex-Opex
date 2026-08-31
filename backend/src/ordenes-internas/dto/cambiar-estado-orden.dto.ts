@@ -1,12 +1,17 @@
 import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class AprobarOrdenInternaDto {
-  // Sección 4: "Grupo de órdenes internas" — SÍ es obligatorio (según especificación)
-  @IsString({ message: 'El grupo de órdenes internas es obligatorio.' })
-  @IsNotEmpty({ message: 'El grupo de órdenes internas es obligatorio.' })
-  grupo_texto: string;
+  // Siempre obligatorio: Control Gestión lo asigna en el momento de aprobar.
+  @IsString({ message: 'El número de Orden Interna es obligatorio.' })
+  @IsNotEmpty({ message: 'El número de Orden Interna es obligatorio.' })
+  numero_oi: string;
 
-  // Las observaciones NO son obligatorias en este proceso (a diferencia de Solicitud de Inversión)
+  // Solo es obligatorio si el grupo todavía no tiene nombre — esa regla
+  // depende de un dato en base de datos (no de otro campo del DTO), así
+  // que se valida a mano dentro del servicio, no con un decorador aquí.
+  @IsString() @IsOptional()
+  grupo_texto?: string;
+
   @IsString() @IsOptional()
   observaciones?: string;
 }
