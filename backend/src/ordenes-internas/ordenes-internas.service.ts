@@ -189,8 +189,7 @@ export class OrdenesInternasService {
         destinatarios: [cg.email],
         datos: {
           nombreUsuario: cg.nombre,
-          nombrePM: orden.pm?.nombre || 'Project Manager',
-          numeroOi: orden.numero_oi,
+          nombrePM: orden.pm?.nombre || 'Project Manager',          numeroOi: orden.numero_oi || '(pendiente de asignar)',
           nombreOi: orden.nombre_descriptivo,
           nombreProyecto: proyecto?.nombre || '',
           codigoProyecto: proyecto?.id || '',
@@ -305,8 +304,7 @@ export class OrdenesInternasService {
         destinatarios: [orden.pm.email],
         datos: {
           nombreUsuario: orden.pm.nombre,
-          numeroOi: orden.numero_oi,
-          nombreOi: orden.nombre_descriptivo,
+          numeroOi: orden.numero_oi || '(pendiente de asignar)',
           nombreProyecto: proyecto?.nombre || '',
           codigoProyecto: proyecto?.id || '',
           observacion: dto.observaciones,

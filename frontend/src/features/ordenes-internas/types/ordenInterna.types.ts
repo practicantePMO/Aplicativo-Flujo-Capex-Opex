@@ -7,7 +7,6 @@ export interface OiValor {
 
 export interface CrearOrdenInternaPayload {
   proyecto_id: string;
-  numero_oi: string;
   nombre_descriptivo: string;
   tipo_orden: 'ACTIVO' | 'GASTO';
   centro_costos?: string;

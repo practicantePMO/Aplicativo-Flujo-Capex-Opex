@@ -13,10 +13,6 @@ export class OiValorDto {
 export class CrearOrdenInternaDto {
   @IsString() @IsNotEmpty() proyecto_id: string;
 
-  // --- Sección 1 ---
-  @IsString() @IsNotEmpty({ message: 'El número de Orden Interna es obligatorio.' })
-  numero_oi: string;
-
   @IsString() @IsNotEmpty({ message: 'El nombre descriptivo es obligatorio.' })
   nombre_descriptivo: string;
 
