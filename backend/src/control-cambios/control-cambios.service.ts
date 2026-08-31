@@ -264,7 +264,13 @@ export class ControlCambiosService {
         }
 
         estadoDestino = 'DIRECCION_PMO';
-        await tx.procesos.update({ where: { id: procesoId }, data: { estado_actual: estadoDestino } });
+        const { count } = await tx.procesos.updateMany({
+          where: { id: procesoId, estado_actual: estadoOrigen },
+          data: { estado_actual: estadoDestino },
+        });
+        if (count === 0) {
+          throw new BadRequestException('El proceso fue modificado por otro usuario. Refresca la pantalla.');
+        }
 
         return {
           procesoId,

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Chip, Grid, Button, TextField, Dialog, DialogTitle, DialogContent,
-  DialogActions, Autocomplete, CircularProgress, Card, CardContent,
+  DialogActions, Autocomplete, CircularProgress, Card, CardContent, Alert,
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import { useAuth } from '../../../auth/AuthContext';
@@ -46,12 +46,16 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
   const [dialogoRechazar, setDialogoRechazar] = useState(false);
   const [razonRechazo, setRazonRechazo] = useState('');
+  const [error, setError] = useState<string | null>(null);
 
   const cargar = async () => {
     try {
       setCargando(true);
       const data = await obtenerOrdenInternaDetalle(resumen.id);
       setDetalle(data);
+      setError(null);
+    } catch {
+      setError('No se pudo cargar la Orden Interna.');
     } finally {
       setCargando(false);
     }
@@ -59,7 +63,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
   useEffect(() => { cargar(); }, [resumen.id]);
 
-  if (cargando || !detalle) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
+  if (cargando) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
+  if (error || !detalle) return <Alert severity="error">{error || 'No se encontró la Orden Interna.'}</Alert>;
 
   const estado = detalle.procesos.estado_actual;
   const esDueno = detalle.pm?.id === usuario?.id;

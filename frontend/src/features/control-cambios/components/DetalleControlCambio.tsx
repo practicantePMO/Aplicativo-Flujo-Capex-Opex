@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import {
   Box, Typography, Chip, Button, TextField, Dialog, DialogTitle, DialogContent,
-  DialogActions, Autocomplete, CircularProgress, Card, CardContent, RadioGroup,
+  DialogActions, Autocomplete, CircularProgress, Card, CardContent, Alert, RadioGroup,
   FormControlLabel, Radio, Link, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import { useAuth } from '../../../auth/AuthContext';
@@ -65,12 +65,16 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
 
   const [gerentesDisponibles, setGerentesDisponibles] = useState<UsuarioActivo[]>([]);
   const [gerenteElegido, setGerenteElegido] = useState<UsuarioActivo | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const cargar = async () => {
     try {
       setCargando(true);
       const data = await obtenerControlCambioDetalle(procesoId);
       setDetalle(data);
+      setError(null);
+    } catch {
+      setError('No se pudo cargar el Control de Cambios.');
     } finally {
       setCargando(false);
     }
@@ -78,7 +82,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
 
   useEffect(() => { cargar(); }, [procesoId]);
 
-  if (cargando || !detalle) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
+  if (cargando) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
+  if (error || !detalle) return <Alert severity="error">{error || 'No se encontró el Control de Cambios.'}</Alert>;
 
   const estado = detalle.procesos.estado_actual;
   const esDueno = detalle.usuarios?.id === usuario?.id;
