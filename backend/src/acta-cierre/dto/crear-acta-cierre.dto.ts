@@ -1,6 +1,6 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsIn, IsInt, IsNumber, Min, Max,
-  IsArray, ValidateNested,
+  IsArray, ValidateNested, Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -31,9 +31,10 @@ export class ActaCierreEntregableDto {
   @IsString() @IsOptional() unidad_vida_util?: string;
   @IsInt() @IsOptional() vida_util?: number;
   @IsString() @IsOptional() observaciones?: string;
-  @IsString() @IsOptional() anexo_url?: string;
+  @IsString() @IsOptional()
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
+  anexo_url?: string;
 }
-
 export class ActaCierreOiValorRealDto {
   @IsInt() orden_interna_id: number;
   @IsNumber() @IsOptional() @Min(0) valor_real?: number;
@@ -51,6 +52,7 @@ export class CrearActaCierreDto {
 
 @IsString()
   @IsOptional()
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
   presentacion_p5_link?: string;
 
   @IsString() @IsOptional() entregable_real?: string;

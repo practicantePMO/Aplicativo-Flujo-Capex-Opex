@@ -13,10 +13,11 @@ export class AuthController {
     return this.authService.loginSSO(dto.idToken, dto.proveedor);
   }
 
-  // 🟢 RUTA TEMPORAL PARA PRUEBAS EN POSTMAN — bloqueada fuera de desarrollo (Paso 1)
+  // 🟢 RUTA TEMPORAL PARA PRUEBAS EN POSTMAN/DevSwitcher — cerrada por defecto,
+  // solo se habilita si pones ALLOW_DEV_LOGIN=true a propósito en tu .env local.
   @Post('login-dev')
   async loginDev(@Body() body: { usuarioId: number }) {
-    if (process.env.NODE_ENV === 'production') {
+    if (process.env.ALLOW_DEV_LOGIN !== 'true') {
       throw new NotFoundException();
     }
     return this.authService.loginDev(body.usuarioId || 1);

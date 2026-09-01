@@ -1,6 +1,6 @@
 import {
   IsString, IsNotEmpty, IsInt, IsOptional, IsBoolean, IsNumber,
-  IsArray, ValidateNested, ValidateIf, Min, Max, ArrayMinSize, IsIn,
+  IsArray, ValidateNested, ValidateIf, Min, Max, ArrayMinSize, IsIn, Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -92,11 +92,14 @@ export class CrearSolicitudInversionDto {
   partes_interesadas_ids: number[];
 
   @IsString() @IsNotEmpty({ message: 'El link del acta de aprobación es obligatorio.' })
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
   link_acta_aprobacion: string;
 
   @IsString() @IsNotEmpty({ message: 'El link del plan de proyecto es obligatorio.' })
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
   link_plan_proyecto: string;
 
   @IsString() @IsNotEmpty({ message: 'El link de la presentación es obligatorio.' })
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
   link_presentacion_puertas_3: string;
 }

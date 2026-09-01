@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsArray, ValidateNested, IsIn, IsInt, Min, ValidateIf } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsBoolean, IsArray, ValidateNested, IsIn, IsInt, Min, ValidateIf, Matches } from 'class-validator';
 import { Type } from 'class-transformer';
 
 export class AnexoControlCambioDto {
@@ -8,6 +8,7 @@ export class AnexoControlCambioDto {
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
   url: string;
 
   @IsString()
