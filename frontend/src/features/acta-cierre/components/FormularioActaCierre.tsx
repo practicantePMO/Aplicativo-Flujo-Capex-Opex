@@ -228,6 +228,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       setError(null);
 
       if (!cgAsignado) throw new Error('Debes elegir quién de Control Gestión revisará este cierre.');
+      if (partesSeleccionadas.length === 0) throw new Error('Debes elegir al menos una parte interesada.');
 
       const payload: CrearActaCierrePayload = {
         proyecto_id: proyectoId,

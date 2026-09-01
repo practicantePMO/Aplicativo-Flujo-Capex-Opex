@@ -46,6 +46,8 @@ export class PermisosService {
   }
 
   async exigirAsignacionAEtapa(usuarioId: number, procesoId: number, etapa: string): Promise<void> {
+    const esAdmin = await this.esAdminGlobal(usuarioId);
+    if (esAdmin) return;
     const asignado = await this.estaAsignadoAEtapa(usuarioId, procesoId, etapa);
     if (!asignado) {
       throw new ForbiddenException('No fuiste asignado como verificador para esta solicitud.');

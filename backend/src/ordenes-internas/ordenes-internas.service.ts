@@ -37,8 +37,14 @@ export class OrdenesInternasService {
     if (!siAprobada) {
       throw new BadRequestException('Las Órdenes Internas solo se habilitan cuando la Solicitud de Inversión del proyecto llegó a Aprobado Final.');
     }
-  }
 
+    const actaCerrada = await this.prisma.procesos.findFirst({
+      where: { proyecto_id: proyectoId, tipo_proceso: 'ACTA_CIERRE', estado_actual: 'CERRADO', eliminado_el: null },
+    });
+    if (actaCerrada) {
+      throw new BadRequestException('No se puede crear una Orden Interna: este proyecto ya tiene su Acta de Cierre cerrada.');
+    }
+  }
   // 🔒 Que una OI "por Control de Cambios" de verdad tenga un CC real detrás
   // — de este mismo proyecto, y que ese CC realmente diga que necesita OI.
   private async validarControlCambioVinculado(proyectoId: string, controlCambioId?: number) {
@@ -77,6 +83,14 @@ export class OrdenesInternasService {
 
   // 1️⃣ Crear (BORRADOR)
   async crear(usuarioId: number, dto: CrearOrdenInternaDto) {
+    const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
+    if (!proyecto) throw new NotFoundException('El proyecto no existe o fue eliminado.');
+
+    const esAdminCrear = await this.permisos.esAdminGlobal(usuarioId);
+    if (!esAdminCrear && proyecto.creado_por !== usuarioId) {
+      throw new ForbiddenException('Solo el PM dueño de este proyecto (o un Administrador) puede crear una Orden Interna aquí.');
+    }
+
     await this.validarSiAprobadaFinal(dto.proyecto_id);
     const grupo = await this.obtenerOCrearGrupo(dto.proyecto_id);
 
@@ -340,7 +354,7 @@ export class OrdenesInternasService {
 
     const grupo = await this.prisma.grupos_ordenes_internas.findUnique({
       where: { proyecto_id: proyectoId },
-      include: { ordenes_internas: { include: { procesos: true } } },
+      include: { ordenes_internas: { where: { procesos: { eliminado_el: null } }, include: { procesos: true } } },
     });
     if (!grupo) throw new NotFoundException('Este proyecto no tiene Órdenes Internas.');
     if (grupo.estado !== 'ABIERTO') {
@@ -403,7 +417,7 @@ export class OrdenesInternasService {
 
       // ¿Ya quedaron TODAS cerradas? Si sí, el grupo completo pasa a CERRADO.
       const pendientesPorCerrar = await tx.ordenes_internas.count({
-        where: { grupo_id: orden.grupo_id, procesos: { estado_actual: { not: 'CERRADA' } } },
+        where: { grupo_id: orden.grupo_id, procesos: { estado_actual: { not: 'CERRADA' }, eliminado_el: null } },
       });
       if (pendientesPorCerrar === 0) {
         const { count: grupoCerrado } = await tx.grupos_ordenes_internas.updateMany({
@@ -420,6 +434,31 @@ export class OrdenesInternasService {
 
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna cerrada.' };
   }
+
+    // 🗑️ Cancela (soft-delete) una OI que sigue en Borrador — para que un
+  // borrador abandonado no bloquee el cierre del grupo para siempre.
+  async cancelarBorrador(ordenInternaId: number, usuarioId: number) {
+    const orden = await this.obtenerOrdenConProceso(ordenInternaId);
+    if (orden.procesos.estado_actual !== 'BORRADOR') {
+      throw new BadRequestException('Solo se puede cancelar una Orden Interna mientras está en Borrador.');
+    }
+
+    const esDueno = orden.responsable_pm_id === usuarioId;
+    const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
+    if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de esta Orden Interna.');
+
+    const { count } = await this.prisma.procesos.updateMany({
+      where: { id: orden.proceso_id, estado_actual: 'BORRADOR', eliminado_el: null },
+      data: { eliminado_el: new Date() },
+    });
+    if (count === 0) {
+      throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
+    }
+
+    return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna cancelada.' };
+  }
+
+  // 🧰 Helper compartido
 
   // 🧰 Helper compartido
   private async obtenerOrdenConProceso(ordenInternaId: number) {

@@ -146,8 +146,8 @@ export function DialogosAccionVista({
           />
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDialogoPartes(false)}>Cancelar</Button>
-          <Button variant="contained" color="secondary" onClick={onConfirmarPartes} disabled={procesando}>Guardar</Button>
+          <Button onClick={() => setDialogoPartes(false)}>Cancelar</Button>          
+          <Button variant="contained" color="secondary" onClick={onConfirmarPartes} disabled={procesando || partesSeleccionadas.length === 0}>Guardar</Button>
         </DialogActions>
       </Dialog>
     </>

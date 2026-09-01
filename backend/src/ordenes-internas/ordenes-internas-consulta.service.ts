@@ -42,6 +42,7 @@ export class OrdenesInternasConsultaService {
       where: { proyecto_id: proyectoId },
       include: {
         ordenes_internas: {
+          where: { procesos: { eliminado_el: null } },
           include: {
             procesos: { select: { estado_actual: true } },
             pm: { select: { id: true, nombre: true } },
@@ -69,6 +70,7 @@ export class OrdenesInternasConsultaService {
           data: { proyecto_id: proyectoId },
           include: {
             ordenes_internas: {
+              where: { procesos: { eliminado_el: null } },
               include: { procesos: { select: { estado_actual: true } }, pm: { select: { id: true, nombre: true } }, control_gestion: { select: { id: true, nombre: true } } },
               orderBy: { fecha_creacion: 'desc' },
             },

@@ -8,6 +8,7 @@ import { useAuth } from '../../../auth/AuthContext';
 import type { OrdenInternaResumen, OrdenInternaDetalle, UsuarioResumen } from '../types/ordenInterna.types';
 import {
   obtenerOrdenInternaDetalle, enviarOrdenInterna, aprobarOrdenInterna, rechazarOrdenInterna, cerrarOrdenInterna,
+  cancelarOrdenInternaBorrador,
 } from '../services/ordenesInternas.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
@@ -156,6 +157,19 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     }
   };
 
+    const confirmarCancelarBorrador = async () => {
+    if (!window.confirm('¿Seguro que quieres cancelar esta Orden Interna en Borrador? Esta acción no se puede deshacer.')) return;
+    setProcesando(true);
+    try {
+      await cancelarOrdenInternaBorrador(resumen.id);
+      onCambio();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Error al cancelar.');
+    } finally {
+      setProcesando(false);
+    }
+  };
+
   const tituloSeccion = (texto: string) => (
     <Typography variant="h6" sx={{ mb: 2 }}>
       {texto}
@@ -234,6 +248,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
         {puedeEditarYEnviar && (
           <>
             <Button size="small" onClick={onEditar}>Editar</Button>
+            <Button size="small" color="error" onClick={confirmarCancelarBorrador} disabled={procesando}>Cancelar</Button>
             <Button size="small" variant="contained" color="primary" onClick={abrirDialogoEnviar}>Enviar a Control Gestión</Button>
           </>
         )}
