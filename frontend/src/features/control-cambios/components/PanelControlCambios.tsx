@@ -6,6 +6,7 @@ import ListAltIcon from '@mui/icons-material/ListAlt';
 import { useAuth } from '../../../auth/AuthContext';
 import type { ControlCambioResumen } from '../types/controlCambio.types';
 import { obtenerControlCambiosPorProyecto } from '../services/controlCambios.service';
+import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
 import { DetalleControlCambio } from './DetalleControlCambio';
 import { FormularioControlCambio } from './FormularioControlCambio';
 
@@ -33,9 +34,11 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [mostrarLista, setMostrarLista] = useState(!!procesoIdInicial);
   const [expandidoId, setExpandidoId] = useState<number | false>(procesoIdInicial ?? false);
-  const [enEdicionId, setEnEdicionId] = useState<number | null>(null);
+    const [enEdicionId, setEnEdicionId] = useState<number | null>(null);
+  const [grupoOiCerrado, setGrupoOiCerrado] = useState(false);
 
   const puedeCrear = tieneRol('ADMIN') || (tieneRol('PM') && Number(creadoPor) === Number(usuario?.id));
+  const puedeCrearAhora = puedeCrear && !grupoOiCerrado;
 
   const cargar = async () => {
     try {
@@ -46,7 +49,12 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
     }
   };
 
-  useEffect(() => { cargar(); }, [proyectoId]);
+  useEffect(() => {
+    cargar();
+    obtenerOrdenesInternasPorProyecto(proyectoId)
+      .then((grupo) => setGrupoOiCerrado(grupo?.estado === 'CERRADO'))
+      .catch(() => setGrupoOiCerrado(false));
+  }, [proyectoId]);
 
   if (items === undefined) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
@@ -81,7 +89,10 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
       {!hayItems ? (
         <Box>
           <Alert severity="info" sx={{ mb: 2 }}>Todavía no se ha creado ningún Control de Cambios para este proyecto.</Alert>
-          {puedeCrear && (
+          {grupoOiCerrado && (
+            <Alert severity="warning" sx={{ mb: 2 }}>El grupo de Órdenes Internas de este proyecto ya está cerrado — no se pueden crear Controles de Cambio nuevos.</Alert>
+          )}
+          {puedeCrearAhora && (
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setMostrarFormulario(true)}>
               Crear Control de Cambios
             </Button>

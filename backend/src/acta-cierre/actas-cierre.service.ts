@@ -54,6 +54,21 @@ export class ActasCierreService {
         'Antes de crear el Acta de Cierre debes solicitar y completar el cierre de todas las Órdenes Internas de este proyecto.',
       );
     }
+
+    // 🔒 Todo CC ya aprobado que diga "requiere Orden Interna" debe tener
+    // efectivamente una OI cerrada — si no, alguien se saltó ese paso.
+    const ccsQueRequierenOi = await this.prisma.controles_cambio.findMany({
+      where: { proyecto_id: proyectoId, requiere_orden_interna: true, procesos: { estado_actual: 'APROBADO_FINAL' } },
+      include: { ordenes_internas: { include: { procesos: { select: { estado_actual: true } } } } },
+    });
+    const ccSinOiCerrada = ccsQueRequierenOi.find(
+      (cc) => !cc.ordenes_internas.some((oi) => oi.procesos.estado_actual === 'CERRADA'),
+    );
+    if (ccSinOiCerrada) {
+      throw new BadRequestException(
+        `El Control de Cambios #${ccSinOiCerrada.id} está marcado como "Requiere Orden Interna" pero no tiene ninguna Orden Interna cerrada. Créala y complétala antes de crear el Acta de Cierre.`,
+      );
+    }
   }
 
   // 1️⃣ Crear (BORRADOR)

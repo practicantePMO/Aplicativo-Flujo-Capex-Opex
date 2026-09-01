@@ -24,6 +24,20 @@ export class ControlCambiosService {
     private readonly helpers: ControlCambiosHelpersService,
   ) {}
 
+  private async validarProyectoNoCancelado(proyectoId: string) {
+    const procesoCancelado = await this.prisma.procesos.findFirst({
+      where: {
+        proyecto_id: proyectoId,
+        eliminado_el: null,
+        OR: [{ estado_actual: 'CANCELADO' }, { tipo_proceso: 'ACTA_CIERRE', estado_actual: 'CERRADO' }],
+      },
+    });
+    if (procesoCancelado) {
+      throw new BadRequestException('No se puede avanzar este Control de Cambios: el proyecto está cancelado o su Acta de Cierre ya se cerró.');
+    }
+  }
+
+
   // 🔒 La SI del proyecto debe estar Aprobada Final, el proyecto no debe
   // estar cancelado (ni en proceso de cancelación), y el grupo de Órdenes
   // Internas no debe estar ya CERRADO.
@@ -141,6 +155,7 @@ export class ControlCambiosService {
     if (proceso.estado_actual !== 'BORRADOR') {
       throw new BadRequestException('Solo se pueden enviar Control de Cambios en estado BORRADOR.');
     }
+    await this.validarProyectoNoCancelado(proyecto.id);
 
     const controlCambio = proceso.controles_cambio;
     const esDueno = controlCambio?.responsable_pm_id === usuarioId;
@@ -189,6 +204,7 @@ export class ControlCambiosService {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     const estadoOrigen = proceso.estado_actual;
 
+    await this.validarProyectoNoCancelado(proyecto.id);
     await this.helpers.validarPermisoParaEtapa(usuarioId, procesoId, companiaId, estadoOrigen);
 
     let estadoDestino = '';
