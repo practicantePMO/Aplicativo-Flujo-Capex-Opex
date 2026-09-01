@@ -103,7 +103,7 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
           <Button variant="outlined" color="secondary" startIcon={<ListAltIcon />} onClick={() => setMostrarLista(true)}>
             Ver Control de Cambios ({items.length})
           </Button>
-          {puedeCrear && (
+           {puedeCrearAhora && (
             <Button variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setMostrarFormulario(true)}>
               Crear Control de Cambios
             </Button>
@@ -111,7 +111,7 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
         </Box>
       ) : (
         <Box>
-          {puedeCrear && (
+          {puedeCrearAhora && (
             <Button size="small" variant="contained" color="primary" startIcon={<AddIcon />} onClick={() => setMostrarFormulario(true)} sx={{ mb: 2 }}>
               Crear Control de Cambios
             </Button>
