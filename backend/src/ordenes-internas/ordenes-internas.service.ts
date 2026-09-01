@@ -155,7 +155,10 @@ export class OrdenesInternasService {
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de esta Orden Interna.');
 
-    const tieneRolCG = await this.permisos.tieneAlgunRol(dto.control_gestion_id, ['CONTROL_GESTION']);
+    const proyectoParaCg = await this.prisma.proyectos.findUnique({ where: { id: orden.grupos_ordenes_internas.proyecto_id } });
+    const tieneRolCG = proyectoParaCg?.compania_id
+      ? await this.permisos.tieneRolParaCompania(dto.control_gestion_id, ['CONTROL_GESTION'], proyectoParaCg.compania_id)
+      : await this.permisos.tieneAlgunRol(dto.control_gestion_id, ['CONTROL_GESTION']);
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
     await this.prisma.$transaction(async (tx) => {
@@ -189,7 +192,8 @@ export class OrdenesInternasService {
         destinatarios: [cg.email],
         datos: {
           nombreUsuario: cg.nombre,
-          nombrePM: orden.pm?.nombre || 'Project Manager',          numeroOi: orden.numero_oi || '(pendiente de asignar)',
+          nombrePM: orden.pm?.nombre || 'Project Manager',          
+          numeroOi: orden.numero_oi || '(pendiente de asignar)',
           nombreOi: orden.nombre_descriptivo,
           nombreProyecto: proyecto?.nombre || '',
           codigoProyecto: proyecto?.id || '',
@@ -305,6 +309,7 @@ export class OrdenesInternasService {
         datos: {
           nombreUsuario: orden.pm.nombre,
           numeroOi: orden.numero_oi || '(pendiente de asignar)',
+          nombreOi: orden.nombre_descriptivo,
           nombreProyecto: proyecto?.nombre || '',
           codigoProyecto: proyecto?.id || '',
           observacion: dto.observaciones,
@@ -326,7 +331,9 @@ export class OrdenesInternasService {
     // sea "suyo" — esta validación es la que faltaba.
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     const esDuenoPM = proyecto.creado_por === usuarioId;
-    const esPmoODirector = await this.permisos.tieneAlgunRol(usuarioId, ['PMO', 'DIRECTOR_PMO']);
+    const esPmoODirector = proyecto.compania_id
+      ? await this.permisos.tieneRolParaCompania(usuarioId, ['PMO', 'DIRECTOR_PMO'], proyecto.compania_id)
+      : await this.permisos.tieneAlgunRol(usuarioId, ['PMO', 'DIRECTOR_PMO']);
     if (!esAdmin && !esDuenoPM && !esPmoODirector) {
       throw new ForbiddenException('No tienes acceso a este proyecto.');
     }

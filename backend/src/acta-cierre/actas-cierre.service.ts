@@ -66,7 +66,9 @@ export class ActasCierreService {
       throw new ForbiddenException('Solo el PM dueño de este proyecto (o un Administrador) puede crear el Acta de Cierre.');
     }
 
-    const tieneRolCG = await this.permisos.tieneAlgunRol(dto.control_gestion_asignado_id, ['CONTROL_GESTION']);
+    const tieneRolCG = proyecto.compania_id
+      ? await this.permisos.tieneRolParaCompania(dto.control_gestion_asignado_id, ['CONTROL_GESTION'], proyecto.compania_id)
+      : await this.permisos.tieneAlgunRol(dto.control_gestion_asignado_id, ['CONTROL_GESTION']);
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
     await this.validarCreacionPermitida(dto.proyecto_id, dto.tipo_cierre);
@@ -98,7 +100,7 @@ export class ActasCierreService {
 
   // ✏️ Editar mientras está en BORRADOR (solo el PM dueño, o ADMIN)
   async actualizarBorrador(procesoId: number, usuarioId: number, dto: CrearActaCierreDto) {
-    const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
+    const { proceso, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual !== 'BORRADOR') {
       throw new BadRequestException('Solo se puede editar el Acta de Cierre mientras está en Borrador.');
     }
@@ -111,7 +113,7 @@ export class ActasCierreService {
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de este Acta de Cierre.');
 
     if (dto.control_gestion_asignado_id !== acta.control_gestion_asignado_id) {
-      const tieneRolCG = await this.permisos.tieneAlgunRol(dto.control_gestion_asignado_id, ['CONTROL_GESTION']);
+      const tieneRolCG = await this.permisos.tieneRolParaCompania(dto.control_gestion_asignado_id, ['CONTROL_GESTION'], companiaId);
       if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
     }
 

@@ -33,13 +33,13 @@ export class ProyectosService {
 
     // 🛡️ Si viene pm_asignado_id, el proyecto queda "de" ese PM (como si él
     // mismo lo hubiera creado) — solo un PMO/ADMIN puede hacer esto.
-    let propietarioId = usuarioId;
+        let propietarioId = usuarioId;
+    const esAdminCrear = await this.permisos.esAdminGlobal(usuarioId);
 
     if (dto.pm_asignado_id) {
-      const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
-      const esPmo = esAdmin || (await this.permisos.tieneAlgunRol(usuarioId, ['PMO']));
+      const esPmo = esAdminCrear || (await this.permisos.tieneRolParaCompania(usuarioId, ['PMO'], dto.compania_id));
       if (!esPmo) {
-        throw new ForbiddenException('Solo un PMO o Administrador puede asignar el proyecto a otro PM.');
+        throw new ForbiddenException('Solo un PMO de esta compañía (o Administrador) puede asignar el proyecto a otro PM.');
       }
 
       const pmAsignadoTieneRol = await this.permisos.tieneRolParaCompania(
@@ -52,6 +52,11 @@ export class ProyectosService {
       }
 
       propietarioId = dto.pm_asignado_id;
+    } else {
+      const puedeCrear = esAdminCrear || (await this.permisos.tieneRolParaCompania(usuarioId, ['PM', 'PMO'], dto.compania_id));
+      if (!puedeCrear) {
+        throw new ForbiddenException('No tienes el rol PM o PMO para esta compañía.');
+      }
     }
 
     try {
@@ -98,7 +103,9 @@ export class ProyectosService {
     // tienen relación directa (PM: los suyos; Gerencia/Presidencia/Parte
     // Interesada: solo los que necesitaron o necesitan su aprobación).
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
-    const tieneAccesoTotal = codigosRoles.some((rol) => rolesAccesoTotal.includes(rol));
+    // 🔒 Solo cuenta si el rol es GLOBAL (compania_id null) — un PMO/Director
+    // PMO asignado solo a una compañía puntual NO debe ver todo el sistema.
+    const tieneAccesoTotal = codigosGlobales.some((rol) => rolesAccesoTotal.includes(rol));
 
     const selectCampos = {
       id: true,
@@ -201,6 +208,15 @@ export class ProyectosService {
             ordenes_internas: { some: { control_gestion_asignado_id: usuarioId } },
           },
         });
+      }
+
+      // PMO / Director PMO asignados a compañías puntuales (no global): ven
+      // TODOS los proyectos de esas compañías, pero no de las demás.
+      const companiasPmoDirector = rolesPorCompania
+        .filter((r) => r.rol === 'PMO' || r.rol === 'DIRECTOR_PMO')
+        .map((r) => r.companiaId);
+      if (companiasPmoDirector.length > 0) {
+        condicionesOR.push({ compania_id: { in: companiasPmoDirector } });
       }
 
       if (condicionesOR.length === 0) {
@@ -394,9 +410,17 @@ export class ProyectosService {
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
     // 🔒 Misma regla que en listarProyectos: solo estos 3 roles tienen acceso
-    // total. GERENCIA/PRESIDENCIA deben pasar por su condición puntual.
+    // total, y solo si el rol es GLOBAL (compania_id null).
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
-    if (codigosRoles.some((rol) => rolesAccesoTotal.includes(rol))) return;
+    if (codigosGlobales.some((rol) => rolesAccesoTotal.includes(rol))) return;
+
+    // PMO / Director PMO asignados puntualmente a la compañía de ESTE proyecto.
+    if (proyecto.compania_id) {
+      const esPmoDirectorDeEstaCompania = rolesPorCompania.some(
+        (r) => (r.rol === 'PMO' || r.rol === 'DIRECTOR_PMO') && r.companiaId === proyecto.compania_id,
+      );
+      if (esPmoDirectorDeEstaCompania) return;
+    }
 
     if (codigosRoles.includes('PM') && proyecto.creado_por === usuarioId) return;
 
