@@ -45,3 +45,8 @@ export const solicitarCierreGrupoOi = async (proyectoId: string, observaciones?:
   const { data } = await axiosClient.post(`/ordenes-internas/grupo/${proyectoId}/solicitar-cierre`, { observaciones });
   return data;
 };
+
+export const cancelarOrdenInternaBorrador = async (id: number) => {
+  const { data } = await axiosClient.post(`/ordenes-internas/${id}/cancelar`);
+  return data;
+};

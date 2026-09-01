@@ -246,9 +246,25 @@ export class OrdenesInternasService {
         throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
       }
 
+      // 🔒 Bloqueo optimista al nombrar el grupo: si dos Control Gestión
+      // aprueban casi al mismo tiempo dos OI del mismo grupo sin nombre,
+      // solo la primera transacción que llega lo bautiza — la otra detecta
+      // que ya tiene nombre y usa ESE (no lo pisa, no falla).
+      let grupoTextoDefinitivo = grupoTextoFinal;
+      if (!nombreGrupoExistente) {
+        const { count: grupoNombrado } = await tx.grupos_ordenes_internas.updateMany({
+          where: { id: orden.grupo_id, nombre: null },
+          data: { nombre: grupoTextoFinal },
+        });
+        if (grupoNombrado === 0) {
+          const grupoActual = await tx.grupos_ordenes_internas.findUnique({ where: { id: orden.grupo_id } });
+          grupoTextoDefinitivo = grupoActual!.nombre!;
+        }
+      }
+
       await tx.ordenes_internas.update({
         where: { id: ordenInternaId },
-        data: { numero_oi: dto.numero_oi, grupo_texto: grupoTextoFinal, observaciones_cg: dto.observaciones },
+        data: { numero_oi: dto.numero_oi, grupo_texto: grupoTextoDefinitivo, observaciones_cg: dto.observaciones },
       });
       await tx.asignaciones_proceso.updateMany({
         where: { proceso_id: orden.proceso_id, etapa: 'CONTROL_GESTION', usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
@@ -257,17 +273,8 @@ export class OrdenesInternasService {
       await tx.historico_aprobaciones.create({
         data: { proceso_id: orden.proceso_id, etapa_origen: 'PENDIENTE', etapa_destino: 'APROBADA', accion: 'APROBADO', observaciones: dto.observaciones, usuario_id: usuarioId },
       });
-
-      // 🏷️ El grupo general adopta el nombre la PRIMERA vez que alguien de
-      // Control Gestión lo llena (si ya tenía nombre, no se pisa).
-      if (!nombreGrupoExistente) {
-        await tx.grupos_ordenes_internas.update({
-          where: { id: orden.grupo_id },
-          data: { nombre: grupoTextoFinal },
-        });
-      }
     });
-
+    
     const proyecto = await this.prisma.proyectos.findUnique({ where: { id: orden.grupos_ordenes_internas.proyecto_id } });
     if (orden.pm?.email) {
       await this.notificaciones.encolarNotificacion({

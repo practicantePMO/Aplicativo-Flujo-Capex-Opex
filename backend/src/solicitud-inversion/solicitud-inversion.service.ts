@@ -616,6 +616,18 @@ export class SolicitudInversionService {
 
     try {
       return await this.prisma.$transaction(async (tx) => {
+        // 🔒 Reconfirma DENTRO de la transacción que la solicitud sigue en
+        // BORRADOR — evita que la edición se aplique sobre una solicitud que
+        // ya fue enviada a revisión en la ventana de tiempo entre el chequeo
+        // de arriba y este guardado.
+        const { count } = await tx.procesos.updateMany({
+          where: { id: procesoId, estado_actual: 'BORRADOR' },
+          data: { estado_actual: 'BORRADOR' },
+        });
+        if (count === 0) {
+          throw new BadRequestException('Esta solicitud ya fue enviada a revisión. Refresca la pantalla.');
+        }
+
         await tx.solicitudes_inversion.update({
           where: { id: solicitud.id },
           data: {
