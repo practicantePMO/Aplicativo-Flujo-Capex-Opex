@@ -291,6 +291,8 @@ model ordenes_internas {
   presupuesto             Decimal? @db.Decimal(15, 2)
   presupuesto_moneda      String   @default("COP") @db.VarChar(3)
   activo_real_productivo String?  @db.VarChar(150)
+  
+  observaciones_pm String? // Notas libres del PM al crear/editar la OI
 
   // Sección 4 (solo la llena Control Gestión, mientras está PENDIENTE)
   grupo_texto      String? @db.VarChar(150)

@@ -24,6 +24,7 @@ export interface CrearOrdenInternaPayload {
   presupuesto_moneda?: 'USD' | 'COP';
   activo_real_productivo?: string;
   valores?: OiValor[];
+  observaciones_pm?: string;
 }
 
 export interface UsuarioResumen {
@@ -92,6 +93,7 @@ export interface OrdenInternaDetalle extends OrdenInternaResumen {
   activo_real_productivo?: string | null;
   grupo_texto?: string | null;
   observaciones_cg?: string | null;
+  observaciones_pm?: string | null;
   procesos: {
     estado_actual: string;
     historico_aprobaciones: HistoricoAprobacionOi[];

@@ -32,6 +32,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const { tieneRol } = useAuth();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
   const [grupoOiEstado, setGrupoOiEstado] = useState<string | null>(null);
+  const [hayOrdenesInternas, setHayOrdenesInternas] = useState(false);
   const [cargando, setCargando] = useState(true);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [procesoAbierto, setProcesoAbierto] = useState<number | null>(null);
@@ -67,8 +68,10 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     try {
       const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
       setGrupoOiEstado(grupo?.estado ?? null);
+      setHayOrdenesInternas((grupo?.ordenes_internas?.length ?? 0) > 0);
     } catch {
       setGrupoOiEstado(null);
+      setHayOrdenesInternas(false);
     }
   };
 
@@ -249,8 +252,8 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
                   </Typography>
                 </Box>
                 <Chip
-                  label={grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.label || grupoOiEstado : 'Sin Órdenes'}
-                  color={grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.color || 'default' : 'default'}
+                  label={hayOrdenesInternas && grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.label || grupoOiEstado : 'Sin Órdenes'}
+                  color={hayOrdenesInternas && grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.color || 'default' : 'default'}
                   size="small" sx={{ fontWeight: 'bold' }}
                 />
               </CardContent>

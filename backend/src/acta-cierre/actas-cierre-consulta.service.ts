@@ -29,6 +29,18 @@ export class ActasCierreConsultaService {
     });
     if (esAsignado) return;
 
+    // 🎯 Quien fue parte interesada de la Solicitud de Inversión de este
+    // proyecto puede VER el Acta de Cierre (para entender por qué se está
+    // cancelando/culminando), aunque no haya sido asignado a ESTA acta.
+    const fueParteInteresadaDeLaSi = await this.prisma.asignaciones_proceso.findFirst({
+      where: {
+        usuario_id: usuarioId,
+        etapa: 'VERIFICACION_PARTES_INTERESADAS',
+        procesos: { proyecto_id: proyectoId, tipo_proceso: 'SOLICITUD_INVERSION' },
+      },
+    });
+    if (fueParteInteresadaDeLaSi) return;
+
     throw new ForbiddenException('No tienes acceso al Acta de Cierre de este proyecto.');
   }
 

@@ -230,6 +230,9 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     { key: 'CERRADA', label: 'Cerrada' },
   ];
 
+  const TIPO_ACTIVO_LABELS: Record<string, string> = { EXPANSION: 'Inversión Expansión', REEMPLAZO: 'Inversión Reemplazo' };
+  const ACTIVO_REAL_PRODUCTIVO_LABELS: Record<string, string> = { SI: 'Sí', NO: 'No' };
+
   return (
     <Box>
       <EncabezadoProceso
@@ -280,9 +283,9 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           ...(detalle.tipo_orden === 'ACTIVO'
             ? ([
                 ['Activo Fijo en curso', detalle.activo_fijo_curso],
-                ['Tipo de activo', detalle.tipo_activo],
+                ['Tipo de activo', detalle.tipo_activo ? TIPO_ACTIVO_LABELS[detalle.tipo_activo] || detalle.tipo_activo : undefined],
                 ['%', detalle.porcentaje_2],
-                ['Activo Real Productivo', detalle.activo_real_productivo],
+                ['Activo Real Productivo', detalle.activo_real_productivo ? ACTIVO_REAL_PRODUCTIVO_LABELS[detalle.activo_real_productivo] || detalle.activo_real_productivo : undefined],
               ] as [string, string | number | null | undefined][])
             : []),
           [
@@ -292,6 +295,13 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
               : undefined,
           ],
         ])
+      )}
+
+      {detalle.observaciones_pm && (
+        <>
+          {tituloSeccion('Observaciones')}
+          {tarjeta(<Typography variant="body2">{detalle.observaciones_pm}</Typography>)}
+        </>
       )}
 
       {detalle.es_control_cambios && detalle.oi_valores?.length > 0 && (

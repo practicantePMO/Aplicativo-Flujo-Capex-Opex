@@ -44,7 +44,7 @@ export class CrearOrdenInternaDto {
   activo_fijo_curso?: string;
 
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
-  @IsString() @IsNotEmpty({ message: 'El Tipo de activo es obligatorio para órdenes de tipo Activo.' })
+  @IsIn(['EXPANSION', 'REEMPLAZO'], { message: 'El Tipo de activo debe ser Inversión Expansión o Inversión Reemplazo.' })
   tipo_activo?: string;
 
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
@@ -60,8 +60,10 @@ export class CrearOrdenInternaDto {
   presupuesto_moneda?: 'USD' | 'COP';
 
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
-  @IsString() @IsNotEmpty({ message: 'El Activo Real Productivo es obligatorio para órdenes de tipo Activo.' })
+  @IsIn(['SI', 'NO'], { message: 'El Activo Real Productivo debe ser Sí o No.' })
   activo_real_productivo?: string;
+
+  @IsString() @IsOptional() observaciones_pm?: string;
 
   // --- Sección 3 (solo si es_control_cambios = true) ---
   @ValidateIf((o) => o.es_control_cambios === true)

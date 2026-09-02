@@ -35,6 +35,7 @@ const CAMPO_VACIO: CrearOrdenInternaPayload = {
   presupuesto: 0,
   presupuesto_moneda: 'COP',
   activo_real_productivo: '',
+  observaciones_pm: '',
   valores: [
     { categoria: 'ACTIVO', usd: 0, cop: 0 },
     { categoria: 'GASTO', usd: 0, cop: 0 },
@@ -85,6 +86,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           presupuesto: Number(detalle.presupuesto) || 0,
           presupuesto_moneda: detalle.presupuesto_moneda || 'COP',
           activo_real_productivo: detalle.activo_real_productivo || '',
+          observaciones_pm: detalle.observaciones_pm || '',
           // 🔧 Igual que arriba: quitamos "id"/"orden_interna_id" (que el DTO no
           // acepta) y convertimos usd/cop de string a número.
           valores: detalle.oi_valores?.length
@@ -242,9 +244,15 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
             {form.tipo_orden === 'ACTIVO' && (
               <>
                 <TextField label="Activo Fijo en curso *" value={form.activo_fijo_curso} onChange={(e) => actualizar({ activo_fijo_curso: e.target.value })} />
-                <TextField label="Tipo de activo *" value={form.tipo_activo} onChange={(e) => actualizar({ tipo_activo: e.target.value })} />
+                <TextField select label="Tipo de activo *" value={form.tipo_activo || ''} onChange={(e) => actualizar({ tipo_activo: e.target.value })}>
+                  <MenuItem value="EXPANSION">Inversión Expansión</MenuItem>
+                  <MenuItem value="REEMPLAZO">Inversión Reemplazo</MenuItem>
+                </TextField>
                 <TextField label="%" type="number" value={form.porcentaje_2 ?? ''} onChange={(e) => actualizar({ porcentaje_2: e.target.value === '' ? undefined : Number(e.target.value) })} />
-                <TextField label="Activo Real Productivo *" value={form.activo_real_productivo} onChange={(e) => actualizar({ activo_real_productivo: e.target.value })} />
+                <TextField select label="Activo Real Productivo *" value={form.activo_real_productivo || ''} onChange={(e) => actualizar({ activo_real_productivo: e.target.value })}>
+                  <MenuItem value="SI">Sí</MenuItem>
+                  <MenuItem value="NO">No</MenuItem>
+                </TextField>
               </>
             )}
             <Box sx={{ display: 'flex', gap: 1 }}>
@@ -255,6 +263,15 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
               </TextField>
             </Box>
           </Box>
+        </CardContent>
+      </Card>
+
+      {/* Observaciones */}
+      <Card sx={{ mb: 4 }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>Observaciones</Typography>
+          <TextField fullWidth multiline minRows={2} label="Observaciones (opcional)" value={form.observaciones_pm || ''}
+            onChange={(e) => actualizar({ observaciones_pm: e.target.value })} />
         </CardContent>
       </Card>
 

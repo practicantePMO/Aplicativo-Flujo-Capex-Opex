@@ -38,6 +38,24 @@ export class ActasCierreService {
       if (!siAprobada) {
         throw new BadRequestException('El Acta de Cierre solo se habilita cuando la Solicitud de Inversión del proyecto llegó a Aprobado Final.');
       }
+
+      // 🎯 Para CULMINAR (no para cancelar) el proyecto debe haber ejecutado
+      // algo real: al menos una Orden Interna creada, y ningún Control de
+      // Cambios todavía en trámite.
+      const grupoOi = await this.prisma.grupos_ordenes_internas.findUnique({
+        where: { proyecto_id: proyectoId },
+        include: { ordenes_internas: true },
+      });
+      if (!grupoOi || grupoOi.ordenes_internas.length === 0) {
+        throw new BadRequestException('El Acta de Cierre por Culminación requiere que el proyecto tenga al menos una Orden Interna creada.');
+      }
+
+      const ccPendiente = await this.prisma.controles_cambio.findFirst({
+        where: { proyecto_id: proyectoId, procesos: { estado_actual: { not: 'APROBADO_FINAL' } } },
+      });
+      if (ccPendiente) {
+        throw new BadRequestException(`El Control de Cambios #${ccPendiente.id} todavía está en trámite. Debe llegar a Aprobado Final antes de crear el Acta de Cierre por Culminación.`);
+      }
     }
 
     const actaExistente = await this.prisma.actas_cierre.findUnique({ where: { proyecto_id: proyectoId } });

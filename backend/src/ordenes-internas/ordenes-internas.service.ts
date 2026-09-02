@@ -78,6 +78,7 @@ export class OrdenesInternasService {
       presupuesto: dto.presupuesto,
       presupuesto_moneda: dto.presupuesto_moneda || 'COP',
       activo_real_productivo: dto.tipo_orden === 'ACTIVO' ? dto.activo_real_productivo : null,
+      observaciones_pm: dto.observaciones_pm,
     };
   }
 
