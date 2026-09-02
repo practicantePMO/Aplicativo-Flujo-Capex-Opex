@@ -17,6 +17,7 @@ import { PermisosModule } from './permisos/permisos.module';
 import { NotificacionesModule } from './notificaciones/notificaciones.module';
 import { CompaniasModule } from './companias/companias.module';
 import { ActasCierreModule } from './acta-cierre/actas-cierre.module';
+import { BackupModule } from './backup/backup.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ActasCierreModule } from './acta-cierre/actas-cierre.module';
     PermisosModule,
     NotificacionesModule,
     CompaniasModule,
+    BackupModule,
   ],
   controllers: [AppController],
   providers: [

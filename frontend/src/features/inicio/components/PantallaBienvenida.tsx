@@ -7,6 +7,7 @@ import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { useAuth } from '../../../auth/AuthContext';
 import { obtenerMisPendientes } from '../../procesos/services/procesos.service';
 import { obtenerProyectos } from '../../proyectos/services/proyectos.service';
+import { BotonBackupExcel } from '../../backup/components/BotonBackupExcel';
 
 interface Props {
   onIrAPendientes: () => void;
@@ -59,16 +60,19 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
 
   return (
     <Box>
-      <Box sx={{ mb: 5 }}>
-        <Typography variant="h5" sx={{ fontWeight: 700 }}>
-          Bienvenido de nuevo, {usuario?.nombre?.split(' ')[0] || ''}
-        </Typography>
-        {nombreRol && (
-          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-            {nombreRol} · {nombreCompania}
-          </Typography>
-        )}
-      </Box>
+      <Box sx={{ mb: 5, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+  <Box>
+    <Typography variant="h5" sx={{ fontWeight: 700 }}>
+      Bienvenido de nuevo, {usuario?.nombre?.split(' ')[0] || ''}
+    </Typography>
+    {nombreRol && (
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+        {nombreRol} · {nombreCompania}
+      </Typography>
+    )}
+  </Box>
+  <BotonBackupExcel />
+</Box>
 
       <Box sx={styles.cardsRow}>
         {stat(<AssignmentLateIcon sx={{ color: '#64748b' }} />, 'Pendientes de tu revisión', totalPendientes, onIrAPendientes)}
