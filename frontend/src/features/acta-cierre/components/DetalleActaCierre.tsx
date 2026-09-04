@@ -23,6 +23,7 @@ const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'O
 const ROLES_POR_ETAPA: Record<string, string[]> = {
   PENDIENTE_PMO: ['PMO', 'ADMIN'],
   CONTROL_GESTION: [],
+  ACTIVOS_FIJOS: [],
   VERIFICACION_PARTES_INTERESADAS: [],
   DIRECCION_PMO: ['DIRECTOR_PMO', 'ADMIN'],
   GERENCIA: [],
@@ -45,6 +46,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
 
   const [dialogoAprobar, setDialogoAprobar] = useState(false);
   const [dialogoElegirGerente, setDialogoElegirGerente] = useState(false);
+  const [dialogoElegirActivosFijos, setDialogoElegirActivosFijos] = useState(false);
   const [dialogoGerencia, setDialogoGerencia] = useState(false);
   const [dialogoRechazar, setDialogoRechazar] = useState(false);
 
@@ -54,6 +56,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
 
   const [gerentesDisponibles, setGerentesDisponibles] = useState<UsuarioActivo[]>([]);
   const [gerenteElegido, setGerenteElegido] = useState<UsuarioActivo | null>(null);
+  const [activosFijosDisponibles, setActivosFijosDisponibles] = useState<UsuarioActivo[]>([]);
+  const [activosFijosElegido, setActivosFijosElegido] = useState<UsuarioActivo | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const cargar = async () => {
@@ -73,7 +77,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
 
   if (cargando) return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
   if (error || !detalle) return <Alert severity="error">{error || 'No se encontró el Acta de Cierre.'}</Alert>;
-  
+
   const estado = detalle.procesos.estado_actual;
   const esDueno = detalle.pm?.id === usuario?.id;
   const esAdmin = tieneRol('ADMIN');
@@ -85,6 +89,11 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     estado === 'CONTROL_GESTION' &&
     detalle.procesos.asignaciones_proceso.some(
       (a) => a.etapa === 'CONTROL_GESTION' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
+    );
+  const estaAsignadoComoActivosFijos =
+    estado === 'ACTIVOS_FIJOS' &&
+    detalle.procesos.asignaciones_proceso.some(
+      (a) => a.etapa === 'ACTIVOS_FIJOS' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
     );
   const estaAsignadoComoParteInteresada =
     estado === 'VERIFICACION_PARTES_INTERESADAS' &&
@@ -98,7 +107,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     );
 
   const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
-  const puedeAprobarORechazar = tieneRolDeEtapa || estaAsignadoComoControlGestion || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
+  const puedeAprobarORechazar =
+    tieneRolDeEtapa || estaAsignadoComoControlGestion || estaAsignadoComoActivosFijos || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
 
   const manejarEnviar = async () => {
     setProcesando(true);
@@ -114,6 +124,15 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const manejarAprobar = async () => {
+    if (estado === 'CONTROL_GESTION') {
+      if (activosFijosDisponibles.length === 0) {
+        const personas = await obtenerUsuariosPorRol('ACTIVOS_FIJOS', companiaId);
+        setActivosFijosDisponibles(personas);
+      }
+      setActivosFijosElegido(null);
+      setDialogoElegirActivosFijos(true);
+      return;
+    }
     if (estado === 'DIRECCION_PMO') {
       if (gerentesDisponibles.length === 0) {
         const gerentes = await obtenerUsuariosPorRol('GERENCIA', companiaId);
@@ -125,6 +144,21 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     }
     if (estado === 'GERENCIA') { setDialogoGerencia(true); return; }
     setDialogoAprobar(true);
+  };
+
+  const confirmarElegirActivosFijos = async () => {
+    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!activosFijosElegido) return alert('Debes elegir a quién de Activos Fijos enviar el proceso.');
+    setProcesando(true);
+    try {
+      await aprobarActaCierre(procesoId, comentarios, undefined, undefined, activosFijosElegido.id);
+      setDialogoElegirActivosFijos(false); setComentarios(''); setActivosFijosElegido(null);
+      await cargar(); onCambio();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Error al aprobar.');
+    } finally {
+      setProcesando(false);
+    }
   };
 
   const confirmarElegirGerente = async () => {
@@ -217,7 +251,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     ].filter(Boolean);
     return partes.length ? partes.join(' / ') : '—';
   };
-  
+
   const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
   const hayCc = detalle.comparacion.valores_cc.length > 0;
 
@@ -231,6 +265,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   const ETAPAS_ACTA = [
     { key: 'PENDIENTE_PMO', label: 'PMO' },
     { key: 'CONTROL_GESTION', label: 'Control Gestión' },
+    { key: 'ACTIVOS_FIJOS', label: 'Activos Fijos' },
     { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
     { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
     { key: 'GERENCIA', label: 'Gerencia' },
@@ -561,6 +596,26 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         <DialogActions>
           <Button onClick={() => setDialogoAprobar(false)}>Cancelar</Button>
           <Button variant="contained" color="success" onClick={confirmarAprobar} disabled={procesando}>Aprobar</Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Diálogo: Control Gestión elige Activos Fijos */}
+      <Dialog open={dialogoElegirActivosFijos} onClose={() => setDialogoElegirActivosFijos(false)} fullWidth maxWidth="sm">
+        <DialogTitle>Elegir Activos Fijos</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            options={activosFijosDisponibles}
+            getOptionLabel={(u) => u.nombre}
+            value={activosFijosElegido}
+            onChange={(_, v) => setActivosFijosElegido(v)}
+            renderInput={(params) => <TextField {...params} label="¿A quién de Activos Fijos se envía?" sx={{ mt: 1, mb: 2 }} />}
+          />
+          <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
+            onChange={(e) => setComentarios(e.target.value)} />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDialogoElegirActivosFijos(false)}>Cancelar</Button>
+          <Button variant="contained" color="success" onClick={confirmarElegirActivosFijos} disabled={procesando}>Aprobar y enviar</Button>
         </DialogActions>
       </Dialog>
 

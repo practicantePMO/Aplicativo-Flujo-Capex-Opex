@@ -26,11 +26,20 @@ export const enviarActaCierre = async (procesoId: number) => {
   return data;
 };
 
-export const aprobarActaCierre = async (procesoId: number, comentarios: string, enviarAPresidencia?: boolean, gerenteId?: number) => {
+// 🆕 activosFijosId: solo se manda cuando se aprueba la etapa CONTROL_GESTION
+// (Control Gestión elige a quién de Activos Fijos sigue el proceso).
+export const aprobarActaCierre = async (
+  procesoId: number,
+  comentarios: string,
+  enviarAPresidencia?: boolean,
+  gerenteId?: number,
+  activosFijosId?: number,
+) => {
   const { data } = await axiosClient.post(`/actas-cierre/${procesoId}/aprobar`, {
     comentarios,
     ...(enviarAPresidencia !== undefined ? { enviar_a_presidencia: enviarAPresidencia } : {}),
     ...(gerenteId !== undefined ? { gerente_id: gerenteId } : {}),
+    ...(activosFijosId !== undefined ? { activos_fijos_id: activosFijosId } : {}),
   });
   return data;
 };
