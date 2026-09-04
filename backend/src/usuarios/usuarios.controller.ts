@@ -33,8 +33,9 @@ export class UsuariosController {
   }
 
   // Ej: GET /usuarios/por-rol?rol=GERENCIA&companiaId=3 (elegir a qué gerente enviar el proceso)
+  // También lo usa Control Gestión para elegir a quién de Activos Fijos enviar el Acta de Cierre.
   @Get('por-rol')
-  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM')
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'CONTROL_GESTION')
   async obtenerPorRol(@Query('rol') rol: string, @Query('companiaId') companiaIdRaw?: string) {
     const companiaId = companiaIdRaw ? parseInt(companiaIdRaw, 10) : 0;
     return this.usuariosService.findPorRolYCompania(rol, companiaId);

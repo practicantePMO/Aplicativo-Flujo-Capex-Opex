@@ -199,13 +199,34 @@ export class ProyectosService {
         });
       }
 
-      // 🆕 Control Gestión (Órdenes Internas): solo proyectos donde le
-      // asignaron AL MENOS una Orden Interna a él puntualmente — igual que
+      // Control Gestión: solo proyectos donde le asignaron AL MENOS una
+      // Orden Interna, O un Acta de Cierre, a él puntualmente — igual que
       // Gerencia, no ve todo, solo lo suyo.
       if (codigosRoles.includes('CONTROL_GESTION')) {
         condicionesOR.push({
-          grupos_ordenes_internas: {
-            ordenes_internas: { some: { control_gestion_asignado_id: usuarioId } },
+          OR: [
+            { grupos_ordenes_internas: { ordenes_internas: { some: { control_gestion_asignado_id: usuarioId } } } },
+            {
+              procesos: {
+                some: {
+                  eliminado_el: null,
+                  asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'CONTROL_GESTION' } },
+                },
+              },
+            },
+          ],
+        });
+      }
+
+      // 🆕 Activos Fijos: solo proyectos donde Control Gestión lo eligió a
+      // él puntualmente para revisar el Acta de Cierre.
+      if (codigosRoles.includes('ACTIVOS_FIJOS')) {
+        condicionesOR.push({
+          procesos: {
+            some: {
+              eliminado_el: null,
+              asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'ACTIVOS_FIJOS' } },
+            },
           },
         });
       }
