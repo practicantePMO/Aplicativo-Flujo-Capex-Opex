@@ -9,6 +9,11 @@ export class AprobarActaCierreDto {
 
   @IsInt() @IsOptional()
   gerente_id?: number;
+
+  // 🆕 Solo se usa (y se exige) cuando la etapa actual es CONTROL_GESTION:
+  // a quién de Activos Fijos se le envía el proceso.
+  @IsInt() @IsOptional()
+  activos_fijos_id?: number;
 }
 
 export class RechazarActaCierreDto {

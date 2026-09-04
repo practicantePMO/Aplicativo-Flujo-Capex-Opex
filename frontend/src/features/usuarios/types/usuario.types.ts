@@ -4,11 +4,20 @@ export interface RolAsignado {
   companias: { id: number; nombre: string } | null;
 }
 
+// 🆕 Empresa dentro de una compañía (ej. "Noel" dentro de "Galletas")
+export interface EmpresaAsignada {
+  id: number;
+  nombre: string;
+  compania_id: number;
+  companias: { id: number; nombre: string } | null;
+}
+
 export interface Usuario {
   id: number;
   nombre: string;
   email: string;
   area?: string | null;
+  empresa?: EmpresaAsignada | null;
   activo: boolean;
   fecha_creacion?: string;
   usuario_roles_compania: RolAsignado[];

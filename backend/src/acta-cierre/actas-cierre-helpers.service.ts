@@ -3,10 +3,11 @@ import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 
 // 🔁 Flujo propio del Acta de Cierre — distinto al de SI/OI/CC porque incluye
-// una etapa de Control Gestión entre PMO y Partes Interesadas.
+// Control Gestión y Activos Fijos entre PMO y Partes Interesadas.
 export const REGLA_POR_ETAPA: Record<string, { tipo: 'ROL_COMPANIA' | 'ASIGNACION_INDIVIDUAL'; roles?: string[] }> = {
   PENDIENTE_PMO: { tipo: 'ROL_COMPANIA', roles: ['PMO', 'ADMIN'] },
   CONTROL_GESTION: { tipo: 'ASIGNACION_INDIVIDUAL' },
+  ACTIVOS_FIJOS: { tipo: 'ASIGNACION_INDIVIDUAL' },
   VERIFICACION_PARTES_INTERESADAS: { tipo: 'ASIGNACION_INDIVIDUAL' },
   DIRECCION_PMO: { tipo: 'ROL_COMPANIA', roles: ['DIRECTOR_PMO', 'ADMIN'] },
   GERENCIA: { tipo: 'ASIGNACION_INDIVIDUAL' },

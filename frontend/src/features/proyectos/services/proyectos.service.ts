@@ -1,5 +1,5 @@
 import axiosClient from '../../../api/axiosClient';
-import type { Proyecto, CrearProyectoDto, Compania, Proceso, FiltrosProyectos, AplazarProyectoDto } from '../types/proyecto.types';
+import type { Proyecto, CrearProyectoDto, Compania, Empresa, Proceso, FiltrosProyectos, AplazarProyectoDto } from '../types/proyecto.types';
 
 export const obtenerProyectos = async (filtros?: FiltrosProyectos): Promise<Proyecto[]> => {
   const params: Record<string, string> = {};
@@ -19,6 +19,12 @@ export const crearProyecto = async (datos: CrearProyectoDto): Promise<Proyecto> 
 
 export const obtenerCompanias = async (): Promise<Compania[]> => {
   const response = await axiosClient.get<Compania[]>('/companias');
+  return response.data;
+};
+
+// 🆕 Todas las empresas de todas las compañías (ej. Noel, Pozuelo...)
+export const obtenerEmpresas = async (): Promise<Empresa[]> => {
+  const response = await axiosClient.get<Empresa[]>('/catalogos/empresas');
   return response.data;
 };
 

@@ -213,6 +213,7 @@ export class UsuariosService {
         nombre: true,
         email: true,
         area: true,
+        empresa: { select: { id: true, nombre: true, compania_id: true, companias: { select: { id: true, nombre: true } } } },
         activo: true,
         fecha_creacion: true,
         usuario_roles_compania: {
@@ -285,6 +286,29 @@ export class UsuariosService {
 
     await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { area: area.trim() } });
     return { mensaje: 'Área actualizada exitosamente.' };
+  }
+
+  // 🆕 Editar la empresa de un usuario (opcional — empresaId puede ser null)
+  async editarEmpresa(usuarioSolicitanteId: number, usuarioId: number, empresaId: number | null) {
+    const usuario = await this.prisma.usuarios.findUnique({
+      where: { id: usuarioId },
+      include: { usuario_roles_compania: { include: { roles: true } } },
+    });
+    if (!usuario) throw new NotFoundException('El usuario no existe.');
+
+    const esAdminObjetivo = usuario.usuario_roles_compania.some((r) => r.roles?.codigo === 'ADMIN');
+    const esAdminSolicitante = await this.permisos.esAdminGlobal(usuarioSolicitanteId);
+    if (esAdminObjetivo && !esAdminSolicitante) {
+      throw new ForbiddenException('No tienes permiso para modificar a un Administrador.');
+    }
+
+    if (empresaId !== null) {
+      const empresa = await this.prisma.empresas.findUnique({ where: { id: empresaId } });
+      if (!empresa) throw new NotFoundException('La empresa seleccionada no existe.');
+    }
+
+    await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { empresa_id: empresaId } });
+    return { mensaje: 'Empresa actualizada exitosamente.' };
   }
 
   // 8. Catálogo de roles disponibles (para el desplegable de "asignar rol")

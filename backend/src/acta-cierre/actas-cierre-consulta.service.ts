@@ -174,6 +174,10 @@ export class ActasCierreConsultaService {
             asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'CONTROL_GESTION', estado_asignacion: 'PENDIENTE' } },
           },
           {
+            estado_actual: 'ACTIVOS_FIJOS',
+            asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'ACTIVOS_FIJOS', estado_asignacion: 'PENDIENTE' } },
+          },
+          {
             estado_actual: 'VERIFICACION_PARTES_INTERESADAS',
             asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'VERIFICACION_PARTES_INTERESADAS', estado_asignacion: 'PENDIENTE' } },
           },

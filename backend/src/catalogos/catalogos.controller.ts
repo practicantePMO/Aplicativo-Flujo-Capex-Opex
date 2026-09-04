@@ -31,4 +31,11 @@ export class CatalogosController {
   async obtenerSubprogramasPorPrograma(@Param('programaId', ParseIntPipe) programaId: number) {
     return this.catalogosService.obtenerSubprogramasPorPrograma(programaId);
   }
+
+  // 🆕 GET /catalogos/empresas — todas las empresas de todas las compañías,
+  // con el nombre de su compañía incluido (para mostrar "Noel (Galletas)").
+  @Get('empresas')
+  async obtenerEmpresas() {
+    return this.catalogosService.obtenerEmpresas();
+  }
 }

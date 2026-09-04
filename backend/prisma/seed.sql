@@ -33,6 +33,11 @@ VALUES (
         8,
         'CONTROL_GESTION',
         'Control de Gestión'
+    ),
+    (
+        9,
+        'ACTIVOS_FIJOS',
+        'Activos Fijos'
     ) ON CONFLICT (id) DO NOTHING;
 
 -- 2. INSERTAR COMPAÑÍAS
@@ -216,6 +221,14 @@ VALUES
     'GOOGLE',
     'Control de Gestión',
     true
+),
+(
+    19,
+    'Andrea Activos Fijos',
+    'andrea.activosfijos@empresa.com',
+    'GOOGLE',
+    'Activos Fijos',
+    true
 ) ON CONFLICT (id) DO NOTHING;
 
 -- 4. ASIGNACIÓN DE ROLES POR COMPAÑÍA
@@ -240,6 +253,8 @@ UNION ALL
 SELECT 17, id, NULL::integer FROM roles WHERE codigo = 'CONTROL_GESTION'
 UNION ALL
 SELECT 18, id, NULL::integer FROM roles WHERE codigo = 'CONTROL_GESTION'
+UNION ALL
+SELECT 19, id, NULL::integer FROM roles WHERE codigo = 'ACTIVOS_FIJOS'
 ON CONFLICT DO NOTHING;
 
 -- Roles puntuales por compañía (GERENCIA y PRESIDENCIA sí quedan atados a UNA
@@ -436,6 +451,22 @@ VALUES (
         'Innovación Radical (H2 y H3)',
         true
     ) ON CONFLICT (id) DO NOTHING;
+
+-- 10. EMPRESAS DENTRO DE CADA COMPAÑÍA
+-- ⚠️ AJUSTA esta lista con los nombres reales — dejé Noel y Pozuelo para
+-- Galletas como ejemplo (los mencionaste tú), pero agrega las que falten
+-- de Pastas y Snacks, y las que falten de Galletas también.
+INSERT INTO
+    empresas (id, nombre, compania_id)
+VALUES (1, 'Noel', 1),
+    (2, 'Pozuelo', 1) ON CONFLICT (id) DO NOTHING;
+
+SELECT setval (
+        'empresas_id_seq', (
+            SELECT MAX(id)
+            FROM empresas
+        )
+    );
 
 -- 9. REINICIAR Y SINCRONIZAR SECUENCIAS AUTOINCREMENTALES
 SELECT setval ( 'roles_id_seq', ( SELECT MAX(id) FROM roles ) );

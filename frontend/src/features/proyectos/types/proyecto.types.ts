@@ -4,6 +4,14 @@ export interface Compania {
   activa?: boolean;
 }
 
+// 🆕 Empresa dentro de una compañía (ej. "Noel" dentro de "Galletas")
+export interface Empresa {
+  id: number;
+  nombre: string;
+  compania_id: number;
+  companias: { id: number; nombre: string } | null;
+}
+
 export interface Proyecto {
   id: string;
   nombre: string;

@@ -25,6 +25,7 @@ const USUARIOS_PRUEBA = [
   { id: 17, nombre: 'Camila (Control Gestión)', rol: 'CONTROL_GESTION', compania: 'Global' },
   { id: 18, nombre: 'Cristian (Control Gestión)', rol: 'CONTROL_GESTION', compania: 'Global' },
   { id: 10, nombre: 'Nuevo (sin rol)', rol: 'NINGUNO', compania: '—' },
+  { id: 19, nombre: 'Andrea (Activos Fijos)', rol: 'ACTIVOS_FIJOS', compania: 'Global' },
 ];
 
 export function DevSwitcher() {

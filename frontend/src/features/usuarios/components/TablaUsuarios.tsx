@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Typography, TextField, InputAdornment, Chip, IconButton, Tooltip,
-  CircularProgress, Alert, Switch, Stack, Button, MenuItem, Divider,
+  CircularProgress, Alert, Switch, Stack, Button, MenuItem, Divider, Autocomplete,
   Dialog, DialogTitle, DialogContent, DialogActions, DialogContentText,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
@@ -11,9 +11,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import TuneIcon from '@mui/icons-material/Tune';
 import EditIcon from '@mui/icons-material/Edit';
 import type { Usuario, RolDisponible } from '../types/usuario.types';
-import type { Compania } from '../../proyectos/types/proyecto.types';
-import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuario, editarAreaUsuario } from '../services/usuarios.service';
-import { obtenerCompanias } from '../../proyectos/services/proyectos.service';
+import type { Compania, Empresa } from '../../proyectos/types/proyecto.types';
+import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuario, editarAreaUsuario, editarEmpresaUsuario } from '../services/usuarios.service';
+import { obtenerCompanias, obtenerEmpresas } from '../../proyectos/services/proyectos.service';
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
 
@@ -22,6 +22,7 @@ export function TablaUsuarios() {
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<RolDisponible[]>([]);
   const [companias, setCompanias] = useState<Compania[]>([]);
+  const [empresas, setEmpresas] = useState<Empresa[]>([]);
   const [busqueda, setBusqueda] = useState('');
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -30,6 +31,9 @@ export function TablaUsuarios() {
   const [usuarioParaEditarArea, setUsuarioParaEditarArea] = useState<Usuario | null>(null);
   const [nuevaArea, setNuevaArea] = useState('');
   const [guardandoArea, setGuardandoArea] = useState(false);
+  const [usuarioParaEditarEmpresa, setUsuarioParaEditarEmpresa] = useState<Usuario | null>(null);
+  const [nuevaEmpresa, setNuevaEmpresa] = useState<Empresa | null>(null);
+  const [guardandoEmpresa, setGuardandoEmpresa] = useState(false);
 
   // Filtros
   const [filtroSoloPendientes, setFiltroSoloPendientes] = useState(false);
@@ -41,6 +45,7 @@ export function TablaUsuarios() {
   useEffect(() => {
     obtenerRolesDisponibles().then(setRoles).catch(() => setRoles([]));
     obtenerCompanias().then(setCompanias).catch(() => setCompanias([]));
+    obtenerEmpresas().then(setEmpresas).catch(() => setEmpresas([]));
   }, []);
 
   useEffect(() => {
@@ -131,6 +136,26 @@ export function TablaUsuarios() {
     }
   };
 
+  const abrirEditarEmpresa = (u: Usuario) => {
+    const empresaActual = u.empresa ? empresas.find((e) => e.id === u.empresa!.id) || null : null;
+    setNuevaEmpresa(empresaActual);
+    setUsuarioParaEditarEmpresa(u);
+  };
+
+  const confirmarEditarEmpresa = async () => {
+    if (!usuarioParaEditarEmpresa) return;
+    try {
+      setGuardandoEmpresa(true);
+      await editarEmpresaUsuario(usuarioParaEditarEmpresa.id, nuevaEmpresa?.id ?? null);
+      setUsuarioParaEditarEmpresa(null);
+      await cargarUsuarios();
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Error al actualizar la empresa.');
+    } finally {
+      setGuardandoEmpresa(false);
+    }
+  };
+
   return (
     <Box>
       <Box sx={styles.headerBox}>
@@ -212,6 +237,7 @@ export function TablaUsuarios() {
                 <TableRow sx={styles.tableHeaderRow}>
                   <TableCell sx={styles.tableHeaderCell}>USUARIO</TableCell>
                   <TableCell sx={styles.tableHeaderCell}>ÁREA</TableCell>
+                  <TableCell sx={styles.tableHeaderCell}>EMPRESA</TableCell>
                   <TableCell sx={styles.tableHeaderCell}>ROLES</TableCell>
                   <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
                   <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
@@ -220,7 +246,7 @@ export function TablaUsuarios() {
               <TableBody>
                 {usuariosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 4, color: '#64748b' }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 4, color: '#64748b' }}>
                       No se encontraron usuarios con estos filtros.
                     </TableCell>
                   </TableRow>
@@ -242,6 +268,18 @@ export function TablaUsuarios() {
                             {puedeModificar && (
                               <Tooltip title="Editar área">
                                 <IconButton size="small" onClick={() => abrirEditarArea(u)}>
+                                  <EditIcon sx={{ fontSize: '0.9rem' }} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell sx={{ color: '#64748b', fontSize: '0.85rem' }}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            {u.empresa ? `${u.empresa.nombre}${u.empresa.companias ? ` (${u.empresa.companias.nombre})` : ''}` : '—'}
+                            {puedeModificar && (
+                              <Tooltip title="Editar empresa">
+                                <IconButton size="small" onClick={() => abrirEditarEmpresa(u)}>
                                   <EditIcon sx={{ fontSize: '0.9rem' }} />
                                 </IconButton>
                               </Tooltip>
@@ -330,7 +368,7 @@ export function TablaUsuarios() {
           </Button>
         </DialogActions>
       </Dialog>
-          <Dialog open={!!usuarioParaEditarArea} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
+      <Dialog open={!!usuarioParaEditarArea} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
         <DialogTitle>Editar área de {usuarioParaEditarArea?.nombre}</DialogTitle>
         <DialogContent>
           <TextField
@@ -342,6 +380,27 @@ export function TablaUsuarios() {
         <DialogActions>
           <Button onClick={() => setUsuarioParaEditarArea(null)}>Cancelar</Button>
           <Button variant="contained" color="secondary" onClick={confirmarEditarArea} disabled={guardandoArea || !nuevaArea.trim()}>
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={!!usuarioParaEditarEmpresa} onClose={() => setUsuarioParaEditarEmpresa(null)} fullWidth maxWidth="xs">
+        <DialogTitle>Editar empresa de {usuarioParaEditarEmpresa?.nombre}</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            options={empresas}
+            groupBy={(e) => e.companias?.nombre || 'Otra'}
+            getOptionLabel={(e) => e.nombre}
+            isOptionEqualToValue={(a, b) => a.id === b.id}
+            value={nuevaEmpresa}
+            onChange={(_, v) => setNuevaEmpresa(v)}
+            renderInput={(params) => <TextField {...params} label="Empresa (opcional)" sx={{ mt: 1 }} />}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUsuarioParaEditarEmpresa(null)}>Cancelar</Button>
+          <Button variant="contained" color="secondary" onClick={confirmarEditarEmpresa} disabled={guardandoEmpresa}>
             Guardar
           </Button>
         </DialogActions>

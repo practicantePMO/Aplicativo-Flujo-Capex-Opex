@@ -44,6 +44,7 @@ model companias {
   activa                 Boolean?                 @default(true)
   proyectos              proyectos[]
   usuario_roles_compania usuario_roles_compania[]
+  empresas               empresas[]
 }
 
 model grupos {
@@ -241,6 +242,8 @@ model usuarios {
   controles_cambio controles_cambio[]
   actas_cierre_como_pm actas_cierre[] @relation("ActaCierre_PM")
   actas_cierre_como_cg actas_cierre[] @relation("ActaCierre_CG")
+  empresa_id             Int?
+  empresa               empresas?                @relation(fields: [empresa_id], references: [id])
 } 
 
 // =====================================================================
@@ -488,4 +491,16 @@ model acta_cierre_oi_valores_reales {
 
   actas_cierre     actas_cierre     @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   ordenes_internas ordenes_internas @relation(fields: [orden_interna_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+}
+
+// 🏢 Empresa dentro de una compañía (ej. "Noel" y "Pozuelo" dentro de "Galletas").
+// Catálogo fijo, opcional por usuario — solo informativo, no afecta permisos.
+model empresas {
+  id          Int        @id @default(autoincrement())
+  nombre      String     @db.VarChar(100)
+  compania_id Int
+  companias   companias  @relation(fields: [compania_id], references: [id])
+  usuarios    usuarios[]
+
+  @@unique([compania_id, nombre])
 }

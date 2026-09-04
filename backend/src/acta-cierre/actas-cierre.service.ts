@@ -262,12 +262,26 @@ export class ActasCierreService {
 
     let estadoDestino = '';
     let gerenteElegidoId: number | undefined;
+    let activosFijosElegidoId: number | undefined;
 
     switch (estadoOrigen) {
       case 'PENDIENTE_PMO':
         estadoDestino = 'CONTROL_GESTION';
         break;
       case 'CONTROL_GESTION':
+        if (!dto.activos_fijos_id) {
+          throw new BadRequestException('Debes elegir a quién de Activos Fijos enviar el proceso.');
+        }
+        {
+          const activosFijosValido = await this.permisos.tieneRolParaCompania(dto.activos_fijos_id, ['ACTIVOS_FIJOS'], companiaId);
+          if (!activosFijosValido) {
+            throw new BadRequestException('El usuario seleccionado no tiene el rol Activos Fijos en esta compañía.');
+          }
+        }
+        activosFijosElegidoId = dto.activos_fijos_id;
+        estadoDestino = 'ACTIVOS_FIJOS';
+        break;
+      case 'ACTIVOS_FIJOS':
         estadoDestino = 'VERIFICACION_PARTES_INTERESADAS';
         break;
       case 'VERIFICACION_PARTES_INTERESADAS':
@@ -371,6 +385,13 @@ export class ActasCierreService {
         });
       }
 
+      if (estadoDestino === 'ACTIVOS_FIJOS' && activosFijosElegidoId) {
+        await tx.asignaciones_proceso.deleteMany({ where: { proceso_id: procesoId, etapa: 'ACTIVOS_FIJOS' } });
+        await tx.asignaciones_proceso.create({
+          data: { proceso_id: procesoId, etapa: 'ACTIVOS_FIJOS', usuario_id: activosFijosElegidoId, estado_asignacion: 'PENDIENTE' },
+        });
+      }
+
       if (estadoDestino === 'VERIFICACION_PARTES_INTERESADAS') {
         await tx.asignaciones_proceso.updateMany({
           where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS' },
@@ -441,6 +462,23 @@ export class ActasCierreService {
             },
           });
         }
+
+      } else if (nuevoEstado === 'ACTIVOS_FIJOS') {
+        const asignadosActivosFijos = await this.helpers.obtenerAsignados(procesoId, 'ACTIVOS_FIJOS');
+        for (const asignado of asignadosActivosFijos) {
+          await this.notificaciones.encolarNotificacion({
+            tipo: 'AC_NUEVA_ETAPA',
+            destinatarios: [asignado.email],
+            datos: {
+              nombreUsuario: asignado.nombre,
+              etapaActual: 'Activos Fijos',
+              codigoProyecto: proyecto.id.toString(),
+              nombreProyecto: proyecto.nombre,
+              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
+            },
+          });
+        }
+
       } else if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
         const asignadosPartes = await this.helpers.obtenerAsignados(procesoId, 'VERIFICACION_PARTES_INTERESADAS');
         for (const asignado of asignadosPartes) {

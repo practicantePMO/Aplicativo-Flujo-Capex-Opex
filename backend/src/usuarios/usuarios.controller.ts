@@ -3,6 +3,7 @@ import { UsuariosService } from './usuarios.service';
 import { AsignarRolDto } from './dto/asignar-rol.dto';
 import { CambiarActivoDto } from './dto/cambiar-activo.dto';
 import { EditarAreaDto } from './dto/editar-area.dto';
+import { EditarEmpresaDto } from './dto/editar-empresa.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -78,5 +79,16 @@ export class UsuariosController {
     @Body() dto: EditarAreaDto,
   ) {
     return this.usuariosService.editarArea(req.user.userId, id, dto.area);
+  }
+
+  // 🆕 Editar la empresa de un usuario (dentro de su compañía, ej. "Noel").
+  @Patch(':id/empresa')
+  @Roles('ADMIN', 'PMO')
+  async editarEmpresa(
+    @Req() req: any,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: EditarEmpresaDto,
+  ) {
+    return this.usuariosService.editarEmpresa(req.user.userId, id, dto.empresa_id ?? null);
   }
 }

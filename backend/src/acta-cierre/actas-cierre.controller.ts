@@ -23,19 +23,19 @@ export class ActasCierreController {
   }
 
   @Get('mis-pendientes')
-  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
   async obtenerMisPendientes(@Req() req: any) {
     return this.consulta.obtenerMisPendientes(req.user.userId);
   }
 
   @Get('proyecto/:proyectoId')
-  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
   async obtenerPorProyecto(@Req() req: any, @Param('proyectoId') proyectoId: string) {
     return this.consulta.obtenerPorProyecto(req.user.userId, proyectoId);
   }
 
   @Get(':procesoId')
-  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
   async obtenerDetalle(@Req() req: any, @Param('procesoId', ParseIntPipe) procesoId: number) {
     return this.consulta.obtenerDetalle(req.user.userId, procesoId);
   }
@@ -53,13 +53,13 @@ export class ActasCierreController {
   }
 
   @Post(':procesoId/aprobar')
-  @Roles('PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
   async aprobarEtapa(@Req() req: any, @Param('procesoId', ParseIntPipe) procesoId: number, @Body() dto: AprobarActaCierreDto) {
     return this.service.aprobarEtapa(procesoId, req.user.userId, dto);
   }
 
   @Post(':procesoId/rechazar')
-  @Roles('PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
+  @Roles('PMO', 'DIRECTOR_PMO', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
   async rechazarEtapa(@Req() req: any, @Param('procesoId', ParseIntPipe) procesoId: number, @Body() dto: RechazarActaCierreDto) {
     return this.service.rechazarEtapa(procesoId, req.user.userId, dto);
   }

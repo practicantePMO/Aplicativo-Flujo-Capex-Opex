@@ -59,4 +59,19 @@ export class CatalogosService {
       orderBy: { id: 'asc' },
     });
   }
+
+  // 5. 🆕 Todas las empresas, con el nombre de su compañía — catálogo fijo,
+  // se administra directo en la base de datos (mismo patrón que categorías,
+  // programas y subprogramas: no hay pantalla de CRUD para esto).
+  async obtenerEmpresas() {
+    return this.prisma.empresas.findMany({
+      select: {
+        id: true,
+        nombre: true,
+        compania_id: true,
+        companias: { select: { id: true, nombre: true } },
+      },
+      orderBy: [{ compania_id: 'asc' }, { nombre: 'asc' }],
+    });
+  }
 }
