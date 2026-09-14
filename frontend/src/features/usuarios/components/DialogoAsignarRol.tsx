@@ -16,7 +16,7 @@ const GLOBAL = 'GLOBAL';
 
 export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsignado }: Props) {
   const [rolId, setRolId] = useState('');
-  const [companiaId, setCompaniaId] = useState(GLOBAL); // GLOBAL = todas las compañías
+  const [companiaId, setCompaniaId] = useState(GLOBAL); 
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 

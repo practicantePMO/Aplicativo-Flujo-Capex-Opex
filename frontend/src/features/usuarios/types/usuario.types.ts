@@ -1,10 +1,9 @@
 export interface RolAsignado {
-  id: number; // id de la fila usuario_roles_compania (se necesita para poder quitarlo)
+  id: number;
   roles: { id: number; codigo: string; nombre: string } | null;
   companias: { id: number; nombre: string } | null;
 }
 
-// 🆕 Empresa dentro de una compañía (ej. "Noel" dentro de "Galletas")
 export interface EmpresaAsignada {
   id: number;
   nombre: string;

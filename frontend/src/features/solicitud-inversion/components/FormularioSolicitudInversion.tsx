@@ -121,7 +121,6 @@ export function FormularioSolicitudInversion({ proyecto, solicitudExistente, onC
         flujos={form.flujos} setFlujos={handleSetFlujos}
       />
 
-      {/* 🧮 Va DESPUÉS del flujo de caja porque ahora se calcula a partir de él */}
       <SeccionValorProyecto
         trm={form.trm} setTrm={(v) => updateForm({ trm: v })}
         activoUsd={activoUsd} activoCop={activoCop} gastoUsd={gastoUsd} gastoCop={gastoCop}

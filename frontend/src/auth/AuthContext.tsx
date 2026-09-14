@@ -24,7 +24,6 @@ function leerUsuarioGuardado(): Usuario | null {
   try {
     return JSON.parse(usuarioGuardado);
   } catch {
-    // Datos corruptos en localStorage: los limpiamos y seguimos como si no hubiera sesión
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     return null;
@@ -55,16 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   
-  // Login real vía SSO — el backend ya valida el idToken y el dominio
+  // Login vía SSO — el backend ya valida el idToken y el dominio
   // corporativo; acá solo guardamos la sesión resultante.
     const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
     const response = await axiosClient.post<AuthResponse>('/auth/login-sso', { idToken, proveedor });
     const { access_token, usuario } = response.data;
 
-    // El backend de SSO devuelve los roles como "rolesCompania" (plano), distinto
-    // a la forma "roles" con { rol: { codigo, nombre } } anidado que usa login-dev.
-    // Los normalizamos acá para que el resto de la app los reconozca igual,
-    // entres por DevSwitcher o por Google/Microsoft.
     const rolesNormalizados = ((usuario as any).rolesCompania || []).map((rc: any) => ({
       rol: { codigo: rc.rolCodigo, nombre: rc.rolNombre },
       compania: rc.companiaId ? { id: rc.companiaId, nombre: rc.companiaNombre } : null,
@@ -90,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return listaRoles.some((item: any) => {
       if (!item) return false;
       const codigo = (item.rol?.codigo || item.roles?.codigo || item.codigo || '').toUpperCase();
-      return codigo === objetivo; // 👈 comparación exacta, nada de includes()
+      return codigo === objetivo; 
     });
   };
 

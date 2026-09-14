@@ -1,7 +1,6 @@
 import axiosClient from '../../../api/axiosClient';
 import type { CrearSolicitudInversionDto, SolicitudInversionDetalle, Grupo, UsuarioActivo, CrearSolicitudPayload, Categoria } from '../types/solicitud.types';
 
-// 👈 OBTENER CATÁLOGO DE CATEGORÍAS (CLASIFICACIÓN NUEVA)
 export const obtenerCategorias = async (): Promise<Categoria[]> => {
   const { data } = await axiosClient.get<Categoria[]>('/solicitud-inversion/categorias');
   return data;
@@ -17,8 +16,6 @@ export const obtenerUsuariosActivos = async (): Promise<UsuarioActivo[]> => {
   return data;
 };
 
-// 🎯 Usuarios con un rol puntual en una compañía — usado para que Dirección
-// PMO elija a qué gerente enviar el proceso (hay varias gerencias).
 export const obtenerUsuariosPorRol = async (rol: string, companiaId: number): Promise<UsuarioActivo[]> => {
   const { data } = await axiosClient.get<UsuarioActivo[]>('/usuarios/por-rol', { params: { rol, companiaId } });
   return data;

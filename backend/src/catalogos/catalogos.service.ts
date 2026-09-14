@@ -5,8 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class CatalogosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // 1. Jerarquía completa (Árbol 3D: Grupo -> Programas -> Subprogramas)
-  // Ideal para precargar los desplegables del Frontend de un solo golpe
+  // precargar los desplegables del Frontend
   async obtenerJerarquiaCompleta() {
     return this.prisma.grupos.findMany({
       select: {
@@ -20,7 +19,7 @@ export class CatalogosService {
               select: {
                 id: true,
                 nombre: true,
-                requiere_evaluacion_obligatoria: true, // 💡 Bandera de negocio para el Frontend
+                requiere_evaluacion_obligatoria: true,
               },
             },
           },
@@ -60,9 +59,6 @@ export class CatalogosService {
     });
   }
 
-  // 5. 🆕 Todas las empresas, con el nombre de su compañía — catálogo fijo,
-  // se administra directo en la base de datos (mismo patrón que categorías,
-  // programas y subprogramas: no hay pantalla de CRUD para esto).
   async obtenerEmpresas() {
     return this.prisma.empresas.findMany({
       select: {

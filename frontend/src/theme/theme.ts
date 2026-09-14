@@ -77,8 +77,6 @@ export const nutresaTheme = createTheme({
         '*::selection': { backgroundColor: 'rgba(14, 56, 30, 0.15)' },
       },
     },
-    // 🔘 Botones: sin sombra ni siquiera en hover — solo un cambio sutil de
-    // tono (eso ya lo hace MUI por defecto al mezclar con el fondo).
     MuiButton: {
       defaultProps: {
         disableElevation: true,
@@ -98,7 +96,6 @@ export const nutresaTheme = createTheme({
         },
       },
     },
-    // 🃏 Cards planas: borde 1px, sin sombra decorativa, radio bajo.
     MuiCard: {
       styleOverrides: {
         root: {
@@ -126,8 +123,6 @@ export const nutresaTheme = createTheme({
         },
       },
     },
-    // 📊 Tablas: encabezado discreto, mayúsculas pequeñas, líneas finas
-    // entre filas — nada de zebra-striping ni bordes gruesos.
     MuiTableCell: {
       styleOverrides: {
         head: {
@@ -152,8 +147,6 @@ export const nutresaTheme = createTheme({
         },
       },
     },
-    // 📝 Inputs: borde simple, radio bajo, y label SIEMPRE arriba del campo
-    // (nunca flotando adentro) — esto se logra forzando "shrink" por defecto.
     MuiInputLabel: {
       defaultProps: {
         shrink: true,
@@ -213,7 +206,6 @@ export const nutresaTheme = createTheme({
         },
       },
     },
-    // 💬 Tooltips: elemento flotante — sombra sutil sí permitida aquí.
     MuiTooltip: {
       styleOverrides: {
         tooltip: {

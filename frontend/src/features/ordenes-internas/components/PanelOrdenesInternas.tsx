@@ -30,15 +30,16 @@ interface Props {
   proyectoId: string;
   companiaId: number;
   crearParaControlCambioId?: number | null;
+  abrirOrdenInternaId?: number | null;
   onVerControlCambio?: (procesoId: number) => void;
 }
 
-export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlCambioId, onVerControlCambio }: Props) {
+export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlCambioId, abrirOrdenInternaId, onVerControlCambio }: Props) {
   const { tieneRol } = useAuth();
   const [grupo, setGrupo] = useState<GrupoOrdenesInternas | null | undefined>(undefined); // undefined = cargando
   const [mostrarFormulario, setMostrarFormulario] = useState(!!crearParaControlCambioId);
-  const [mostrarLista, setMostrarLista] = useState(false);
-  const [ordenExpandidaId, setOrdenExpandidaId] = useState<number | false>(false);
+  const [mostrarLista, setMostrarLista] = useState(!!abrirOrdenInternaId);
+  const [ordenExpandidaId, setOrdenExpandidaId] = useState<number | false>(abrirOrdenInternaId ?? false);
   const [ordenEnEdicionId, setOrdenEnEdicionId] = useState<number | null>(null);
 
   const [dialogoSolicitarCierre, setDialogoSolicitarCierre] = useState(false);
@@ -59,12 +60,17 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
 
   useEffect(() => { cargar(); }, [proyectoId]);
 
+  useEffect(() => {
+    if (abrirOrdenInternaId) {
+      setMostrarLista(true);
+      setOrdenExpandidaId(abrirOrdenInternaId);
+    }
+  }, [abrirOrdenInternaId]);
+
   if (grupo === undefined) {
     return <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}><CircularProgress size={24} color="secondary" /></Box>;
   }
 
-  // El grupo no existe todavía → la Solicitud de Inversión no ha llegado a
-  // APROBADO_FINAL (se crea automáticamente en ese momento). No mostramos nada.
   if (grupo === null) return null;
 
   const ordenesInternas = Array.isArray(grupo.ordenes_internas) ? grupo.ordenes_internas : [];

@@ -13,8 +13,6 @@ export class CrearProyectoDto {
   @IsNotEmpty({ message: 'La fecha del proyecto es obligatoria.' })
   fecha_proyecto: string; // Formato esperado en el JSON: "2026-07-31"
 
-  // Solo lo usan PMO/ADMIN: a qué PM le queda asignado el proyecto de verdad.
-  // Si un PM crea su propio proyecto, no manda este campo — el dueño es él mismo.
   @IsInt({ message: 'El PM asignado debe ser un ID numérico.' })
   @IsOptional()
   pm_asignado_id?: number;

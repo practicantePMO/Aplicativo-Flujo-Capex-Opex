@@ -13,7 +13,6 @@ export class UsuariosService {
     private readonly notificaciones: NotificacionesService,
   ) {}
 
-  // 1. Buscar usuario por email con sus roles y compañías (Sin exponer password_hash)
   async findByEmail(email: string) {
     return this.prisma.usuarios.findUnique({
       where: { email },
@@ -35,7 +34,6 @@ export class UsuariosService {
     });
   }
 
-  // 2. Registro/Ingreso automático desde SSO
   async findOrCreateSSOUser(data: { email: string; nombre: string; proveedor_auth?: string }) {
     let usuario = await this.findByEmail(data.email);
     const esRealmenteNuevo = !usuario;
@@ -53,7 +51,6 @@ export class UsuariosService {
     }
 
     if (esRealmenteNuevo) {
-      // 📬 Solo la primera vez — avisamos a quien pueda asignarle un rol
       try {
         const destinatarios = await this.obtenerEmailsPmoYAdmin();
         if (destinatarios.length) {
@@ -64,7 +61,6 @@ export class UsuariosService {
           });
         }
       } catch (error) {
-        // Un fallo al notificar nunca debe impedir que el usuario pueda loguearse
         console.error('Error al notificar usuario nuevo pendiente:', error);
       }
     }
@@ -72,8 +68,6 @@ export class UsuariosService {
     return usuario;
   }
 
-  // 📖 Todos los PMO/ADMIN del sistema, sin importar compañía (el usuario nuevo
-  // todavía no tiene ninguna compañía asignada, así que no podemos filtrar por eso)
   private async obtenerEmailsPmoYAdmin(): Promise<string[]> {
     const usuarios = await this.prisma.usuarios.findMany({
       where: {
@@ -86,7 +80,6 @@ export class UsuariosService {
     return Array.from(new Set(usuarios.map((u) => u.email).filter((e): e is string => Boolean(e))));
   }
 
-  // 3. Consultar usuarios en estado "PENDIENTE" (Sin roles asignados)
   async findPendientes() {
     return this.prisma.usuarios.findMany({
       where: {
@@ -105,7 +98,6 @@ export class UsuariosService {
     });
   }
 
-  // 4. Asignar Rol y Compañía — con protección contra duplicados Y contra escalación de privilegios
   async asignarRolCompania(usuarioSolicitanteId: number, dto: AsignarRolDto) {
     const usuario = await this.prisma.usuarios.findUnique({ where: { id: dto.usuario_id } });
     if (!usuario) {
@@ -120,17 +112,13 @@ export class UsuariosService {
     const esAdmin = await this.permisos.esAdminGlobal(usuarioSolicitanteId);
 
     if (!esAdmin) {
-      // Nadie que no sea ADMIN puede otorgar el rol ADMIN — esto NO cambia
       if (rol.codigo === 'ADMIN') {
         throw new ForbiddenException('No tienes permiso para asignar el rol de Administrador.');
       }
 
       if (dto.compania_id) {
-        // Asignación limitada a una compañía: debe tener autoridad de PMO ahí
         await this.permisos.exigirRolParaCompania(usuarioSolicitanteId, ['PMO'], dto.compania_id);
       } else {
-        // Asignación GLOBAL: solo si el PMO solicitante es él mismo global,
-        // no un PMO acotado a una sola compañía.
         const esPmoGlobal = await this.permisos.tieneRolGlobal(usuarioSolicitanteId, ['PMO']);
         if (!esPmoGlobal) {
           throw new ForbiddenException('No tienes permiso para asignar roles globales.');
@@ -159,7 +147,6 @@ export class UsuariosService {
       throw error;
     }
 
-    // 📬 Avisamos al usuario (nuevo o antiguo) que ya tiene un rol para usar el sistema.
     try {
       if (usuario.email) {
         await this.notificaciones.encolarNotificacion({
@@ -173,7 +160,6 @@ export class UsuariosService {
         });
       }
     } catch (error) {
-      // Un fallo al notificar nunca debe impedir que el rol quede asignado
       console.error('Error al notificar asignación de rol:', error);
     }
 
@@ -188,8 +174,6 @@ export class UsuariosService {
     });
   }
 
-  // 🎯 Usuarios activos con un rol puntual (global o de esa compañía) — usado,
-  // por ejemplo, para que Dirección PMO elija a qué gerente enviar el proceso.
   async findPorRolYCompania(codigoRol: string, companiaId: number) {
     return this.prisma.usuarios.findMany({
       where: {
@@ -204,7 +188,6 @@ export class UsuariosService {
     });
   }
 
-  // 5. Listar TODOS los usuarios (activos e inactivos) con sus roles — para la pantalla de gestión
   async findTodos() {
     return this.prisma.usuarios.findMany({
       where: { eliminado_el: null },
@@ -228,7 +211,6 @@ export class UsuariosService {
     });
   }
 
-  // 6. Quitar un rol ya asignado
   async quitarRol(usuarioSolicitanteId: number, asignacionId: number) {
     const asignacion = await this.prisma.usuario_roles_compania.findUnique({
       where: { id: asignacionId },
@@ -247,7 +229,6 @@ export class UsuariosService {
     return { mensaje: 'Rol removido exitosamente.' };
   }
 
-  // 7. Activar o desactivar un usuario
   async cambiarActivo(usuarioSolicitanteId: number, usuarioId: number, activo: boolean) {
     if (usuarioSolicitanteId === usuarioId) {
       throw new BadRequestException('No puedes activar o desactivar tu propia cuenta.');
@@ -269,8 +250,6 @@ export class UsuariosService {
     return { mensaje: activo ? 'Usuario activado exitosamente.' : 'Usuario desactivado exitosamente.' };
   }
 
-  // ✏️ Editar el área de un usuario — antes no existía NINGUNA forma de
-  // hacerlo desde la app (el campo solo se leía, nunca se escribía).
   async editarArea(usuarioSolicitanteId: number, usuarioId: number, area: string) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: usuarioId },
@@ -288,7 +267,6 @@ export class UsuariosService {
     return { mensaje: 'Área actualizada exitosamente.' };
   }
 
-  // 🆕 Editar la empresa de un usuario (opcional — empresaId puede ser null)
   async editarEmpresa(usuarioSolicitanteId: number, usuarioId: number, empresaId: number | null) {
     const usuario = await this.prisma.usuarios.findUnique({
       where: { id: usuarioId },
@@ -311,7 +289,6 @@ export class UsuariosService {
     return { mensaje: 'Empresa actualizada exitosamente.' };
   }
 
-  // 8. Catálogo de roles disponibles (para el desplegable de "asignar rol")
   async findRolesDisponibles() {
     return this.prisma.roles.findMany({
       select: { id: true, codigo: true, nombre: true },

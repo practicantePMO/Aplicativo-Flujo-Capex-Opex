@@ -51,7 +51,7 @@ interface FilaOiValorReal {
 interface Props {
   proyectoId: string;
   companiaId: number;
-  procesoId?: number; // si viene, es edición de un Borrador existente
+  procesoId?: number;
   onCancelar: () => void;
   onGuardado: (procesoId: number) => void;
 }
@@ -98,7 +98,6 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         setUsuariosCG(cgDisponibles);
         setUsuariosDisponibles(partesDisponibles);
 
-        // --- Datos de la SI aprobada (entregable, metas, flujo de caja planeado) ---
         const procesoSi = procesos.find((p) => p.tipo_proceso === 'SOLICITUD_INVERSION');
         if (procesoSi) {
           const si = await obtenerSolicitudInversion(procesoSi.id);
@@ -127,7 +126,6 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           }
         }
 
-        // --- Órdenes Internas del proyecto (para "Valor Real" por cada una) ---
         const ordenesInternas = ordenesGrupo?.ordenes_internas || [];
         if (!procesoId) {
           setOiValoresReales(
@@ -144,7 +142,6 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           );
         }
 
-        // --- Si es edición, cargar lo ya guardado ---
         if (procesoId) {
           const detalle = await obtenerActaCierreDetalle(procesoId);
           setTipoCierre(detalle.tipo_cierre);
@@ -172,7 +169,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           setFlujoCaja(
             detalle.acta_cierre_flujo_caja.map((f) => ({
               tipo: f.tipo, moneda: f.moneda, anio: f.anio, mes: f.mes,
-              planeado: 0, // se re-cruza abajo con lo planeado de la SI
+              planeado: 0,
               monto_real: Number(f.monto_real) || 0,
             })),
           );

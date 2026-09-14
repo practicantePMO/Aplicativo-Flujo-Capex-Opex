@@ -51,7 +51,7 @@ export class AuthService {
     }
   }
 
-  // 🛡️ CORRECCIÓN 1: Validamos que 'key' exista antes de llamar a getPublicKey()
+  // Validamos que 'key' exista antes de llamar a getPublicKey()
   private obtenerLlaveFirmaMicrosoft(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     this.microsoftJwksClient.getSigningKey(header.kid, (err, key) => {
       if (err || !key) {
@@ -114,7 +114,7 @@ export class AuthService {
       proveedor_auth: proveedor,
     });
 
-    // 🛡️ CORRECCIÓN 2: Le garantizamos a TypeScript que 'usuario' NO es nulo
+    // Le garantizamos a TypeScript que 'usuario' NO es nulo
     if (!usuario) {
       throw new UnauthorizedException('No se pudo registrar ni verificar la información del usuario.');
     }
@@ -140,14 +140,14 @@ export class AuthService {
         id: usuario.id,
         nombre: usuario.nombre,
         email: usuario.email,
-        activo: usuario.activo,   // 👈 nueva línea
+        activo: usuario.activo,
         esPendiente: rolesCompania.length === 0,
         rolesCompania,
       },
     };
   }
 
- // 🟢 ATAJO DE DESARROLLO: Genera token con payload completo para JwtStrategy
+ // Genera token con payload completo para JwtStrategy
   async loginDev(usuarioId?: number) {
   const whereClause = usuarioId ? { id: usuarioId, eliminado_el: null } : { eliminado_el: null };
 
@@ -174,9 +174,6 @@ export class AuthService {
     email: usuario.email,
   };
 
-  // 👇 Transformamos la forma "cruda" de Prisma (usuario_roles_compania / roles / companias)
-  //    a la forma que el frontend espera (roles / rol / compania), para no depender
-  //    de que el frontend adivine el nombre exacto de cada relación.
   const rolesFormateados = usuario.usuario_roles_compania.map((urc) => ({
     id: urc.id,
     usuario_id: urc.usuario_id,
@@ -192,8 +189,8 @@ export class AuthService {
       id: usuario.id,
       nombre: usuario.nombre,
       email: usuario.email,
-      activo: usuario.activo,   // 👈 nueva línea
-      roles: rolesFormateados, // 👈 ahora sí viaja al frontend
+      activo: usuario.activo,
+      roles: rolesFormateados, 
     },
   };
 }

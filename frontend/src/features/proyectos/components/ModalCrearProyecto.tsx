@@ -39,7 +39,6 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   const [error, setError] = useState<string | null>(null);
   const { usuario, tieneRol } = useAuth();
 
-  // Solo un PMO/ADMIN puede asignarle el proyecto a otro PM al crearlo
   const puedeAsignarAOtroPm = tieneRol('PMO') || tieneRol('ADMIN');
 
   useEffect(() => {
@@ -47,7 +46,6 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
       cargarCompanias();
       if (puedeAsignarAOtroPm) cargarPms();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const cargarCompanias = async () => {

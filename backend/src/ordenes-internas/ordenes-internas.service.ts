@@ -7,10 +7,6 @@ import { EnviarOrdenInternaDto } from './dto/enviar-orden-interna.dto';
 import { AprobarOrdenInternaDto, RechazarOrdenInternaDto } from './dto/cambiar-estado-orden.dto';
 import { SolicitarCierreGrupoDto } from './dto/solicitar-cierre-grupo.dto';
 
-// 🎯 Solo PM (dueño) y Control Gestión (asignado puntual) actúan en este
-// proceso. PMO/Director PMO/Admin pueden VER, pero no aprobar ni rechazar
-// (según lo pedido) — ADMIN sí conserva la capacidad de actuar, como en el
-// resto del sistema, para casos de soporte/urgencia.
 @Injectable()
 export class OrdenesInternasService {
   constructor(
@@ -19,9 +15,6 @@ export class OrdenesInternasService {
     private readonly notificaciones: NotificacionesService,
   ) {}
 
-  // 📦 Se llama automáticamente cuando la Solicitud de Inversión llega a
-  // APROBADO_FINAL (ver solicitud-inversion.service.ts). La dejamos también
-  // aquí como "red de seguridad" por si algún día se necesita crear a mano.
   private async obtenerOCrearGrupo(proyectoId: string) {
     return this.prisma.grupos_ordenes_internas.upsert({
       where: { proyecto_id: proyectoId },
@@ -45,8 +38,6 @@ export class OrdenesInternasService {
       throw new BadRequestException('No se puede crear una Orden Interna: este proyecto ya tiene su Acta de Cierre cerrada.');
     }
   }
-  // 🔒 Que una OI "por Control de Cambios" de verdad tenga un CC real detrás
-  // — de este mismo proyecto, y que ese CC realmente diga que necesita OI.
   private async validarControlCambioVinculado(proyectoId: string, controlCambioId?: number) {
     if (!controlCambioId) {
       throw new BadRequestException('Debes indicar a qué Control de Cambios corresponde esta Orden Interna.');
@@ -82,7 +73,7 @@ export class OrdenesInternasService {
     };
   }
 
-  // 1️⃣ Crear (BORRADOR)
+  // Crear (BORRADOR)
   async crear(usuarioId: number, dto: CrearOrdenInternaDto) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe o fue eliminado.');
@@ -127,7 +118,7 @@ export class OrdenesInternasService {
     });
   }
 
-  // ✏️ Editar mientras está en BORRADOR (solo el PM dueño, o ADMIN)
+  // Editar mientras está en BORRADOR
   async actualizarBorrador(ordenInternaId: number, usuarioId: number, dto: CrearOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'BORRADOR') {
@@ -159,7 +150,7 @@ export class OrdenesInternasService {
     });
   }
 
-  // 2️⃣ Enviar (Sección 5: elegir a quién de Control Gestión) — BORRADOR -> PENDIENTE
+  // Enviar (Sección 5: elegir a quién de Control Gestión) — BORRADOR -> PENDIENTE
   async enviar(ordenInternaId: number, usuarioId: number, dto: EnviarOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'BORRADOR') {
@@ -177,7 +168,7 @@ export class OrdenesInternasService {
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
     await this.prisma.$transaction(async (tx) => {
-      // 🔒 Bloqueo optimista: si otro request ya movió el proceso fuera de
+      // si otro request ya movió el proceso fuera de
       // BORRADOR (doble clic, dos pestañas, etc.), este update no toca nada.
       const { count } = await tx.procesos.updateMany({
         where: { id: orden.proceso_id, estado_actual: 'BORRADOR' },
@@ -218,7 +209,7 @@ export class OrdenesInternasService {
 
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna enviada a Control Gestión.' };
   }
-  // 3️⃣ Aprobar (Sección 4: grupo + observaciones) — PENDIENTE -> APROBADA
+  // Aprobar (Sección 4: grupo + observaciones) — PENDIENTE -> APROBADA
     async aprobar(ordenInternaId: number, usuarioId: number, dto: AprobarOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'PENDIENTE') {
@@ -229,9 +220,6 @@ export class OrdenesInternasService {
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
 
-    // 🏷️ El nombre del grupo solo se pide la primera vez. Si el grupo ya
-    // tiene nombre, se reutiliza aunque venga vacío en el dto; si no lo
-    // tiene, es obligatorio que esta aprobación lo traiga.
     const nombreGrupoExistente = orden.grupos_ordenes_internas.nombre;
     if (!nombreGrupoExistente && !dto.grupo_texto?.trim()) {
       throw new BadRequestException('El grupo de Órdenes Internas es obligatorio: es la primera Orden Interna de este proyecto.');
@@ -247,7 +235,7 @@ export class OrdenesInternasService {
         throw new BadRequestException('Esta Orden Interna ya cambió de estado. Refresca la pantalla.');
       }
 
-      // 🔒 Bloqueo optimista al nombrar el grupo: si dos Control Gestión
+      // si dos Control Gestión
       // aprueban casi al mismo tiempo dos OI del mismo grupo sin nombre,
       // solo la primera transacción que llega lo bautiza — la otra detecta
       // que ya tiene nombre y usa ESE (no lo pisa, no falla).
@@ -294,7 +282,7 @@ export class OrdenesInternasService {
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna aprobada.' };
   }
 
-  // ❌ Rechazar — PENDIENTE -> BORRADOR (vuelve al PM con observación)
+  // Rechazar — PENDIENTE -> BORRADOR
   async rechazar(ordenInternaId: number, usuarioId: number, dto: RechazarOrdenInternaDto) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'PENDIENTE') {
@@ -342,15 +330,10 @@ export class OrdenesInternasService {
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna devuelta a Borrador.' };
   }
 
-  // 🔒 PM solicita el cierre del GRUPO completo (bloqueado hasta que todas
-  // las OI estén Aprobadas). Esto lo disparará el proceso "Acta de Cierre"
-  // más adelante; por ahora el endpoint queda listo para usarse desde ahí.
   async solicitarCierreGrupo(proyectoId: string, usuarioId: number, dto: SolicitarCierreGrupoDto) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: proyectoId, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe o fue eliminado.');
 
-    // El guard de rol del controller solo exige el rol, no que el proyecto
-    // sea "suyo" — esta validación es la que faltaba.
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     const esDuenoPM = proyecto.creado_por === usuarioId;
     const esPmoODirector = proyecto.compania_id
@@ -393,7 +376,7 @@ export class OrdenesInternasService {
     return { grupo_id: grupo.id, mensaje: 'Cierre de Órdenes Internas solicitado. Control Gestión ya puede cerrar cada orden.' };
   }
 
-  // 🔒 Control Gestión cierra UNA orden puntual (solo si el grupo está en
+  // Control Gestión cierra UNA orden puntual (solo si el grupo está en
   // SOLICITADO_CIERRE) — APROBADA -> CERRADA. Cuando la última queda
   // cerrada, el grupo completo pasa a CERRADO automáticamente.
   async cerrarOrden(ordenInternaId: number, usuarioId: number) {
@@ -423,7 +406,6 @@ export class OrdenesInternasService {
         data: { proceso_id: orden.proceso_id, etapa_origen: 'APROBADA', etapa_destino: 'CERRADA', accion: 'CERRADO', usuario_id: usuarioId },
       });
 
-      // ¿Ya quedaron TODAS cerradas? Si sí, el grupo completo pasa a CERRADO.
       const pendientesPorCerrar = await tx.ordenes_internas.count({
         where: { grupo_id: orden.grupo_id, procesos: { estado_actual: { not: 'CERRADA' }, eliminado_el: null } },
       });
@@ -443,8 +425,6 @@ export class OrdenesInternasService {
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna cerrada.' };
   }
 
-    // 🗑️ Cancela (soft-delete) una OI que sigue en Borrador — para que un
-  // borrador abandonado no bloquee el cierre del grupo para siempre.
   async cancelarBorrador(ordenInternaId: number, usuarioId: number) {
     const orden = await this.obtenerOrdenConProceso(ordenInternaId);
     if (orden.procesos.estado_actual !== 'BORRADOR') {
@@ -466,9 +446,6 @@ export class OrdenesInternasService {
     return { orden_interna_id: ordenInternaId, mensaje: 'Orden Interna cancelada.' };
   }
 
-  // 🧰 Helper compartido
-
-  // 🧰 Helper compartido
   private async obtenerOrdenConProceso(ordenInternaId: number) {
     const orden = await this.prisma.ordenes_internas.findUnique({
       where: { id: ordenInternaId },

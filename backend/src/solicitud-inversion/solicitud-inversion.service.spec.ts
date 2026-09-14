@@ -21,7 +21,7 @@ describe('SolicitudInversionService', () => {
     encolarNotificacion: jest.fn(),
   };
 
-  // 🎭 Ahora también simulamos SolicitudInversionHelpersService — desde la
+  // simulamos SolicitudInversionHelpersService — desde la
   // división en archivos, enviarARevision ya no le habla directo a Prisma,
   // le pide el proceso a este helper.
   const helpersMock = {
@@ -52,12 +52,9 @@ describe('SolicitudInversionService', () => {
 
   describe('enviarARevision', () => {
     const PROCESO_ID = 5;
-    const PM_RESPONSABLE_ID = 2; // Laura
-    const OTRO_USUARIO_ID = 3; // Carlos, no es el PM responsable
+    const PM_RESPONSABLE_ID = 2;
+    const OTRO_USUARIO_ID = 3;
 
-    // Esto simula exactamente lo que devuelve helpers.obtenerProcesoConCompania:
-    // { proceso, proyecto, companiaId } — no un objeto "proceso" suelto como antes.
-    const respuestaHelperBorrador = {
       proceso: {
         id: PROCESO_ID,
         tipo_proceso: 'SOLICITUD_INVERSION',
@@ -88,7 +85,7 @@ describe('SolicitudInversionService', () => {
 
     it('NO debe permitir que un usuario que no es el PM responsable envíe la solicitud', async () => {
       helpersMock.obtenerProcesoConCompania.mockResolvedValue(respuestaHelperBorrador);
-      permisosMock.esAdminGlobal.mockResolvedValue(false); // Carlos no es admin
+      permisosMock.esAdminGlobal.mockResolvedValue(false);
 
       await expect(
         service.enviarARevision(PROCESO_ID, OTRO_USUARIO_ID),
@@ -101,7 +98,7 @@ describe('SolicitudInversionService', () => {
 
     it('SÍ debe permitir que un ADMIN envíe la solicitud aunque no sea el PM responsable', async () => {
       helpersMock.obtenerProcesoConCompania.mockResolvedValue(respuestaHelperBorrador);
-      permisosMock.esAdminGlobal.mockResolvedValue(true); // Ana es admin
+      permisosMock.esAdminGlobal.mockResolvedValue(true);
 
       prismaMock.$transaction.mockImplementation(async (callback) => {
         const txMock = {
@@ -111,7 +108,7 @@ describe('SolicitudInversionService', () => {
         return callback(txMock);
       });
 
-      const resultado = await service.enviarARevision(PROCESO_ID, 1 /* Ana, ADMIN */);
+      const resultado = await service.enviarARevision(PROCESO_ID, 1);
 
       expect(resultado.estado_actual).toBe('PENDIENTE_PMO');
     });

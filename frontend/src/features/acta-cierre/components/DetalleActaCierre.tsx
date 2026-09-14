@@ -571,7 +571,19 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                     {detalle.procesos.historico_aprobaciones.map((h) => (
                       <TableRow key={h.id}>
                         <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>{new Date(h.fecha_registro).toLocaleString()}</TableCell>
-                        <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>{h.usuarios?.nombre || 'Sistema'}</TableCell>
+                        <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                          <Typography variant="body2" sx={{ fontWeight: 600, fontSize: '0.82rem' }}>{h.usuarios?.nombre || 'Sistema'}</Typography>
+                          {(h.usuarios?.area || h.usuarios?.empresa) && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: 'block', fontSize: '0.7rem' }}>
+                              {[
+                                h.usuarios?.area,
+                                h.usuarios?.empresa
+                                  ? `${h.usuarios.empresa.nombre}${h.usuarios.empresa.companias ? ` (${h.usuarios.empresa.companias.nombre})` : ''}`
+                                  : null,
+                              ].filter(Boolean).join(' · ')}
+                            </Typography>
+                          )}
+                        </TableCell>
                         <TableCell>
                           <Chip size="small" label={h.accion} color={h.accion === 'RECHAZADO' ? 'error' : 'success'} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
                         </TableCell>

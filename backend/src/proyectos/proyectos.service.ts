@@ -6,10 +6,6 @@ import { FiltrarProyectosDto } from './dto/filtrar-proyectos.dto';
 import { AplazarProyectoDto } from './dto/aplazar-proyecto.dto';
 
 const ROLES_QUE_PUEDEN_APLAZAR = ['PMO', 'ADMIN'];
-
-// 👀 Una parte interesada solo debe ver el proyecto desde que el proceso llega
-// a "Verificación de Partes Interesadas" en adelante — nunca mientras está en
-// BORRADOR ni en PENDIENTE_PMO (todavía no le corresponde actuar).
 const ESTADOS_VISIBLES_PARA_PARTE_INTERESADA = {
   not: { in: ['BORRADOR', 'PENDIENTE_PMO'] },
 };
@@ -31,9 +27,7 @@ export class ProyectosService {
       throw new NotFoundException('La compañía seleccionada no existe.');
     }
 
-    // 🛡️ Si viene pm_asignado_id, el proyecto queda "de" ese PM (como si él
-    // mismo lo hubiera creado) — solo un PMO/ADMIN puede hacer esto.
-        let propietarioId = usuarioId;
+    let propietarioId = usuarioId;
     const esAdminCrear = await this.permisos.esAdminGlobal(usuarioId);
 
     if (dto.pm_asignado_id) {
@@ -98,13 +92,7 @@ export class ProyectosService {
       .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
-    // 🔒 Solo estos 3 roles ven TODOS los proyectos. Todos los demás (incluido
-    // GERENCIA y PRESIDENCIA) solo ven los proyectos con los que tuvieron o
-    // tienen relación directa (PM: los suyos; Gerencia/Presidencia/Parte
-    // Interesada: solo los que necesitaron o necesitan su aprobación).
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
-    // 🔒 Solo cuenta si el rol es GLOBAL (compania_id null) — un PMO/Director
-    // PMO asignado solo a una compañía puntual NO debe ver todo el sistema.
     const tieneAccesoTotal = codigosGlobales.some((rol) => rolesAccesoTotal.includes(rol));
 
     const selectCampos = {
@@ -118,8 +106,6 @@ export class ProyectosService {
       creado_por: true,
       companias: { select: { id: true, nombre: true } },
       usuarios: { select: { id: true, nombre: true } },
-      // 👈 Necesario para calcular el "estado" del proyecto (Cancelado si algún
-      // proceso suyo terminó cancelado)
       procesos: {
         where: { eliminado_el: null },
         select: {
@@ -146,13 +132,10 @@ export class ProyectosService {
     } else {
       const condicionesOR: any[] = [];
 
-      // PM: solo los proyectos que él mismo creó (no los de otros PM)
       if (codigosRoles.includes('PM')) {
         condicionesOR.push({ creado_por: usuarioId });
       }
 
-      // Parte interesada: solo los que le asignaron, y solo desde que el
-      // proceso llega a "Verificación de Partes Interesadas" en adelante.
       if (codigosRoles.includes('PARTE_INTERESADA')) {
         condicionesOR.push({
           procesos: {
@@ -165,9 +148,6 @@ export class ProyectosService {
         });
       }
 
-      // Gerencia: solo los proyectos donde Dirección PMO lo eligió a ÉL como
-      // gerente (asignación individual) — sea que ya haya actuado o esté
-      // pendiente. No ve los proyectos de otros gerentes de su compañía.
       if (codigosRoles.includes('GERENCIA')) {
         condicionesOR.push({
           procesos: {
@@ -179,8 +159,6 @@ export class ProyectosService {
         });
       }
 
-      // Presidencia: solo proyectos DE SU COMPAÑÍA cuyo proceso llegó o está
-      // en la etapa PRESIDENCIA (no ve toda la compañía, solo lo que le tocó).
       if (codigosRoles.includes('PRESIDENCIA')) {
         const tienePresidenciaGlobal = codigosGlobales.includes('PRESIDENCIA');
         const companiasPresidencia = rolesPorCompania.filter((r) => r.rol === 'PRESIDENCIA').map((r) => r.companiaId);
@@ -199,9 +177,6 @@ export class ProyectosService {
         });
       }
 
-      // Control Gestión: solo proyectos donde le asignaron AL MENOS una
-      // Orden Interna, O un Acta de Cierre, a él puntualmente — igual que
-      // Gerencia, no ve todo, solo lo suyo.
       if (codigosRoles.includes('CONTROL_GESTION')) {
         condicionesOR.push({
           OR: [
@@ -218,8 +193,6 @@ export class ProyectosService {
         });
       }
 
-      // 🆕 Activos Fijos: solo proyectos donde Control Gestión lo eligió a
-      // él puntualmente para revisar el Acta de Cierre.
       if (codigosRoles.includes('ACTIVOS_FIJOS')) {
         condicionesOR.push({
           procesos: {
@@ -231,8 +204,6 @@ export class ProyectosService {
         });
       }
 
-      // PMO / Director PMO asignados a compañías puntuales (no global): ven
-      // TODOS los proyectos de esas compañías, pero no de las demás.
       const companiasPmoDirector = rolesPorCompania
         .filter((r) => r.rol === 'PMO' || r.rol === 'DIRECTOR_PMO')
         .map((r) => r.companiaId);
@@ -241,8 +212,6 @@ export class ProyectosService {
       }
 
       if (condicionesOR.length === 0) {
-        // Sin ningún rol reconocido: por seguridad, solo lo propio o donde
-        // tenga una asignación individual directa.
         condicionesOR.push(
           { creado_por: usuarioId },
           {
@@ -263,14 +232,6 @@ export class ProyectosService {
       });
     }
 
-    // 🎯 Calculamos el "estado" de cada proyecto (no es una columna guardada,
-    // se deriva de sus propios datos):
-    //   CANCELADO             -> el proceso "Acta de Cierre" quedó CERRADO (aún no existe este módulo)
-    //   EN_PROCESO_DE_CANCELACION -> algún proceso (ej. Solicitud de Inversión) quedó CANCELADO,
-    //                             pero el proyecto sigue abierto hasta que se cierre el Acta de Cierre
-    //   APLAZADO              -> anio_asignado es distinto al anio_proyecto original
-    //   ACTIVO                -> ninguna de las anteriores
-    //   SUSPENDIDO            -> todavía no hay ninguna acción que lo dispare (queda reservado)
     proyectos = proyectos.map((p) => {
       const procesosProyecto = p.procesos || [];
       const actaCierreCerrada = procesosProyecto.find(
@@ -430,12 +391,9 @@ export class ProyectosService {
       .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
-    // 🔒 Misma regla que en listarProyectos: solo estos 3 roles tienen acceso
-    // total, y solo si el rol es GLOBAL (compania_id null).
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
     if (codigosGlobales.some((rol) => rolesAccesoTotal.includes(rol))) return;
 
-    // PMO / Director PMO asignados puntualmente a la compañía de ESTE proyecto.
     if (proyecto.compania_id) {
       const esPmoDirectorDeEstaCompania = rolesPorCompania.some(
         (r) => (r.rol === 'PMO' || r.rol === 'DIRECTOR_PMO') && r.companiaId === proyecto.compania_id,
@@ -445,8 +403,6 @@ export class ProyectosService {
 
     if (codigosRoles.includes('PM') && proyecto.creado_por === usuarioId) return;
 
-    // Parte interesada o Gerencia: asignación individual directa (en cualquiera
-    // de las 2 etapas que usan asignación puntual).
     const estaAsignado = await this.prisma.procesos.findFirst({
       where: {
         proyecto_id: proyecto.id,
@@ -462,7 +418,6 @@ export class ProyectosService {
     });
     if (estaAsignado) return;
 
-    // Presidencia: solo si es de su compañía Y el proceso llegó o está en esa etapa.
     if (codigosRoles.includes('PRESIDENCIA')) {
       const tienePresidenciaGlobal = codigosGlobales.includes('PRESIDENCIA');
       const companiasPresidencia = rolesPorCompania.filter((r) => r.rol === 'PRESIDENCIA').map((r) => r.companiaId);
@@ -483,14 +438,31 @@ export class ProyectosService {
       }
     }
 
-    // 🆕 Control Gestión: puede ver el proyecto si tiene AL MENOS una Orden
-    // Interna asignada a él puntualmente (igual que Gerencia con Solicitud
-    // de Inversión).
     if (codigosRoles.includes('CONTROL_GESTION')) {
       const tieneOiAsignada = await this.prisma.ordenes_internas.findFirst({
         where: { grupos_ordenes_internas: { proyecto_id: proyecto.id }, control_gestion_asignado_id: usuarioId },
       });
       if (tieneOiAsignada) return;
+
+      const tieneAsignacionAc = await this.prisma.procesos.findFirst({
+        where: {
+          proyecto_id: proyecto.id,
+          eliminado_el: null,
+          asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'CONTROL_GESTION' } },
+        },
+      });
+      if (tieneAsignacionAc) return;
+    }
+
+    if (codigosRoles.includes('ACTIVOS_FIJOS')) {
+      const tieneAsignacionActivosFijos = await this.prisma.procesos.findFirst({
+        where: {
+          proyecto_id: proyecto.id,
+          eliminado_el: null,
+          asignaciones_proceso: { some: { usuario_id: usuarioId, etapa: 'ACTIVOS_FIJOS' } },
+        },
+      });
+      if (tieneAsignacionActivosFijos) return;
     }
 
     throw new ForbiddenException('No tienes acceso a este proyecto.');

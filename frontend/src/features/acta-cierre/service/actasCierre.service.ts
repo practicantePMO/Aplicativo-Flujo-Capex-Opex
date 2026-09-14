@@ -26,8 +26,6 @@ export const enviarActaCierre = async (procesoId: number) => {
   return data;
 };
 
-// 🆕 activosFijosId: solo se manda cuando se aprueba la etapa CONTROL_GESTION
-// (Control Gestión elige a quién de Activos Fijos sigue el proceso).
 export const aprobarActaCierre = async (
   procesoId: number,
   comentarios: string,

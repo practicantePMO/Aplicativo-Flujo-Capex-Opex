@@ -37,8 +37,6 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Filtros (todos client-side, ya que la lista de "pendientes" de una persona
-  // normalmente es corta — no vale la pena ir y volver al backend por esto)
   const [filtroTipoProceso, setFiltroTipoProceso] = useState('');
   const [filtroCompania, setFiltroCompania] = useState('');
   const [filtroAnio, setFiltroAnio] = useState('');
@@ -56,7 +54,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
         setCargando(false);
       }
     })();
-  }, [usuario?.id]); // 👈 antes era [] — nunca se enteraba de un cambio de usuario
+  }, [usuario?.id]); 
 
   const tiposDisponibles = Array.from(new Set(pendientes.map((p) => p.tipo_proceso).filter(Boolean)));
   const companiasDisponibles = Array.from(

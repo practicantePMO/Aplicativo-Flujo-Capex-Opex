@@ -31,7 +31,6 @@ export const editarAreaUsuario = async (usuarioId: number, area: string) => {
   return response.data;
 };
 
-// 🆕 empresaId en null = "quitar la empresa asignada" (es opcional)
 export const editarEmpresaUsuario = async (usuarioId: number, empresaId: number | null) => {
   const response = await axiosClient.patch(`/usuarios/${usuarioId}/empresa`, { empresa_id: empresaId });
   return response.data;

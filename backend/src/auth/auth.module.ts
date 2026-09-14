@@ -6,10 +6,10 @@ import { AuthController } from './auth.controller';
 import { UsuariosModule } from '../usuarios/usuarios.module';
 import { JwtStrategy } from './jwt.strategy';
 
-// 🔥 REGLA DE SEGURIDAD: Si no hay clave secreta, el servidor NO ARRANCA.
+// REGLA DE SEGURIDAD: Si no hay clave secreta, el servidor NO ARRANCA.
 const jwtSecret = process.env.JWT_SECRET;
 if (!jwtSecret) {
-  throw new Error('🛑 ERROR CRÍTICO: Falta la variable JWT_SECRET en el archivo .env');
+  throw new Error('ERROR CRÍTICO: Falta la variable JWT_SECRET en el archivo .env');
 }
 
 @Module({

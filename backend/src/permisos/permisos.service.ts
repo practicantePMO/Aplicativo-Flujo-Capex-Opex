@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class PermisosService {
   constructor(private readonly prisma: PrismaService) {}
 
-  // ¿Es administrador global? (compañía NULL)
+  // ¿Es administrador global? 
   async esAdminGlobal(usuarioId: number): Promise<boolean> {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: { usuario_id: usuarioId, roles: { codigo: 'ADMIN' } },
@@ -13,7 +13,7 @@ export class PermisosService {
     return !!asignacion;
   }
 
-  // ¿Tiene el rol para esta compañía específica (o de forma global)?
+  // ¿Tiene el rol para esta compañía específica?
   async tieneRolParaCompania(usuarioId: number, codigosRol: string[], companiaId: number): Promise<boolean> {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: {
@@ -32,7 +32,7 @@ export class PermisosService {
     }
   }
 
-  // ¿Fue asignado Específicamente a esta etapa (Partes interesadas)?
+  // ¿Fue asignado Específicamente a esta etapa?
   async estaAsignadoAEtapa(usuarioId: number, procesoId: number, etapa: string): Promise<boolean> {
     const asignacion = await this.prisma.asignaciones_proceso.findFirst({
       where: {
@@ -54,7 +54,7 @@ export class PermisosService {
     }
   }
 
-  // ¿Tiene este usuario alguno de estos roles, en CUALQUIER compañía (o global)?
+  // ¿Tiene este usuario alguno de estos roles, en CUALQUIER compañía?
   // A diferencia de tieneRolParaCompania, este no necesita una compañía de referencia.
   async tieneAlgunRol(usuarioId: number, codigosRol: string[]): Promise<boolean> {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
@@ -63,7 +63,7 @@ export class PermisosService {
     return !!asignacion;
   }
 
-  // ¿Tiene este rol de forma GLOBAL (compania_id NULL)? A diferencia de
+  // ¿Tiene este rol de forma GLOBAL? A diferencia de
   // tieneAlgunRol, un rol asignado solo para una compañía puntual NO cuenta.
   async tieneRolGlobal(usuarioId: number, codigosRol: string[]): Promise<boolean> {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({

@@ -1,9 +1,9 @@
-# ===== ETAPA 1: Construcción (los "andamios") =====
+# ===== ETAPA 1: Construcción =====
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copiamos solo los archivos de dependencias primero (para aprovechar el cache de Docker:
+# Copiamos solo los archivos de dependencias primero 
 # si no cambiaste package.json, Docker no vuelve a instalar todo desde cero cada vez)
 COPY package*.json ./
 RUN npm ci
@@ -17,7 +17,7 @@ RUN NODE_TLS_REJECT_UNAUTHORIZED=0 npx prisma generate
 # Compila TypeScript -> JavaScript (esto es lo que hace "npm run build")
 RUN npm run build
 
-# ===== ETAPA 2: Producción (la "casa terminada", sin andamios) =====
+# ===== ETAPA 2: Producción =====
 FROM node:20-alpine AS production
 
 WORKDIR /app

@@ -1,5 +1,3 @@
-// frontend/src/features/backup/services/backup.service.ts
-
 import axiosClient from '../../../api/axiosClient';
 
 export async function descargarBackupExcel(): Promise<void> {

@@ -40,11 +40,9 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const [verControlCambios, setVerControlCambios] = useState(false);
   const [verActaCierre, setVerActaCierre] = useState(false);
 
-  // 🔗 Navegación cruzada entre los dos paneles: al crear un CC que requiere
-  // OI, o al querer ver el CC ligado a una OI, cambiamos de panel y le
-  // decimos al panel destino con qué abrirse (crear pre-llenado, o expandido).
   const [oiPrefillControlCambioId, setOiPrefillControlCambioId] = useState<number | null>(null);
   const [ccProcesoIdParaAbrir, setCcProcesoIdParaAbrir] = useState<number | null>(null);
+  const [oiIdParaAbrir, setOiIdParaAbrir] = useState<number | null>(null);
 
   const puedeCrearProceso = tieneRol('PM') || tieneRol('ADMIN');
 
@@ -63,7 +61,6 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     cargarEstadoOi();
   };
 
-  // 🎯 Estado real del grupo de Órdenes Internas (Activo/Cierre solicitado/Cerrado).
   const cargarEstadoOi = async () => {
     try {
       const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
@@ -83,18 +80,12 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     (p) => p.estado_actual === 'APROBADO_FINAL'
   );
 
-  // 🎯 Si ya existe un Acta de Cierre en CERRADO, el proyecto terminó
-  // (Finalizado o Cancelado) — Control de Cambios y el Acta misma deben
-  // reflejarlo en vez de seguir mostrando "Activo".
   const proyectoCerrado = procesos.some(
     (p) => p.tipo_proceso === 'ACTA_CIERRE' && p.estado_actual === 'CERRADO'
   );
 
   const tieneControlCambios = procesos.some((p) => p.tipo_proceso === 'CONTROL_CAMBIO');
   const tieneActaCierre = procesos.some((p) => p.tipo_proceso === 'ACTA_CIERRE');
-    // 🚧 Hay una Acta de Cierre por CANCELACIÓN en curso (creada pero todavía
-  // no CERRADA) — mientras no se resuelva, hay que avisar en todos lados
-  // para que nadie siga avanzando otros procesos sin saberlo.
   const cancelacionEnCurso = procesos.some(
     (p) => p.tipo_proceso === 'ACTA_CIERRE' && p.actas_cierre?.tipo_cierre === 'CANCELACION' && p.estado_actual !== 'CERRADO'
   );
@@ -111,6 +102,13 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
     setOiPrefillControlCambioId(null);
     setCcProcesoIdParaAbrir(procesoId);
     setVerControlCambios(true);
+  };
+
+  const manejarVerOrdenInterna = (ordenInternaId: number) => {
+    setVerControlCambios(false);
+    setCcProcesoIdParaAbrir(null);
+    setOiIdParaAbrir(ordenInternaId);
+    setVerOrdenesInternas(true);
   };
 
   if (mostrarFormulario) {
@@ -135,13 +133,14 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   if (verOrdenesInternas) {
     return (
       <Box>
-        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerOrdenesInternas(false); setOiPrefillControlCambioId(null); cargarEstadoOi(); }} sx={styles.backBtn}>
+        <Button startIcon={<ArrowBackIcon />} onClick={() => { setVerOrdenesInternas(false); setOiPrefillControlCambioId(null); setOiIdParaAbrir(null); cargarEstadoOi(); }} sx={styles.backBtn}>
           Volver a Procesos
         </Button>
         <PanelOrdenesInternas
           proyectoId={proyecto.id}
           companiaId={proyecto.companias?.id ?? proyecto.compania_id}
           crearParaControlCambioId={oiPrefillControlCambioId}
+          abrirOrdenInternaId={oiIdParaAbrir}
           onVerControlCambio={manejarVerControlCambio}
         />
       </Box>
@@ -160,6 +159,7 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
           creadoPor={proyecto.creado_por}
           procesoIdInicial={ccProcesoIdParaAbrir}
           onCrearOi={manejarCrearOiDesdeCc}
+          onVerOrdenInterna={manejarVerOrdenInterna}
         />
       </Box>
     );

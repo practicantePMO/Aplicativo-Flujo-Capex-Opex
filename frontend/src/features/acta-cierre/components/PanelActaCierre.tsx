@@ -17,7 +17,7 @@ interface Props {
 
 export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdenesInternas }: Props) {
   const { usuario, tieneRol } = useAuth();
-  const [acta, setActa] = useState<ActaCierreResumen | null | undefined>(undefined); // undefined = cargando
+  const [acta, setActa] = useState<ActaCierreResumen | null | undefined>(undefined);
   const [oiPendientesPorCerrar, setOiPendientesPorCerrar] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
@@ -28,9 +28,6 @@ export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdene
       const data = await obtenerActaCierrePorProyecto(proyectoId);
       setActa(data);
 
-      // 🔒 Si todavía no hay Acta, revisamos si hay Órdenes Internas sin cerrar
-      // ANTES de dejar entrar al formulario (evita llenar todo y toparse con
-      // el 400 al final).
       if (!data) {
         const grupo = await obtenerOrdenesInternasPorProyecto(proyectoId).catch(() => null);
         const ordenesInternas = grupo?.ordenes_internas || [];

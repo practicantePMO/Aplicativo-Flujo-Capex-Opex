@@ -1,7 +1,3 @@
-// frontend/src/features/backup/components/BotonBackupExcel.tsx
-//
-// Botón visible solo para ADMIN, PMO y DIRECTOR_PMO. Al hacer clic, descarga
-// el Excel con el backup completo de todos los proyectos.
 
 import { useState } from 'react';
 import { Button, CircularProgress, Alert } from '@mui/material';

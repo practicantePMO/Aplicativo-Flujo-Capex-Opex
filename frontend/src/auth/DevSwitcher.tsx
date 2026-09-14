@@ -3,9 +3,6 @@ import { useAuth } from './AuthContext';
 import { Box, Button, Paper, Typography, Menu, MenuItem, Chip } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
 
-// Lista de los 16 usuarios del seed de prueba
-// ⚠️ Esta lista NO se lee de la base de datos — si vuelves a cambiar el seed
-// (agregar/quitar usuarios), hay que actualizarla también aquí a mano.
 const USUARIOS_PRUEBA = [
   { id: 1, nombre: 'Ana (Admin)', rol: 'ADMIN', compania: 'Global' },
   { id: 2, nombre: 'Laura (PM)', rol: 'PM', compania: 'Global' },
@@ -32,7 +29,6 @@ export function DevSwitcher() {
   const { usuario, loginDev } = useAuth();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
-  // Solo se muestra en entorno de desarrollo
   if (!import.meta.env.DEV) return null;
 
   const handleOpen = (event: React.MouseEvent<HTMLButtonElement>) => {

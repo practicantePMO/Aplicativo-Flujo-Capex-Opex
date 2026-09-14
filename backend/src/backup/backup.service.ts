@@ -1,9 +1,3 @@
-// backend/src/backup/backup.service.ts
-//
-// Genera el mismo Excel completo (15 hojas) de scripts/exportar-excel.ts,
-// pero en memoria (Buffer), para devolverlo como descarga desde el endpoint
-// GET /backup/excel en vez de escribirlo a disco.
-
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import ExcelJS from 'exceljs';

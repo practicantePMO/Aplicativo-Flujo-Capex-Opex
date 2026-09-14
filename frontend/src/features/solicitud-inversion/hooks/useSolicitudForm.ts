@@ -27,10 +27,10 @@ export function useSolicitudForm(
   const [categorias, setCategorias] = useState<{ id: number; nombre: string; requiere_evaluacion_obligatoria: boolean }[]>([]);
   const [usuarios, setUsuarios] = useState<any[]>([]);
 
-  // 1. Extraer flujos existentes (si es modo edición)
+  // 1. Extraer flujos existentes 
   const flujosGuardados = (solicitudExistente?.solicitudes_inversion?.solicitud_flujo_caja || []) as FlujoCaja[];
 
-  // 2. Determinar el año base (del proyecto)
+  // 2. Determinar el año base 
   const anioBase = (proyecto as any)?.anio_proyecto || new Date().getFullYear();
 
   // 3. Configurar años iniciales (flujos existentes o el año base si es nuevo)
@@ -42,8 +42,6 @@ export function useSolicitudForm(
   const initialTipos: Record<number, Tipo[]> = {};
   const initialMeses: Record<number, number[]> = {};
   const initialMoneda: Record<string, Moneda> = {};
-  // 🎯 Qué tipos aplican en cada mes puntual (ej: "2026_2": ['CAPEX']) — se
-  // reconstruye a partir de qué filas de flujo_caja existían para ese mes.
   const initialTiposPorMes: Record<string, Tipo[]> = {};
 
   if (flujosGuardados.length > 0) {
@@ -75,9 +73,6 @@ export function useSolicitudForm(
 
   // 5. INICIALIZAR EL FORMULARIO
   const [form, setForm] = useState({
-    // 🏷️ Clasificación doble: ya no es un radio excluyente, son 2 checkboxes
-    // independientes que se pueden marcar juntos.
-    incluyeTradicional: solicitudExistente ? esTradicionalGuardada : true,
     incluyeNueva: esNuevaGuardada,
 
     grupoId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programas?.id_grupo || ('' as number | ''),
@@ -102,8 +97,6 @@ export function useSolicitudForm(
         }))
       : [{ compromiso: '', fecha_inicio: '', indicador: '' }]) as Meta[],
 
-    // 💰 "Valor Total del Proyecto" ya NO se digita: se calcula solo a partir
-    // de "flujos" (ver activoUsd/activoCop/gastoUsd/gastoCop más abajo).
     aniosFlujo: initialAnios,
     tiposSeleccionados: initialTipos,
     mesesSeleccionados: initialMeses,
@@ -170,8 +163,6 @@ export function useSolicitudForm(
   const subprogramaSeleccionado = subprogramas.find((s) => s.id === Number(form.subprogramaId));
   const categoriaSeleccionada = categorias.find((c) => c.id === Number(form.categoriaId));
 
-  // 📌 Si CUALQUIERA de las dos clasificaciones marcadas exige evaluación
-  // financiera obligatoria (subprograma o categoría), se activa sola.
   useEffect(() => {
     const obligaSubprograma = form.incluyeTradicional && subprogramaSeleccionado?.requiere_evaluacion_obligatoria;
     const obligaCategoria = form.incluyeNueva && categoriaSeleccionada?.requiere_evaluacion_obligatoria;
@@ -180,8 +171,6 @@ export function useSolicitudForm(
     }
   }, [subprogramaSeleccionado?.id, categoriaSeleccionada?.id, form.incluyeTradicional, form.incluyeNueva]);
 
-  // 🧮 Totales de "Valor Total del Proyecto", calculados a partir del flujo
-  // de caja: CAPEX = Activo; GCAPEX + OPEX = Gasto; separados por moneda.
   const sumarFlujos = (tipos: Tipo[], moneda: Moneda) =>
     (form.flujos || [])
       .filter((f) => tipos.includes((f as any).tipo) && ((f as any).moneda || 'COP') === moneda)
@@ -234,7 +223,7 @@ export function useSolicitudForm(
         throw new Error('Debes ingresar la TRM.');
       }
 
-                 // --- Flujo de caja: cada mes que el PM marcó debe tener valor > 0 SOLO
+       // --- Flujo de caja: cada mes que el PM marcó debe tener valor > 0 SOLO
       // en los tipos que él mismo dijo que aplican ese mes puntual ---
       for (const anio of form.aniosFlujo || []) {
         const tiposAnio = form.tiposSeleccionados[anio] || [];

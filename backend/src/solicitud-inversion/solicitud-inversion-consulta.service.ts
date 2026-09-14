@@ -2,11 +2,6 @@ import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/commo
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 
-// 📖 Todo lo que SOLO LEE datos, nunca cambia el estado de un proceso.
-// Separado de SolicitudInversionService a propósito: la máquina de estados
-// (crear/aprobar/rechazar/etc.) es la parte más sensible del sistema, y
-// mantenerla libre de métodos de consulta la hace más fácil de leer y de
-// mantener sin tener que hacer scroll entre lógica de escritura y de lectura.
 @Injectable()
 export class SolicitudInversionConsultaService {
   constructor(
@@ -36,7 +31,7 @@ export class SolicitudInversionConsultaService {
     });
     if (!proceso || proceso.eliminado_el) throw new NotFoundException('Proceso no encontrado.');
 
-    // 🛡️ Validamos que el usuario tenga relación real con este proceso o su compañía
+    // Validamos que el usuario tenga relación real con este proceso o su compañía
     const companiaId = proceso.proyectos?.compania_id;
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     const esResponsable = proceso.solicitudes_inversion?.responsable_pm_id === usuarioId;
@@ -94,9 +89,6 @@ export class SolicitudInversionConsultaService {
         const etapasRolesMap: Record<string, string[]> = {
       PENDIENTE_PMO: ['PMO', 'ADMIN'],
       DIRECCION_PMO: ['DIRECTOR_PMO', 'ADMIN'],
-      // 🎯 GERENCIA ya NO se ve "por tener el rol" — Dirección PMO elige a un
-      // gerente puntual, y solo a ESE gerente le debe aparecer (ver el OR de
-      // asignaciones_proceso más abajo). ADMIN se deja por supervisión global.
       GERENCIA: ['ADMIN'],
       PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
     };
@@ -128,9 +120,6 @@ export class SolicitudInversionConsultaService {
         tipo_proceso: 'SOLICITUD_INVERSION',
         OR: [
           ...condicionesEtapas,
-          // 🎯 Partes interesadas y Gerencia: la asignación puntual SOLO cuenta
-          // si el proceso YA está en esa etapa exacta ahora mismo — no desde que
-          // se creó el BORRADOR (antes se veía "pendiente" desde el principio).
           {
             estado_actual: 'VERIFICACION_PARTES_INTERESADAS',
             asignaciones_proceso: {
@@ -179,7 +168,6 @@ export class SolicitudInversionConsultaService {
     });
   }
 
-  // 👈 Método para consultar las categorías del catálogo (Clasificación Nueva)
   async obtenerCategorias() {
     return this.prisma.categorias.findMany({
       where: { eliminado_el: null },

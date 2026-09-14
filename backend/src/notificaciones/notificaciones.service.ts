@@ -62,7 +62,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
         await channel.assertQueue(this.queueName, { durable: true });
         await channel.assertQueue(this.deadLetterQueue, { durable: true });
 
-        // 2. 🟢 NUEVO: Cola de reintentos nativa con TTL
+        // 2. Cola de reintentos nativa con TTL
         await channel.assertQueue(this.retryQueue, {
           durable: true,
           deadLetterExchange: '', // Exchange por defecto
@@ -70,7 +70,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
           messageTtl: this.pausaMs, // Tiempo de espera (Backoff) nativo en RabbitMQ
         });
 
-        // 3. 🟢 NUEVO: Control de flujo (Prefetch) para no saturar la memoria
+        // 3. Control de flujo (Prefetch) para no saturar la memoria
         await channel.prefetch(10); 
 
         await channel.consume(this.queueName, (msg) => this.procesarMensaje(channel, msg));
@@ -86,11 +86,11 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   }
 
   private renderTemplate(templateName: string, datos: Record<string, any>): string {
-    // 🟢 Lista de rutas donde buscar la plantilla (dist y src directo)
+    // lista de rutas donde buscar la plantilla (dist y src directo)
     const posiblesRutas = [
-      path.join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), // 1. Directo en tu carpeta src (Garantizado)
-      path.join(__dirname, 'templates', `${templateName}.hbs`),                              // 2. Ruta dist estándar
-      path.join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`), // 3. Ruta dist/src
+      path.join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
+      path.join(__dirname, 'templates', `${templateName}.hbs`),
+      path.join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
     ];
 
     // Busca la primera ruta que exista físicamente en el disco
@@ -119,7 +119,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
     const headers = msg.properties.headers || {};
     const intentosActuales = (headers['x-retries'] || 0) + 1;
 
-    // 🟢 CORRECCIÓN 1: Poison Message asíncrono y seguro para channelWrapper
+    // Poison Message asíncrono y seguro para channelWrapper
     try {
       contenido = JSON.parse(msg.content.toString());
     } catch (parseError) {
@@ -153,7 +153,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
       };
       const config = configMap[contenido.tipo];
 
-      // 🟢 CORRECCIÓN 2: Validar que el tipo de evento exista y fallar rápido
+      // Validar que el tipo de evento exista y fallar rápido
       if (!config) {
         this.logger.error(`Tipo de evento desconocido [${contenido.tipo}]. Moviendo directo a DLQ sin reintentos.`);
         await this.channelWrapper.sendToQueue(this.deadLetterQueue, contenido, { persistent: true, headers: { 'x-error': 'UNKNOWN_EVENT_TYPE' } });

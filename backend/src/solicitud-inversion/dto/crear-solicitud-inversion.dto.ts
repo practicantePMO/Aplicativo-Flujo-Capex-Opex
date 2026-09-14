@@ -77,9 +77,6 @@ export class CrearSolicitudInversionDto {
   @ValidateNested({ each: true }) @Type(() => SolicitudMetaDto)
   metas: SolicitudMetaDto[];
 
-  // 🧮 Ya NO se recibe manual: "Valor Total del Proyecto" (ACTIVO/GASTO en
-  // USD/COP) se calcula en el backend sumando flujos_caja según su tipo y
-  // moneda. Ver SolicitudInversionHelpersService.calcularValoresDesdeFlujo().
 
   @IsArray({ message: 'El flujo de caja debe ser una lista.' })
   @ArrayMinSize(1, { message: 'Debes registrar al menos una fila de flujo de caja.' })

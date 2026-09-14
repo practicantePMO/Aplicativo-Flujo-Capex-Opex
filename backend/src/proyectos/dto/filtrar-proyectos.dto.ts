@@ -16,7 +16,6 @@ export class FiltrarProyectosDto {
   @IsInt({ message: 'La compañía debe ser un número entero.' })
   companiaId?: number;
 
-  // Llega como texto en el query string ("true"/"false"), no como boolean real
   @IsOptional()
   @IsIn(['true', 'false'])
   aplazados?: string;

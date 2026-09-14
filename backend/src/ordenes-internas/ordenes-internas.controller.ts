@@ -64,8 +64,6 @@ export class OrdenesInternasController {
   async cerrarOrden(@Req() req: any, @Param('id', ParseIntPipe) id: number) {
     return this.service.cerrarOrden(id, req.user.userId);
   }
-  // 🔒 Este endpoint lo disparará el futuro proceso "Acta de Cierre" — lo
-  // dejamos listo desde ya para no tener que retocar este módulo después.
   @Post('grupo/:proyectoId/solicitar-cierre')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'ADMIN')
   async solicitarCierreGrupo(@Req() req: any, @Param('proyectoId') proyectoId: string, @Body() dto: SolicitarCierreGrupoDto) {

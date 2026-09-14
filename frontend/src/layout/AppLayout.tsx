@@ -41,9 +41,6 @@ export function AppLayout({
           component="main"
           sx={{
             ...styles.mainContent,
-            // El contenido no necesita margen extra: el Sidebar ya reserva su
-            // propio ancho con "flexShrink: 0" — pero como el ancho cambia con
-            // una transición, dejamos que fluya junto con ella.
             transition: 'margin-left 0.2s ease',
           }}
         >

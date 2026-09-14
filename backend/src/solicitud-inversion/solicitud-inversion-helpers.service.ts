@@ -6,17 +6,9 @@ export const REGLA_POR_ETAPA: Record<string, { tipo: 'ROL_COMPANIA' | 'ASIGNACIO
   PENDIENTE_PMO: { tipo: 'ROL_COMPANIA', roles: ['PMO', 'ADMIN'] },
   VERIFICACION_PARTES_INTERESADAS: { tipo: 'ASIGNACION_INDIVIDUAL' },
   DIRECCION_PMO: { tipo: 'ROL_COMPANIA', roles: ['DIRECTOR_PMO', 'ADMIN'] },
-  // 🎯 GERENCIA ya no es "cualquiera con el rol GERENCIA de la compañía":
-  // Dirección PMO elige a UN gerente puntual al aprobar DIRECCION_PMO
-  // (hay varias gerencias), y solo esa persona puede actuar aquí.
   GERENCIA: { tipo: 'ASIGNACION_INDIVIDUAL' },
   PRESIDENCIA: { tipo: 'ROL_COMPANIA', roles: ['PRESIDENCIA', 'ADMIN'] },
 };
-
-// 🧰 Utilidades compartidas por casi todos los métodos de la máquina de estados:
-// resolver el proceso + su compañía, validar quién puede actuar en cada etapa,
-// y buscar a quién notificar por correo. Viven aquí, separadas, porque NINGUNA
-// de ellas cambia el estado de nada — solo consultan o validan.
 @Injectable()
 export class SolicitudInversionHelpersService {
   constructor(
@@ -38,9 +30,6 @@ export class SolicitudInversionHelpersService {
     return Array.from(new Set(usuarios.map((u) => u.email).filter((e): e is string => Boolean(e))));
   }
 
-  // 📬 Devuelve email Y nombre de cada asignado — antes solo traía el email,
-  // por eso el correo terminaba mandando un texto genérico ("Hola Parte
-  // Interesada") en vez del nombre real de la persona.
   async obtenerAsignados(procesoId: number, etapa: string): Promise<{ email: string; nombre: string }[]> {
     const asignaciones = await this.prisma.asignaciones_proceso.findMany({
       where: { proceso_id: procesoId, etapa, estado_asignacion: 'PENDIENTE' },
@@ -78,9 +67,6 @@ export class SolicitudInversionHelpersService {
     else await this.permisos.exigirAsignacionAEtapa(usuarioId, procesoId, etapa);
   }
 
-  // 🏷️ Valida la clasificación del proyecto (Tradicional, Nueva, o AMBAS a la
-  // vez) y determina si por lo seleccionado la evaluación financiera es
-  // obligatoria (si CUALQUIERA de las clasificaciones marcadas la exige).
   async validarClasificacion(
     prismaClient: any,
     dto: { incluye_tradicional?: boolean; incluye_nueva?: boolean; subprograma_id?: number; categoria_id?: number; tiene_evaluacion_financiera: boolean },
@@ -117,11 +103,6 @@ export class SolicitudInversionHelpersService {
     return { tipoClasificacion };
   }
 
-  // 💰 "Valor Total del Proyecto" (ACTIVO/GASTO en USD/COP) ya NO se digita
-  // manual — se calcula sumando el flujo de caja:
-  //   CAPEX            -> ACTIVO
-  //   GCAPEX + OPEX     -> GASTO
-  // cada uno separado por la moneda en la que se ingresó ese mes.
   calcularValoresDesdeFlujo(
     flujos: { tipo: string; moneda: string; monto: number }[],
   ): { categoria: 'ACTIVO' | 'GASTO'; usd: number; cop: number }[] {

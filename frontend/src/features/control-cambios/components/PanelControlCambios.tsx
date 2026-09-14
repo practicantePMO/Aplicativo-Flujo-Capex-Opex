@@ -26,9 +26,10 @@ interface Props {
   creadoPor?: number | null;
   procesoIdInicial?: number | null;
   onCrearOi?: (controlCambioId: number) => void;
+  onVerOrdenInterna?: (ordenInternaId: number) => void;
 }
 
-export function PanelControlCambios({ proyectoId, companiaId, creadoPor, procesoIdInicial, onCrearOi }: Props) {
+export function PanelControlCambios({ proyectoId, companiaId, creadoPor, procesoIdInicial, onCrearOi, onVerOrdenInterna }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [items, setItems] = useState<ControlCambioResumen[] | undefined>(undefined); // undefined = cargando
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
@@ -145,6 +146,7 @@ export function PanelControlCambios({ proyectoId, companiaId, creadoPor, proceso
                     onCambio={cargar}
                     onEditar={() => setEnEdicionId(cc.procesos.id)}
                     onCrearOi={onCrearOi}
+                    onVerOrdenInterna={onVerOrdenInterna}
                   />
                 )}
               </AccordionDetails>

@@ -1,7 +1,14 @@
+export interface EmpresaResumenAc {
+  nombre: string;
+  companias?: { nombre: string } | null;
+}
+
 export interface UsuarioResumenAc {
   id: number;
   nombre: string;
   email?: string;
+  area?: string | null;
+  empresa?: EmpresaResumenAc | null;
 }
 
 export type TipoCierre = 'CANCELACION' | 'CULMINACION';

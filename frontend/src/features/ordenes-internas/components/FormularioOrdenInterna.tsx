@@ -11,8 +11,8 @@ import type { ControlCambioResumen } from '../../control-cambios/types/controlCa
 
 interface Props {
   proyectoId: string;
-  ordenInternaId?: number; // si viene, es edición de un Borrador existente
-  prefillControlCambioId?: number; // si viene, es un atajo desde un Control de Cambios
+  ordenInternaId?: number;
+  prefillControlCambioId?: number;
   onCancelar: () => void;
   onGuardada: (ordenInternaId: number) => void;
 }
@@ -43,8 +43,6 @@ const CAMPO_VACIO: CrearOrdenInternaPayload = {
 };
 
 export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillControlCambioId, onCancelar, onGuardada }: Props) {
-  // null = todavía no respondió la pregunta inicial. Si viene prefillControlCambioId,
-  // ya sabemos la respuesta (es un atajo desde el Control de Cambios).
   const [preguntaRespondida, setPreguntaRespondida] = useState(!!ordenInternaId || !!prefillControlCambioId);
   const [form, setForm] = useState<CrearOrdenInternaPayload>({
     ...CAMPO_VACIO,
@@ -75,8 +73,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           linea_marca: detalle.linea_marca || '',
           cliente: detalle.cliente || '',
           ramo: detalle.ramo || '',
-          // 🔧 Decimal de Prisma llega como string desde el backend — hay que
-          // convertirlo a número explícitamente o el DTO de guardado lo rechaza.
           porcentaje_1: detalle.porcentaje_1 !== null && detalle.porcentaje_1 !== undefined ? Number(detalle.porcentaje_1) : undefined,
           es_control_cambios: detalle.es_control_cambios,
           control_cambio_id: detalle.control_cambio_id ?? undefined,
@@ -87,8 +83,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           presupuesto_moneda: detalle.presupuesto_moneda || 'COP',
           activo_real_productivo: detalle.activo_real_productivo || '',
           observaciones_pm: detalle.observaciones_pm || '',
-          // 🔧 Igual que arriba: quitamos "id"/"orden_interna_id" (que el DTO no
-          // acepta) y convertimos usd/cop de string a número.
           valores: detalle.oi_valores?.length
             ? detalle.oi_valores.map((v: any) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
             : CAMPO_VACIO.valores,
@@ -150,8 +144,6 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
 
   const controlesCambioElegibles = controlesCambio.filter((cc) => cc.requiere_orden_interna);
 
-  // 🔀 Primera pregunta: ¿es una OI por Control de Cambios? Decide si se ve la Sección 3
-  // Y, si es "Sí", exige elegir un Control de Cambios real que ya exista para este proyecto.
   if (!preguntaRespondida) {
     return (
       <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>

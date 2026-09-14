@@ -176,8 +176,6 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Typography>
   );
 
-  // 🎯 Cada campo ahora vive dentro de su propia "casilla" gris clara, para
-  // que se distingan mejor unos de otros en vez de verse todos pegados.
   const campo = (label: string, valor?: string | number | null) => (
     <Grid item xs={12} sm={6} md={4}>
       <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6', height: '100%' }}>
@@ -191,7 +189,6 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Grid>
   );
 
-  // 🆕 Versión "tablita" para Datos Generales — filas de [etiqueta, valor].
   const tablaCampos = (filas: [string, string | number | null | undefined][]) => (
     <TableContainer component={Card} variant="outlined">
       <Table size="small">
@@ -219,8 +216,6 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Card>
   );
 
-  // 💰 Formatea un valor de moneda; si es 0 (o no se ingresó), devuelve null
-  // para que la tabla no lo muestre — "solo lo que sí se ingresó".
   const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
     valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
 

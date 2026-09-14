@@ -19,7 +19,7 @@ export interface Usuario {
   nombre: string;
   email: string;
   area?: string;
-  activo?: boolean;   // 👈 nueva línea
+  activo?: boolean;  
   roles?: RolCompania[];
 }
 

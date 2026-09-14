@@ -2,8 +2,6 @@ import { Injectable, NotFoundException, InternalServerErrorException, BadRequest
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 
-// 🔁 Mismas reglas de etapa que Solicitud de Inversión — el flujo de
-// aprobación de Control de Cambios es un calco intencional del de SI.
 export const REGLA_POR_ETAPA: Record<string, { tipo: 'ROL_COMPANIA' | 'ASIGNACION_INDIVIDUAL'; roles?: string[] }> = {
   PENDIENTE_PMO: { tipo: 'ROL_COMPANIA', roles: ['PMO', 'ADMIN'] },
   VERIFICACION_PARTES_INTERESADAS: { tipo: 'ASIGNACION_INDIVIDUAL' },

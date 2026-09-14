@@ -29,9 +29,6 @@ export class ActasCierreConsultaService {
     });
     if (esAsignado) return;
 
-    // 🎯 Quien fue parte interesada de la Solicitud de Inversión de este
-    // proyecto puede VER el Acta de Cierre (para entender por qué se está
-    // cancelando/culminando), aunque no haya sido asignado a ESTA acta.
     const fueParteInteresadaDeLaSi = await this.prisma.asignaciones_proceso.findFirst({
       where: {
         usuario_id: usuarioId,
@@ -44,8 +41,6 @@ export class ActasCierreConsultaService {
     throw new ForbiddenException('No tienes acceso al Acta de Cierre de este proyecto.');
   }
 
-  // 📋 Existe o no un Acta de Cierre para este proyecto (para que el frontend
-  // decida entre mostrar "Crear" o el detalle existente — solo puede haber una).
   async obtenerPorProyecto(usuarioId: number, proyectoId: string) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: proyectoId, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('Proyecto no encontrado.');
@@ -58,14 +53,25 @@ export class ActasCierreConsultaService {
     });
   }
 
-  // 🔍 Detalle completo + datos de comparación de SI y de la última OI de CC.
   async obtenerDetalle(usuarioId: number, procesoId: number) {
     const acta = await this.prisma.actas_cierre.findUnique({
       where: { proceso_id: procesoId },
       include: {
         procesos: {
           include: {
-            historico_aprobaciones: { include: { usuarios: { select: { id: true, nombre: true } } }, orderBy: { fecha_registro: 'desc' } },
+            historico_aprobaciones: {
+              include: {
+                usuarios: {
+                  select: {
+                    id: true,
+                    nombre: true,
+                    area: true,
+                    empresa: { select: { nombre: true, companias: { select: { nombre: true } } } },
+                  },
+                },
+              },
+              orderBy: { fecha_registro: 'desc' },
+            },
             asignaciones_proceso: { include: { usuarios: { select: { id: true, nombre: true, email: true } } } },
           },
         },
@@ -129,7 +135,6 @@ export class ActasCierreConsultaService {
     };
   }
 
-  // 🔔 Usado por "Mis Pendientes"
   async obtenerMisPendientes(usuarioId: number) {
     const rolesUsuario = await this.prisma.usuario_roles_compania.findMany({
       where: { usuario_id: usuarioId },

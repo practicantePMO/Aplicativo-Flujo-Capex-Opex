@@ -11,7 +11,7 @@ describe('AuthService', () => {
 
   beforeEach(async () => {
     // Fijamos el dominio permitido para que la prueba no dependa
-    // de lo que tengas configurado en tu .env real
+    // de lo que este configurado en el .env real
     process.env.ALLOWED_EMAIL_DOMAIN = 'empresa.com';
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,9 +45,6 @@ describe('AuthService', () => {
     });
 
     it('no debe dejarse engañar por un dominio que solo termina parecido (ej. "empresa.com.malicioso.com")', () => {
-      // Este es el caso más importante de los tres: confirma que la validación
-      // usa "termina en @empresa.com" de forma exacta, y no un simple
-      // "contiene la palabra empresa.com en algún lado" (que sería fácil de burlar).
       expect(() =>
         (service as any).validarDominioCorporativo('atacante@empresa.com.malicioso.com'),
       ).toThrow(UnauthorizedException);

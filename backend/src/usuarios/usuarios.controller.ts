@@ -25,15 +25,12 @@ export class UsuariosController {
     return this.usuariosService.findActivos();
   }
 
-  // Todos los usuarios (activos e inactivos) con sus roles — para la pantalla de gestión
   @Get()
   @Roles('ADMIN', 'PMO')
   async obtenerTodos() {
     return this.usuariosService.findTodos();
   }
 
-  // Ej: GET /usuarios/por-rol?rol=GERENCIA&companiaId=3 (elegir a qué gerente enviar el proceso)
-  // También lo usa Control Gestión para elegir a quién de Activos Fijos enviar el Acta de Cierre.
   @Get('por-rol')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'CONTROL_GESTION')
   async obtenerPorRol(@Query('rol') rol: string, @Query('companiaId') companiaIdRaw?: string) {
@@ -47,8 +44,6 @@ export class UsuariosController {
     return this.usuariosService.findRolesDisponibles();
   }
 
-  // Solo ADMIN o PMO pueden entrar aquí; el service valida internamente
-  // qué puede otorgar exactamente cada uno (ver asignarRolCompania).
   @Post('asignar-rol')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO')
   async asignarRol(@Req() req: any, @Body() dto: AsignarRolDto) {
@@ -71,7 +66,6 @@ export class UsuariosController {
     return this.usuariosService.cambiarActivo(req.user.userId, id, dto.activo);
   }
 
-  // ✏️ Nuevo: antes no existía ninguna forma de editar el área de un usuario.
   @Patch(':id/area')
   @Roles('ADMIN', 'PMO')
   async editarArea(
@@ -82,7 +76,6 @@ export class UsuariosController {
     return this.usuariosService.editarArea(req.user.userId, id, dto.area);
   }
 
-  // 🆕 Editar la empresa de un usuario (dentro de su compañía, ej. "Noel").
   @Patch(':id/empresa')
   @Roles('ADMIN', 'PMO')
   async editarEmpresa(

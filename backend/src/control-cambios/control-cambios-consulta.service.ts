@@ -9,11 +9,6 @@ export class ControlCambiosConsultaService {
     private readonly permisos: PermisosService,
   ) {}
 
-  // 👀 Visibilidad: PM dueño del proyecto, ADMIN, cualquiera con rol
-  // PMO/DIRECTOR_PMO/GERENCIA/PRESIDENCIA en la compañía (los mismos que
-  // participan en el flujo de aprobación), o quien tenga una asignación
-  // puntual (parte interesada / gerente) en algún Control de Cambios de
-  // este proyecto.
   private async validarAcceso(usuarioId: number, proyecto: { creado_por: number | null; compania_id: number | null }, proyectoId: string) {
     if (proyecto.creado_por === usuarioId) return;
 
@@ -37,8 +32,6 @@ export class ControlCambiosConsultaService {
     throw new ForbiddenException('No tienes acceso a los Control de Cambios de este proyecto.');
   }
 
-  // 📋 Panel completo: la lista de todos los Control de Cambios del proyecto
-  // (acá no hay tabla de "grupo" — se listan directo, ordenados del más nuevo al más viejo).
   async obtenerPorProyecto(usuarioId: number, proyectoId: string) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: proyectoId, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('Proyecto no encontrado.');
@@ -56,7 +49,6 @@ export class ControlCambiosConsultaService {
     });
   }
 
-  // 🔍 Detalle completo de UN Control de Cambios + su histórico de aprobaciones
   async obtenerDetalle(usuarioId: number, procesoId: number) {
     const controlCambio = await this.prisma.controles_cambio.findUnique({
       where: { proceso_id: procesoId },
@@ -84,8 +76,6 @@ export class ControlCambiosConsultaService {
     return { ...controlCambio, proyecto_nombre: proyecto.nombre };
   }
 
-  // 🔔 Usado por "Mis Pendientes" — mismo patrón que Solicitud de Inversión,
-  // porque Control de Cambios comparte exactamente su mismo flujo de etapas.
   async obtenerMisPendientes(usuarioId: number) {
     const rolesUsuario = await this.prisma.usuario_roles_compania.findMany({
       where: { usuario_id: usuarioId },

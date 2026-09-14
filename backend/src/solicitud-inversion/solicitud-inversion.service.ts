@@ -15,11 +15,6 @@ import { RechazarSolicitudDto, AprobarSolicitudDto } from './dto/cambiar-estado-
 import { ActualizarPartesInteresadasDto } from './dto/actualizar-partes-interesadas.dto';
 import { CancelarSolicitudDto } from './dto/cancelar-solicitud.dto';
 
-// 🔁 La máquina de estados de Solicitud de Inversión: crear, enviar a revisión,
-// aprobar/rechazar en cada etapa, cancelar, y editar un borrador. Todo lo que
-// SOLO LEE datos (sin cambiar nada) vive en SolicitudInversionConsultaService;
-// los helpers compartidos (validar permisos, resolver proceso+compañía) viven
-// en SolicitudInversionHelpersService, inyectado aquí abajo.
 @Injectable()
 export class SolicitudInversionService {
   private readonly logger = new Logger(SolicitudInversionService.name);
@@ -35,10 +30,6 @@ export class SolicitudInversionService {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe.');
 
-    // 🛡️ Solo el PM dueño de este proyecto (o un Administrador) puede crear su
-    // Solicitud de Inversión — antes cualquier PM de la compañía podía crearla
-    // en un proyecto ajeno con solo adivinar el ID (mismo bug que encontraste en
-    // Control de Cambios).
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esAdmin && proyecto.creado_por !== usuarioId) {
       throw new ForbiddenException('Solo el PM dueño de este proyecto (o un Administrador) puede crear su Solicitud de Inversión.');
@@ -58,7 +49,6 @@ export class SolicitudInversionService {
       );
     }
 
-    // Validaciones condicionales según clasificación (Tradicional, Nueva, o ambas)
     const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
 
     try {
@@ -98,7 +88,6 @@ export class SolicitudInversionService {
           await tx.solicitud_flujo_caja.createMany({
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
           });
-          // 🧮 "Valor Total del Proyecto" se calcula solo, sumando el flujo de caja.
           await tx.solicitud_valores.createMany({
             data: this.helpers
               .calcularValoresDesdeFlujo(dto.flujos_caja)
@@ -287,10 +276,6 @@ export class SolicitudInversionService {
         throw new BadRequestException('El proceso fue modificado por otro usuario. Refresca la pantalla.');
       }
 
-      // 🔁 Si el proceso está ENTRANDO a Verificación de Partes Interesadas, reiniciamos
-      // todas sus asignaciones a PENDIENTE — sin importar si venían de RESUELTA (ya
-      // habían aprobado una versión anterior) o CANCELADA (habían rechazado antes).
-      // Así se les vuelve a pedir verificar la versión actual de la solicitud.
       if (estadoDestino === 'VERIFICACION_PARTES_INTERESADAS') {
         await tx.asignaciones_proceso.updateMany({
           where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS' },
@@ -298,8 +283,6 @@ export class SolicitudInversionService {
         });
       }
 
-      // 👤 Dirección PMO acaba de elegir a un gerente puntual: le creamos su
-      // asignación individual pendiente en la nueva etapa GERENCIA.
       if (estadoDestino === 'GERENCIA' && gerenteElegidoId) {
         await tx.asignaciones_proceso.deleteMany({ where: { proceso_id: procesoId, etapa: 'GERENCIA' } });
         await tx.asignaciones_proceso.create({
@@ -307,8 +290,6 @@ export class SolicitudInversionService {
         });
       }
 
-      // ✅ Si la etapa que se acaba de aprobar era de asignación individual
-      // (hoy, GERENCIA), marcamos esa asignación puntual como resuelta.
       if (REGLA_POR_ETAPA[estadoOrigen]?.tipo === 'ASIGNACION_INDIVIDUAL') {
         await tx.asignaciones_proceso.updateMany({
           where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
@@ -327,9 +308,6 @@ export class SolicitudInversionService {
         },
       });
 
-      // 🆕 Cuando la Solicitud de Inversión llega a APROBADO_FINAL, se habilita
-      // automáticamente el panel de Órdenes Internas (se crea el "grupo"
-      // contenedor, todavía sin nombre — lo pone Control Gestión después).
       if (estadoDestino === 'APROBADO_FINAL') {
         await tx.grupos_ordenes_internas.upsert({
           where: { proyecto_id: proyecto.id },
@@ -353,7 +331,6 @@ export class SolicitudInversionService {
         select: { nombre: true },
       });
 
-      // 1) El PM SIEMPRE se entera de cómo va su propio proceso
       if (pmEmail) {
         await this.notificaciones.encolarNotificacion({
           tipo: 'SOLICITUD_APROBADA',
@@ -368,9 +345,6 @@ export class SolicitudInversionService {
         });
       }
 
-      // 2) Y a quien le toca actuar AHORA (la etapa nueva) se le avisa que ya
-      // tiene algo pendiente — reutilizamos REGLA_POR_ETAPA, la misma fuente
-      // de verdad que ya usa el sistema para decidir "quién puede aprobar aquí".
       const nuevoEstado = resultado.estado_actual;
 
             if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
@@ -419,7 +393,6 @@ export class SolicitudInversionService {
           });
         }
       }
-      // Si nuevoEstado es APROBADO_FINAL, no hay "siguiente" a quien avisar — correcto, se queda solo con el aviso al PM.
     } catch (error) {
       this.logger.error('Error al notificar (aprobarEtapa)', error);
     }
@@ -451,10 +424,6 @@ export class SolicitudInversionService {
         });
       }
 
-      // 🆕 Sin importar en qué etapa se rechazó, al volver a BORRADOR reiniciamos
-      // TODAS las asignaciones de Verificación de Partes Interesadas a PENDIENTE.
-      // Así, apenas el proceso vuelve a BORRADOR, ya no quedan mostrando "Resuelta"
-      // de una vuelta anterior — no hace falta esperar a que se reenvíe.
       await tx.asignaciones_proceso.updateMany({
         where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS' },
         data: { estado_asignacion: 'PENDIENTE', fecha_resolucion: null },
@@ -478,7 +447,6 @@ export class SolicitudInversionService {
       const pmEmail = proceso.solicitudes_inversion?.usuarios?.email;
       const usuarioRechazador = await this.prisma.usuarios.findUnique({ where: { id: usuarioId }, select: { nombre: true } });
 
-      // El PM y el PMO/ADMIN de la compañía se enteran juntos del rechazo
       const destinatariosPmo = await this.helpers.obtenerEmailsPorRol(['PMO', 'ADMIN'], companiaId);
       const destinatarios = Array.from(new Set([...(pmEmail ? [pmEmail] : []), ...destinatariosPmo]));
 
@@ -611,15 +579,10 @@ export class SolicitudInversionService {
       throw new ForbiddenException('No tienes permisos para modificar este borrador.');
     }
 
-    // Validaciones condicionales según clasificación (Tradicional, Nueva, o ambas)
     const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
-        // 🔒 Reconfirma DENTRO de la transacción que la solicitud sigue en
-        // BORRADOR — evita que la edición se aplique sobre una solicitud que
-        // ya fue enviada a revisión en la ventana de tiempo entre el chequeo
-        // de arriba y este guardado.
         const { count } = await tx.procesos.updateMany({
           where: { id: procesoId, estado_actual: 'BORRADOR' },
           data: { estado_actual: 'BORRADOR' },
@@ -664,7 +627,6 @@ export class SolicitudInversionService {
           await tx.solicitud_flujo_caja.createMany({
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
           });
-          // 🧮 "Valor Total del Proyecto" se recalcula solo, sumando el flujo de caja.
           await tx.solicitud_valores.createMany({
             data: this.helpers
               .calcularValoresDesdeFlujo(dto.flujos_caja)

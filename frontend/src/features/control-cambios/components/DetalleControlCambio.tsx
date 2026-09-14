@@ -5,7 +5,7 @@ import {
   FormControlLabel, Radio, Link, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import { useAuth } from '../../../auth/AuthContext';
-import type { ControlCambioDetalle } from '../types/controlCambio.types';
+import type { ControlCambioDetalle, OrdenInternaRelacionadaCc } from '../types/controlCambio.types';
 import type { UsuarioActivo } from '../../solicitud-inversion/types/solicitud.types';
 import {
   obtenerControlCambioDetalle, enviarControlCambio, aprobarControlCambio, rechazarControlCambio,
@@ -24,7 +24,6 @@ const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning
   APROBADO_FINAL: { label: 'Aprobado Final', color: 'success' },
 };
 
-// 🎯 Estados propios de Órdenes Internas (distintos a los de CC/SI de arriba).
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
   PENDIENTE: { label: 'Pendiente Control Gestión', color: 'warning' },
@@ -46,9 +45,10 @@ interface Props {
   onCambio: () => void;
   onEditar: () => void;
   onCrearOi?: (controlCambioId: number) => void;
+  onVerOrdenInterna?: (ordenInternaId: number) => void;
 }
 
-export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar, onCrearOi }: Props) {
+export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar, onCrearOi, onVerOrdenInterna }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [detalle, setDetalle] = useState<ControlCambioDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
@@ -65,6 +65,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
 
   const [gerentesDisponibles, setGerentesDisponibles] = useState<UsuarioActivo[]>([]);
   const [gerenteElegido, setGerenteElegido] = useState<UsuarioActivo | null>(null);
+  const [ordenInternaElegida, setOrdenInternaElegida] = useState<OrdenInternaRelacionadaCc | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const cargar = async () => {
@@ -361,6 +362,28 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
                   </TableBody>
                 </Table>
               </TableContainer>
+
+              {onVerOrdenInterna && (
+                <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
+                  <Autocomplete
+                    sx={{ minWidth: 280 }}
+                    options={detalle.ordenes_internas}
+                    getOptionLabel={(oi) => `${oi.numero_oi || 'Sin número'} — ${oi.nombre_descriptivo}`}
+                    isOptionEqualToValue={(a, b) => a.id === b.id}
+                    value={ordenInternaElegida}
+                    onChange={(_, v) => setOrdenInternaElegida(v)}
+                    renderInput={(params) => <TextField {...params} label="Elegir cuál Orden Interna ver" size="small" />}
+                  />
+                  <Button
+                    variant="contained"
+                    color="info"
+                    disabled={!ordenInternaElegida}
+                    onClick={() => ordenInternaElegida && onVerOrdenInterna(ordenInternaElegida.id)}
+                  >
+                    Ver Orden Interna
+                  </Button>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </>

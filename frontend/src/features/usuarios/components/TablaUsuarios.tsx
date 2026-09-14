@@ -35,10 +35,9 @@ export function TablaUsuarios() {
   const [nuevaEmpresa, setNuevaEmpresa] = useState<Empresa | null>(null);
   const [guardandoEmpresa, setGuardandoEmpresa] = useState(false);
 
-  // Filtros
   const [filtroSoloPendientes, setFiltroSoloPendientes] = useState(false);
   const [filtroArea, setFiltroArea] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState(''); // '' | 'activo' | 'inactivo'
+  const [filtroEstado, setFiltroEstado] = useState('');
 
   const esAdmin = tieneRol('ADMIN');
 
@@ -50,7 +49,6 @@ export function TablaUsuarios() {
 
   useEffect(() => {
     cargarUsuarios();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuarioActual?.id]);
 
   const cargarUsuarios = async () => {
@@ -91,8 +89,6 @@ export function TablaUsuarios() {
     }
   };
 
-  // Activar es reversible y de bajo riesgo -> directo.
-  // Desactivar sí pide confirmación explícita (bloquea el acceso de alguien).
   const manejarCambiarActivo = async (u: Usuario) => {
     if (u.activo) {
       setUsuarioParaDesactivar(u);

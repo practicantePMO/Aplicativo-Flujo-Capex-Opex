@@ -20,7 +20,7 @@ export class ProyectosController {
   }
 
   @Get()
-  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION')
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS')
   async listarProyectos(@Req() req: any, @Query() filtros: FiltrarProyectosDto) {
     const usuarioId = req.user.userId;
     return this.proyectosService.listarProyectos(usuarioId, filtros);

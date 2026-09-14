@@ -52,7 +52,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
 
   useEffect(() => {
     cargarListaProyectos();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usuario?.id, filtroAnio, filtroCompania, filtroAplazados]);
 
   const cargarListaProyectos = async () => {
@@ -74,7 +73,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
     }
   };
 
-  // Búsqueda libre por ID, nombre o compañía — se aplica sobre lo que ya trajo el backend
   const proyectosFiltrados = proyectos.filter(
     (p) =>
       p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -82,7 +80,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
       p.companias?.nombre.toLowerCase().includes(busqueda.toLowerCase()),
   );
 
-  // Años disponibles para el desplegable, calculados de los proyectos ya cargados
   const aniosDisponibles = Array.from(
     new Set(proyectos.map((p) => p.anio_asignado ?? p.anio_proyecto).filter((a): a is number => !!a)),
   ).sort((a, b) => b - a);

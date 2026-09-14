@@ -3,7 +3,7 @@ import { CatalogosService } from './catalogos.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @Controller('catalogos')
-// Exigimos que el usuario tenga un token JWT válido para consultar los catálogos 🔒
+// Exigimos que el usuario tenga un token JWT válido para consultar los catálogos 
 @UseGuards(JwtAuthGuard)
 export class CatalogosController {
   constructor(private readonly catalogosService: CatalogosService) {}
@@ -32,8 +32,7 @@ export class CatalogosController {
     return this.catalogosService.obtenerSubprogramasPorPrograma(programaId);
   }
 
-  // 🆕 GET /catalogos/empresas — todas las empresas de todas las compañías,
-  // con el nombre de su compañía incluido (para mostrar "Noel (Galletas)").
+  // GET /catalogos/empresas — todas las empresas de todas las compañías.
   @Get('empresas')
   async obtenerEmpresas() {
     return this.catalogosService.obtenerEmpresas();

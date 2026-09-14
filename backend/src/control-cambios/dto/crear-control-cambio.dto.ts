@@ -4,7 +4,7 @@ import { Type } from 'class-transformer';
 export class AnexoControlCambioDto {
   @IsString()
   @IsNotEmpty()
-  tipo: string; // DOCUMENTO | IMAGEN | COTIZACION | CORREO | GRABACION | TICKET | ORDEN_INTERNA | PLANO | OTRO
+  tipo: string;
 
   @IsString()
   @IsNotEmpty()
@@ -50,7 +50,7 @@ export class CrearControlCambioDto {
   @Type(() => AnexoControlCambioDto)
   anexos?: AnexoControlCambioDto[];
 
-  // 🕒 GENERAL (default) o APLAZAMIENTO. Si es APLAZAMIENTO, exige el año nuevo.
+  // GENERAL (default) o APLAZAMIENTO. Si es APLAZAMIENTO, exige el año nuevo.
   @IsIn(['GENERAL', 'APLAZAMIENTO'], { message: 'El tipo de Control de Cambios debe ser GENERAL o APLAZAMIENTO.' })
   @IsOptional()
   tipo_control_cambio?: 'GENERAL' | 'APLAZAMIENTO';

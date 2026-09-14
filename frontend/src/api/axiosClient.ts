@@ -8,7 +8,7 @@ const axiosClient = axios.create({
   },
 });
 
-// Interceptor de Peticiones: Adjunta el JWT automáticamente
+// Adjunta el JWT automáticamente
 axiosClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token');
@@ -20,7 +20,7 @@ axiosClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Interceptor de Respuestas: Maneja errores globales (como el conflicto 409)
+// Maneja errores globales 
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {

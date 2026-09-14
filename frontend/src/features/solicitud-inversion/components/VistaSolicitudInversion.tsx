@@ -12,10 +12,7 @@ import {
   actualizarPartesInteresadas, obtenerPartesInteresadas, obtenerUsuariosPorRol,
 } from '../services/solicitudInversion.service';
 
-// Formulario para modo edición
 import { FormularioSolicitudInversion } from './FormularioSolicitudInversion';
-
-// Subcomponentes modulares
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { BarraAccionesSolicitud } from './Vista/BarraAccionesSolicitud';
 import { SeccionInformacionGeneralVista } from './Vista/SeccionInformacionGeneralVista';
@@ -38,8 +35,6 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
   PENDIENTE_PMO: ['PMO', 'ADMIN'],
   VERIFICACION_PARTES_INTERESADAS: [],
   DIRECCION_PMO: ['DIRECTOR_PMO', 'ADMIN'],
-  // GERENCIA ya no es por rol: Dirección PMO elige a UN gerente puntual
-  // (hay varias gerencias), y solo esa persona puede actuar aquí.
   GERENCIA: [],
   PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
 };
@@ -197,7 +192,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       return;
     }
     if (estado === 'GERENCIA') { setDialogoGerencia(true); return; }
-    setDialogoAprobar(true); // 👈 antes aprobaba directo, ahora abre el diálogo
+    setDialogoAprobar(true); 
   };
 
   const confirmarElegirGerente = async () => {
@@ -256,9 +251,6 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
     finally { setProcesando(false); }
   };
 
-  // 👈 Formato condicional según el tipo de clasificación
-   // 👈 Muestra la(s) clasificación(es) reales: puede tener Tradicional, Nueva,
-  // o ambas a la vez — sin corchetes ni texto pegado, la vista los separa.
   const tipoClasif = (solicitud as any)?.tipo_clasificacion;
   const textoTradicional = solicitud?.subprogramas
     ? `${solicitud.subprogramas.programas?.grupos?.nombre || '—'} / ${solicitud.subprogramas.programas?.nombre || '—'} / ${solicitud.subprogramas.nombre || '—'}`

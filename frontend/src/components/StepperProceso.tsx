@@ -8,8 +8,8 @@ export interface EtapaProceso {
 interface Props {
   etapas: EtapaProceso[];
   etapaActual: string;
-  estadoFinal?: string; // ej. 'APROBADO_FINAL' o 'CERRADA' — significa "completado con éxito"
-  estadoCancelado?: string; // ej. 'CANCELADO' — significa "terminó, pero no se completó"
+  estadoFinal?: string; 
+  estadoCancelado?: string; 
 }
 
 export function StepperProceso({ etapas, etapaActual, estadoFinal, estadoCancelado }: Props) {

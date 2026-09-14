@@ -6,7 +6,7 @@ export class LoginSsoDto {
   @IsNotEmpty({ message: 'El idToken es obligatorio' })
   idToken: string;
 
-  // Opcional, por si en el futuro agregas Azure/Microsoft
+  // Opcional, por si en el futuro se agrega Azure/Microsoft
   @IsString()
   @IsOptional()
   proveedor?: string;

@@ -14,7 +14,7 @@ import { obtenerPartesInteresadas } from '../../solicitud-inversion/services/sol
 interface Props {
   proyectoId: string;
   companiaId: number;
-  procesoId?: number; // si viene, es edición de un Borrador existente
+  procesoId?: number;
   onCancelar: () => void;
   onGuardado: (procesoId: number) => void;
 }
@@ -70,8 +70,6 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
           justificacion: detalle.justificacion || '',
           impacto_alcance: detalle.impacto_alcance || '',
           impacto_tiempo: detalle.impacto_tiempo || '',
-          // 🔧 El DTO de guardado solo acepta tipo/url/descripcion — quitamos
-          // "id" y "control_cambio_id" que trae la respuesta de la base de datos.
           anexos: (detalle.control_cambio_anexos || []).map((a) => ({ tipo: a.tipo, url: a.url, descripcion: a.descripcion || '' })),
           tipo_control_cambio: detalle.tipo_control_cambio || 'GENERAL',
           anio_nuevo_propuesto: detalle.anio_nuevo_propuesto ?? undefined,

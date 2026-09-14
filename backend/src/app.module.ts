@@ -24,8 +24,8 @@ import { BackupModule } from './backup/backup.module';
     ConfigModule.forRoot({ isGlobal: true }),
     ThrottlerModule.forRoot([
       {
-        ttl: 60000, // ventana de 60 segundos
-        limit: 30,  // máximo 30 peticiones por IP en esa ventana, para el resto de la app
+        ttl: 60000,
+        limit: 30,
       },
     ]),
     PrismaModule,
@@ -48,7 +48,7 @@ import { BackupModule } from './backup/backup.module';
     AppService,
     {
       provide: APP_GUARD,
-      useClass: ThrottlerGuard, // aplica el límite a TODAS las rutas por defecto
+      useClass: ThrottlerGuard, 
     },
   ],
 })

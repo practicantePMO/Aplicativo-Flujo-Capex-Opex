@@ -24,13 +24,7 @@ export class ActasCierreService {
     private readonly helpers: ActasCierreHelpersService,
   ) {}
 
-  // 🔒 SI aprobada, proyecto sin Acta de Cierre previa, y si tiene Órdenes
-  // Internas, TODAS deben estar ya cerradas (grupo en estado CERRADO) —
-  // si nunca existió ninguna OI, no hay nada que exigir.
   private async validarCreacionPermitida(proyectoId: string, tipoCierre: 'CANCELACION' | 'CULMINACION') {
-    // 🎯 Cancelar un proyecto NO requiere que la Solicitud de Inversión haya
-    // llegado a Aprobado Final — se puede cancelar antes de eso. La
-    // culminación normal sí lo sigue exigiendo.
     if (tipoCierre !== 'CANCELACION') {
       const siAprobada = await this.prisma.procesos.findFirst({
         where: { proyecto_id: proyectoId, tipo_proceso: 'SOLICITUD_INVERSION', estado_actual: 'APROBADO_FINAL', eliminado_el: null },
@@ -39,9 +33,6 @@ export class ActasCierreService {
         throw new BadRequestException('El Acta de Cierre solo se habilita cuando la Solicitud de Inversión del proyecto llegó a Aprobado Final.');
       }
 
-      // 🎯 Para CULMINAR (no para cancelar) el proyecto debe haber ejecutado
-      // algo real: al menos una Orden Interna creada, y ningún Control de
-      // Cambios todavía en trámite.
       const grupoOi = await this.prisma.grupos_ordenes_internas.findUnique({
         where: { proyecto_id: proyectoId },
         include: { ordenes_internas: true },
@@ -73,8 +64,6 @@ export class ActasCierreService {
       );
     }
 
-    // 🔒 Todo CC ya aprobado que diga "requiere Orden Interna" debe tener
-    // efectivamente una OI cerrada — si no, alguien se saltó ese paso.
     const ccsQueRequierenOi = await this.prisma.controles_cambio.findMany({
       where: { proyecto_id: proyectoId, requiere_orden_interna: true, procesos: { estado_actual: 'APROBADO_FINAL' } },
       include: { ordenes_internas: { include: { procesos: { select: { estado_actual: true } } } } },
@@ -89,7 +78,7 @@ export class ActasCierreService {
     }
   }
 
-  // 1️⃣ Crear (BORRADOR)
+  // Crear Borrador
   async crear(usuarioId: number, dto: CrearActaCierreDto) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe.');
@@ -131,7 +120,7 @@ export class ActasCierreService {
     });
   }
 
-  // ✏️ Editar mientras está en BORRADOR (solo el PM dueño, o ADMIN)
+  // Editar mientras está en BORRADOR
   async actualizarBorrador(procesoId: number, usuarioId: number, dto: CrearActaCierreDto) {
     const { proceso, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual !== 'BORRADOR') {
@@ -175,7 +164,6 @@ export class ActasCierreService {
     });
   }
 
-  // 🧰 Compartido entre crear() y actualizarBorrador(): guarda las 5 tablas hijas.
   private async guardarSecciones(tx: any, actaCierreId: number, dto: CrearActaCierreDto) {
     if (dto.metas?.length) {
       await tx.acta_cierre_metas.createMany({
@@ -204,7 +192,7 @@ export class ActasCierreService {
     }
   }
 
-  // 2️⃣ Enviar a revisión — BORRADOR -> PENDIENTE_PMO
+  // Enviar a revisión — BORRADOR -> PENDIENTE_PMO
   async enviarARevision(procesoId: number, usuarioId: number) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual !== 'BORRADOR') {
@@ -253,7 +241,7 @@ export class ActasCierreService {
     return resultado;
   }
 
-  // 3️⃣ Aprobar la etapa actual
+  // Aprobar la etapa actual
   async aprobarEtapa(procesoId: number, usuarioId: number, dto: AprobarActaCierreDto) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     const estadoOrigen = proceso.estado_actual;
@@ -532,7 +520,7 @@ export class ActasCierreService {
     return resultado;
   }
 
-  // ❌ Rechazar la etapa actual — vuelve a BORRADOR
+  // Rechazar la etapa actual — vuelve a BORRADOR
   async rechazarEtapa(procesoId: number, usuarioId: number, dto: RechazarActaCierreDto) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual === 'BORRADOR' || proceso.estado_actual === 'CERRADO') {
@@ -603,7 +591,7 @@ export class ActasCierreService {
     return resultado;
   }
 
-  // 🔁 Actualizar partes interesadas (antes de que verifiquen)
+  // Actualizar partes interesadas (antes de que verifiquen)
   async actualizarPartesInteresadas(procesoId: number, usuarioId: number, dto: ActualizarPartesInteresadasActaCierreDto) {
     const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
 

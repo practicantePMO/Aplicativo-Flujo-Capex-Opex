@@ -38,9 +38,6 @@ export class ControlCambiosService {
   }
 
 
-  // 🔒 La SI del proyecto debe estar Aprobada Final, el proyecto no debe
-  // estar cancelado (ni en proceso de cancelación), y el grupo de Órdenes
-  // Internas no debe estar ya CERRADO.
   private async validarCreacionPermitida(proyectoId: string) {
     const siAprobada = await this.prisma.procesos.findFirst({
       where: { proyecto_id: proyectoId, tipo_proceso: 'SOLICITUD_INVERSION', estado_actual: 'APROBADO_FINAL', eliminado_el: null },
@@ -66,7 +63,7 @@ export class ControlCambiosService {
     }
   }
 
-  // 1️⃣ Crear (BORRADOR)
+  // Crear (BORRADOR)
   async crear(usuarioId: number, dto: CrearControlCambioDto) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
     if (!proyecto) throw new NotFoundException('El proyecto no existe.');
@@ -109,7 +106,7 @@ export class ControlCambiosService {
     });
   }
 
-  // ✏️ Editar mientras está en BORRADOR (solo el PM dueño, o ADMIN)
+  //Editar mientras está en BORRADOR 
   async actualizarBorrador(procesoId: number, usuarioId: number, dto: CrearControlCambioDto) {
     const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual !== 'BORRADOR') {
@@ -149,7 +146,7 @@ export class ControlCambiosService {
     });
   }
 
-  // 2️⃣ Enviar a revisión — BORRADOR -> PENDIENTE_PMO
+  //Enviar a revisión — BORRADOR -> PENDIENTE_PMO
   async enviarARevision(procesoId: number, usuarioId: number) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual !== 'BORRADOR') {
@@ -199,7 +196,7 @@ export class ControlCambiosService {
     return resultado;
   }
 
-  // 3️⃣ Aprobar la etapa actual — avanza según en qué etapa esté
+  // Aprobar la etapa actual — avanza según en qué etapa esté
   async aprobarEtapa(procesoId: number, usuarioId: number, dto: AprobarControlCambioDto) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     const estadoOrigen = proceso.estado_actual;
@@ -336,12 +333,6 @@ export class ControlCambiosService {
         },
       });
 
-      // 🕒 Si este CC es de tipo APLAZAMIENTO y acaba de llegar a APROBADO_FINAL,
-      // ejecutamos el aplazamiento del proyecto automáticamente — reutilizando
-      // la misma tabla "proyectos_aplazamientos" que ya usa el aplazamiento
-      // directo (ver proyectos.service.ts -> aplazarProyecto). Este es
-      // justamente el camino autorizado para aplazar un proyecto que ya
-      // tiene una Solicitud de Inversión aprobada.
       if (estadoDestino === 'APROBADO_FINAL' && proceso.controles_cambio?.tipo_control_cambio === 'APLAZAMIENTO') {
         const anioNuevo = proceso.controles_cambio.anio_nuevo_propuesto;
         if (anioNuevo) {
@@ -437,7 +428,7 @@ export class ControlCambiosService {
     return resultado;
   }
 
-  // ❌ Rechazar la etapa actual — vuelve a BORRADOR
+  // Rechazar la etapa actual — vuelve a BORRADOR
   async rechazarEtapa(procesoId: number, usuarioId: number, dto: RechazarControlCambioDto) {
     const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
     if (proceso.estado_actual === 'BORRADOR' || proceso.estado_actual === 'APROBADO_FINAL') {
@@ -508,7 +499,6 @@ export class ControlCambiosService {
     return resultado;
   }
 
-  // 🔁 Actualizar quiénes son las partes interesadas (antes de que verifiquen)
   async actualizarPartesInteresadas(procesoId: number, usuarioId: number, dto: ActualizarPartesInteresadasCcDto) {
     const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
 
