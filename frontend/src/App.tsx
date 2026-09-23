@@ -29,8 +29,6 @@ function ContenidoPrincipal() {
   const [proyectoSeleccionado, setProyectoSeleccionado] = useState<Proyecto | null>(null);
   const [procesoIdSeleccionado, setProcesoIdSeleccionado] = useState<number | null>(null);
 
-  // 🆕 Si no hay nadie logueado (recién cerró sesión), mostramos ESTA pantalla,
-  // no la de "esperando rol" — son cosas completamente distintas.
   if (!usuario) {
     return (
       <>

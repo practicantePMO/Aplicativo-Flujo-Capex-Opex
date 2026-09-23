@@ -20,9 +20,9 @@ export function SeccionPartesInteresadas({ usuarios, partesInteresadas, setParte
           value={partesInteresadas || []}
           onChange={(_, newValue) => setPartesInteresadas(newValue)}
           isOptionEqualToValue={(option, value) => option.id === value.id}
-          renderTags={(value, getTagProps) =>
+          renderValue={(value, getItemProps) =>
             value.map((option, index) => {
-              const { key, ...tagProps } = getTagProps({ index });
+              const { key, ...tagProps } = getItemProps({ index });
               return <Chip key={key} label={option.nombre} size="small" {...tagProps} />;
             })
           }

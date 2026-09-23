@@ -224,6 +224,7 @@ export class UsuariosService {
     if (!esAdmin && asignacion.roles?.codigo === 'ADMIN') {
       throw new ForbiddenException('No tienes permiso para quitar el rol de Administrador.');
     }
+    await this.exigirGestionSobreRoles(usuarioSolicitanteId, [asignacion]);
 
     await this.prisma.usuario_roles_compania.delete({ where: { id: asignacionId } });
     return { mensaje: 'Rol removido exitosamente.' };
@@ -245,6 +246,8 @@ export class UsuariosService {
     if (esAdminObjetivo && !esAdminSolicitante) {
       throw new ForbiddenException('No tienes permiso para modificar a un Administrador.');
     }
+
+    await this.exigirGestionSobreRoles(usuarioSolicitanteId, usuario.usuario_roles_compania);
 
     await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { activo } });
     return { mensaje: activo ? 'Usuario activado exitosamente.' : 'Usuario desactivado exitosamente.' };
@@ -279,14 +282,45 @@ export class UsuariosService {
     if (esAdminObjetivo && !esAdminSolicitante) {
       throw new ForbiddenException('No tienes permiso para modificar a un Administrador.');
     }
+    await this.exigirGestionSobreRoles(usuarioSolicitanteId, usuario.usuario_roles_compania);
 
     if (empresaId !== null) {
       const empresa = await this.prisma.empresas.findUnique({ where: { id: empresaId } });
       if (!empresa) throw new NotFoundException('La empresa seleccionada no existe.');
+      const companias = await this.companiasGestionables(usuarioSolicitanteId);
+      if (companias !== null && !companias.includes(empresa.compania_id)) {
+        throw new ForbiddenException('Solo puedes asignar empresas de las compañías donde eres PMO.');
+      }
     }
 
     await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { empresa_id: empresaId } });
     return { mensaje: 'Empresa actualizada exitosamente.' };
+  }
+
+  // null = gestiona TODAS las compañías (Administrador o PMO global).
+  // Si no, devuelve las compañías donde el usuario es PMO.
+  private async companiasGestionables(usuarioId: number): Promise<number[] | null> {
+    if (await this.permisos.esAdminGlobal(usuarioId)) return null;
+    if (await this.permisos.tieneRolGlobal(usuarioId, ['PMO'])) return null;
+
+    const asignaciones = await this.prisma.usuario_roles_compania.findMany({
+      where: { usuario_id: usuarioId, roles: { codigo: 'PMO' }, compania_id: { not: null } },
+      select: { compania_id: true },
+    });
+    return asignaciones.map((a) => a.compania_id as number);
+  }
+
+  // Un PMO de compañía solo puede tocar roles/usuarios de SUS compañías.
+  // Un rol global (compania_id = null) solo lo gestiona un Admin o PMO global.
+  // Usuarios sin roles (pendientes) los puede gestionar cualquier PMO.
+  private async exigirGestionSobreRoles(usuarioSolicitanteId: number, roles: { compania_id: number | null }[]) {
+    const companias = await this.companiasGestionables(usuarioSolicitanteId);
+    if (companias === null) return;
+
+    const fueraDeAlcance = roles.some((r) => r.compania_id === null || !companias.includes(r.compania_id));
+    if (fueraDeAlcance) {
+      throw new ForbiddenException('Solo puedes gestionar usuarios y roles de las compañías donde eres PMO.');
+    }
   }
 
   async findRolesDisponibles() {

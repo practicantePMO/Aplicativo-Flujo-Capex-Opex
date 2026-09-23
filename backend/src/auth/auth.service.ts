@@ -147,6 +147,43 @@ export class AuthService {
     };
   }
 
+  // Perfil ACTUAL del usuario (leído de la base de datos, no del token).
+  // Lo usa el frontend al abrir la app y al volver a la pestaña, para que
+  // los roles recién asignados o quitados se reflejen sin volver a iniciar sesión.
+  async obtenerPerfil(usuarioId: number) {
+    const usuario = await this.prisma.usuarios.findFirst({
+      where: { id: usuarioId, eliminado_el: null },
+      include: {
+        usuario_roles_compania: {
+          include: {
+            roles: { select: { id: true, codigo: true, nombre: true } },
+            companias: { select: { id: true, nombre: true } },
+          },
+        },
+      },
+    });
+
+    if (!usuario) {
+      throw new UnauthorizedException('Tu cuenta ha sido desactivada o no existe.');
+    }
+
+    return {
+      id: usuario.id,
+      nombre: usuario.nombre,
+      email: usuario.email,
+      activo: usuario.activo,
+      roles: usuario.usuario_roles_compania.map((urc) => ({
+        id: urc.id,
+        usuario_id: urc.usuario_id,
+        rol_id: urc.rol_id,
+        compania_id: urc.compania_id,
+        rol: urc.roles ? { id: urc.roles.id, codigo: urc.roles.codigo, nombre: urc.roles.nombre } : null,
+        compania: urc.companias ? { id: urc.companias.id, nombre: urc.companias.nombre } : null,
+      })),
+    };
+  }
+
+
  // Genera token con payload completo para JwtStrategy
   async loginDev(usuarioId?: number) {
   const whereClause = usuarioId ? { id: usuarioId, eliminado_el: null } : { eliminado_el: null };

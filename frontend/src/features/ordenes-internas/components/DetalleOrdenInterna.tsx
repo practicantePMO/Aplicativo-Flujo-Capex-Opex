@@ -13,14 +13,6 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
-
-const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
-  BORRADOR: { label: 'Borrador', color: 'default' },
-  PENDIENTE: { label: 'Pendiente Control Gestión', color: 'warning' },
-  APROBADA: { label: 'Aprobada', color: 'success' },
-  CERRADA: { label: 'Cerrada', color: 'info' },
-};
-
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -177,7 +169,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   );
 
   const campo = (label: string, valor?: string | number | null) => (
-    <Grid item xs={12} sm={6} md={4}>
+    <Grid size={{ xs: 12, sm: 6, md: 4 }}>
       <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6', height: '100%' }}>
         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
           {label}

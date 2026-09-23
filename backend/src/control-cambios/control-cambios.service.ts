@@ -159,6 +159,8 @@ export class ControlCambiosService {
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de este Control de Cambios.');
 
+    await this.permisos.exigirPartesInteresadasAsignadas(procesoId);
+
     const estadoDestino = 'PENDIENTE_PMO';
 
     const resultado = await this.prisma.$transaction(async (tx) => {
@@ -500,7 +502,7 @@ export class ControlCambiosService {
   }
 
   async actualizarPartesInteresadas(procesoId: number, usuarioId: number, dto: ActualizarPartesInteresadasCcDto) {
-    const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
+    const { proceso, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
 
     if (!['BORRADOR', 'PENDIENTE_PMO'].includes(proceso.estado_actual)) {
       throw new BadRequestException('Solo se pueden actualizar partes interesadas antes de la etapa de verificación.');
@@ -512,6 +514,8 @@ export class ControlCambiosService {
     if (!esDueno && !esAdmin) {
       throw new ForbiddenException('Solo el responsable de este Control de Cambios o un Administrador pueden modificar las partes interesadas.');
     }
+
+    await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, companiaId, controlCambio?.responsable_pm_id ?? null);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.asignaciones_proceso.deleteMany({

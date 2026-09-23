@@ -87,6 +87,8 @@ export interface SolicitudInversionDetalle {
   };
   solicitudes_inversion?: {
     id: number;
+    subprograma_id?: number | null;
+    categoria_id?: number | null;
     entregable_planeado?: string | null;
     tiene_evaluacion_financiera: boolean;
     trm?: number;

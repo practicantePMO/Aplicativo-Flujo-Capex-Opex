@@ -54,7 +54,9 @@ export class SolicitudInversionHelpersService {
         solicitudes_inversion: { include: { usuarios: { select: { id: true, nombre: true, email: true } } } },
       },
     });
-    if (!proceso || proceso.eliminado_el) throw new NotFoundException('Proceso no encontrado.');
+    if (!proceso || proceso.eliminado_el || proceso.tipo_proceso !== 'SOLICITUD_INVERSION') {
+      throw new NotFoundException('Proceso no encontrado.');
+    }
     if (!proceso.proyectos?.compania_id) throw new InternalServerErrorException('El proyecto no tiene compañía.');
 
     return { proceso, proyecto: proceso.proyectos, companiaId: proceso.proyectos.compania_id };

@@ -94,6 +94,7 @@ export class ActasCierreService {
     if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
 
     await this.validarCreacionPermitida(dto.proyecto_id, dto.tipo_cierre);
+    await this.validarReferenciasDelProyecto(dto.proyecto_id, dto);
 
     return this.prisma.$transaction(async (tx) => {
       const proceso = await tx.procesos.create({
@@ -139,6 +140,8 @@ export class ActasCierreService {
       if (!tieneRolCG) throw new BadRequestException('El usuario seleccionado no tiene el rol Control Gestión.');
     }
 
+    await this.validarReferenciasDelProyecto(acta.proyecto_id, dto);
+
     return this.prisma.$transaction(async (tx) => {
       await tx.actas_cierre.update({
         where: { id: acta.id },
@@ -163,6 +166,31 @@ export class ActasCierreService {
       return { procesoId, mensaje: 'Acta de Cierre actualizada.' };
     });
   }
+
+    // Las metas y las Órdenes Internas que se referencian en el Acta deben
+  // pertenecer a ESTE proyecto (no a otro), para no mezclar ni exponer datos ajenos.
+  private async validarReferenciasDelProyecto(proyectoId: string, dto: CrearActaCierreDto) {
+    const idsMetas = Array.from(new Set((dto.metas || []).map((m) => m.solicitud_meta_id)));
+    if (idsMetas.length) {
+      const metasDelProyecto = await this.prisma.solicitud_metas.count({
+        where: { id: { in: idsMetas }, solicitudes_inversion: { procesos: { proyecto_id: proyectoId } } },
+      });
+      if (metasDelProyecto !== idsMetas.length) {
+        throw new BadRequestException('Una o más metas no pertenecen a la Solicitud de Inversión de este proyecto.');
+      }
+    }
+
+    const idsOi = Array.from(new Set((dto.oi_valores_reales || []).map((o) => o.orden_interna_id)));
+    if (idsOi.length) {
+      const oiDelProyecto = await this.prisma.ordenes_internas.count({
+        where: { id: { in: idsOi }, grupos_ordenes_internas: { proyecto_id: proyectoId } },
+      });
+      if (oiDelProyecto !== idsOi.length) {
+        throw new BadRequestException('Una o más Órdenes Internas no pertenecen a este proyecto.');
+      }
+    }
+  }
+
 
   private async guardarSecciones(tx: any, actaCierreId: number, dto: CrearActaCierreDto) {
     if (dto.metas?.length) {
@@ -203,6 +231,8 @@ export class ActasCierreService {
     const esDueno = acta?.responsable_pm_id === usuarioId;
     const esAdmin = await this.permisos.esAdminGlobal(usuarioId);
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de este Acta de Cierre.');
+
+    await this.permisos.exigirPartesInteresadasAsignadas(procesoId);
 
     const estadoDestino = 'PENDIENTE_PMO';
 
@@ -593,7 +623,7 @@ export class ActasCierreService {
 
   // Actualizar partes interesadas (antes de que verifiquen)
   async actualizarPartesInteresadas(procesoId: number, usuarioId: number, dto: ActualizarPartesInteresadasActaCierreDto) {
-    const { proceso } = await this.helpers.obtenerProcesoConCompania(procesoId);
+    const { proceso, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
 
     if (!['BORRADOR', 'PENDIENTE_PMO', 'CONTROL_GESTION'].includes(proceso.estado_actual)) {
       throw new BadRequestException('Solo se pueden actualizar partes interesadas antes de la etapa de verificación.');
@@ -605,6 +635,8 @@ export class ActasCierreService {
     if (!esDueno && !esAdmin) {
       throw new ForbiddenException('Solo el responsable de este Acta de Cierre o un Administrador pueden modificar las partes interesadas.');
     }
+
+    await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, companiaId, acta?.responsable_pm_id ?? null);
 
     return this.prisma.$transaction(async (tx) => {
       await tx.asignaciones_proceso.deleteMany({

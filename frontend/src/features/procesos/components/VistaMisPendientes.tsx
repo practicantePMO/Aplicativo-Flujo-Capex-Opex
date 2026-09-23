@@ -58,7 +58,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
 
   const tiposDisponibles = Array.from(new Set(pendientes.map((p) => p.tipo_proceso).filter(Boolean)));
   const companiasDisponibles = Array.from(
-    new Map(pendientes.map((p) => [p.proyectos?.companias?.id, p.proyectos?.companias]).filter(([id]) => id)).values(),
+  new Map(pendientes.map((p) => [p.proyectos?.companias?.id, p.proyectos?.companias] as const).filter(([id]) => id)).values(),
   );
   const aniosDisponibles = Array.from(
     new Set(pendientes.map((p) => p.proyectos?.anio_asignado).filter(Boolean)),
@@ -88,14 +88,14 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
 
       {pendientes.length > 0 && (
         <Card sx={{ p: 2, mb: 2.5 }}>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1.5 }}>
             <TuneIcon sx={{ fontSize: '1.1rem', color: '#94a3b8' }} />
             <Typography variant="caption" sx={{ fontWeight: 700, color: '#94a3b8', letterSpacing: '0.5px' }}>
               FILTRAR POR
             </Typography>
           </Stack>
           <Divider sx={{ mb: 2 }} />
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap" useFlexGap>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
             <TextField
               select size="small" label="Tipo de proceso" value={filtroTipoProceso}
               onChange={(e) => setFiltroTipoProceso(e.target.value)} sx={{ minWidth: 220 }}
@@ -167,7 +167,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
               {pendientesFiltrados.map((proceso) => (
                 <TableRow key={proceso.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
                   <TableCell>
-                    <Typography variant="body2" fontWeight={700}>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
                       {proceso.proyectos.id}
                     </Typography>
                     <Typography variant="caption" color="text.secondary">

@@ -62,10 +62,10 @@ export function EncabezadoProyecto({ nombreProyecto, idProyecto, nombreCompania,
 
       <CardContent sx={{ p: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <InfoCard icon={<BusinessIcon fontSize="small" />} titulo="Compañía" valor={nombreCompania || 'Sin compañía'} />
           </Grid>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <InfoCard icon={<PersonIcon fontSize="small" />} titulo="Project Manager" valor={nombrePm || 'No asignado'} />
           </Grid>
         </Grid>

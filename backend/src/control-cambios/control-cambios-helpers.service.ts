@@ -55,7 +55,9 @@ export class ControlCambiosHelpersService {
         controles_cambio: { include: { usuarios: { select: { id: true, nombre: true, email: true } } } },
       },
     });
-    if (!proceso || proceso.eliminado_el) throw new NotFoundException('Proceso no encontrado.');
+    if (!proceso || proceso.eliminado_el || proceso.tipo_proceso !== 'CONTROL_CAMBIO') {
+      throw new NotFoundException('Proceso no encontrado.');
+    }
     if (!proceso.proyectos?.compania_id) throw new InternalServerErrorException('El proyecto no tiene compañía.');
 
     return { proceso, proyecto: proceso.proyectos, companiaId: proceso.proyectos.compania_id };

@@ -19,16 +19,17 @@ import { PanelActaCierre } from '../../acta-cierre/components/PanelActaCierre';
 
 interface DetalleProyectoProps {
   proyecto: Proyecto;
+  // Si viene desde "Mis pendientes", el proceso que hay que abrir directamente.
+  procesoIdInicial?: number | null;
   onVolver: () => void;
 }
-
 const ESTADO_GRUPO_OI_CONFIG: Record<string, { label: string; color: 'success' | 'warning' | 'default' }> = {
   ABIERTO: { label: 'Activo', color: 'success' },
   SOLICITADO_CIERRE: { label: 'Cierre solicitado', color: 'warning' },
   CERRADO: { label: 'Cerrado', color: 'default' },
 };
 
-export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
+export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: DetalleProyectoProps) {
   const { tieneRol } = useAuth();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
   const [grupoOiEstado, setGrupoOiEstado] = useState<string | null>(null);
@@ -44,9 +45,44 @@ export function DetalleProyecto({ proyecto, onVolver }: DetalleProyectoProps) {
   const [ccProcesoIdParaAbrir, setCcProcesoIdParaAbrir] = useState<number | null>(null);
   const [oiIdParaAbrir, setOiIdParaAbrir] = useState<number | null>(null);
 
+  const [procesoInicialAplicado, setProcesoInicialAplicado] = useState(false);
+
   const puedeCrearProceso = tieneRol('PM') || tieneRol('ADMIN');
 
   useEffect(() => { cargarProcesos(); }, [proyecto.id]);
+
+  // Al llegar desde "Mis pendientes": cuando terminan de cargar los procesos,
+  // abre directamente el proceso pendiente (solo una vez, para que "Volver"
+  // lleve a la lista de procesos y no lo reabra).
+  useEffect(() => {
+    if (!procesoIdInicial || procesoInicialAplicado || cargando) return;
+    setProcesoInicialAplicado(true);
+
+    const proceso = procesos.find((p) => p.id === procesoIdInicial);
+    if (!proceso) return;
+
+    switch (proceso.tipo_proceso) {
+      case 'SOLICITUD_INVERSION':
+        setProcesoAbierto(proceso.id);
+        break;
+      case 'CONTROL_CAMBIO':
+        setCcProcesoIdParaAbrir(proceso.id);
+        setVerControlCambios(true);
+        break;
+      case 'ACTA_CIERRE':
+        setVerActaCierre(true);
+        break;
+      case 'ORDEN_INTERNA':
+        obtenerOrdenesInternasPorProyecto(proyecto.id)
+          .then((grupo) => {
+            const orden = grupo?.ordenes_internas?.find((o) => o.proceso_id === proceso.id);
+            setOiIdParaAbrir(orden?.id ?? null);
+          })
+          .catch(() => setOiIdParaAbrir(null))
+          .finally(() => setVerOrdenesInternas(true));
+        break;
+    }
+  }, [procesoIdInicial, procesoInicialAplicado, cargando, procesos, proyecto.id]);
 
   const cargarProcesos = async () => {
     try {

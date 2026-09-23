@@ -1,20 +1,34 @@
 // backend/src/backup/backup.controller.ts
 
-import { Controller, Get, Res, UseGuards, StreamableFile } from '@nestjs/common';
+import { Controller, Get, Req, Res, UseGuards, StreamableFile, ForbiddenException } from '@nestjs/common';
 import type { Response } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { BackupService } from './backup.service';
+import { PermisosService } from '../permisos/permisos.service';
 
 @Controller('backup')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class BackupController {
-  constructor(private readonly backupService: BackupService) {}
+  constructor(
+    private readonly backupService: BackupService,
+    private readonly permisos: PermisosService,
+  ) {}
 
   @Get('excel')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO')
-  async descargarExcel(@Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+  async descargarExcel(@Req() req: any, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+    // El backup trae datos de TODAS las compañías: solo lo descarga un
+    // Administrador o un PMO / Director PMO con rol global.
+    const usuarioId = req.user.userId;
+    const puedeDescargar =
+      (await this.permisos.esAdminGlobal(usuarioId)) ||
+      (await this.permisos.tieneRolGlobal(usuarioId, ['PMO', 'DIRECTOR_PMO']));
+    if (!puedeDescargar) {
+      throw new ForbiddenException('El backup completo solo lo puede descargar un Administrador o un PMO / Director PMO global.');
+    }
+
     const buffer = await this.backupService.generarExcel();
     const fecha = new Date().toISOString().slice(0, 10);
 

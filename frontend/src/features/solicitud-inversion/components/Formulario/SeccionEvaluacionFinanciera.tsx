@@ -43,9 +43,9 @@ export function SeccionEvaluacionFinanciera({
 
         {tieneEvaluacionFinanciera ? (
           <Grid container spacing={2} sx={{ mt: 0.5 }}>
-            <Grid item xs={4}><TextField label="TIR (%)" type="number" fullWidth value={tir} onChange={(e) => setTir(e.target.value)} /></Grid>
-            <Grid item xs={4}><TextField label="VPN" type="number" fullWidth value={vpn} onChange={(e) => setVpn(e.target.value)} /></Grid>
-            <Grid item xs={4}><TextField label="Payback (meses)" type="number" fullWidth value={payback} onChange={(e) => setPayback(e.target.value)} /></Grid>
+            <Grid size={{ xs: 4 }}><TextField label="TIR (%)" type="number" fullWidth value={tir} onChange={(e) => setTir(e.target.value)} /></Grid>
+            <Grid size={{ xs: 4 }}><TextField label="VPN" type="number" fullWidth value={vpn} onChange={(e) => setVpn(e.target.value)} /></Grid>
+            <Grid size={{ xs: 4 }}><TextField label="Payback (meses)" type="number" fullWidth value={payback} onChange={(e) => setPayback(e.target.value)} /></Grid>
           </Grid>
         ) : (
           <TextField

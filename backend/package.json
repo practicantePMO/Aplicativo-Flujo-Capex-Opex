@@ -38,10 +38,11 @@
     "exceljs": "^4.4.0",
     "google-auth-library": "^11.0.0",
     "handlebars": "^4.7.9",
+    "helmet": "^8.3.0",
     "jsonwebtoken": "^9.0.3",
     "jwks-rsa": "^4.1.0",
     "nest-winston": "^1.10.2",
-    "nodemailer": "^9.0.3",
+    "nodemailer": "^9.1.1",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
     "pg": "^8.22.0",
@@ -103,5 +104,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
+  },
+  "overrides": {
+    "nodemailer": "$nodemailer"
   }
 }

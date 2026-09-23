@@ -130,7 +130,7 @@ export class OrdenesInternasService {
     if (!esDueno && !esAdmin) throw new ForbiddenException('No eres el responsable de esta Orden Interna.');
 
     if (dto.es_control_cambios) {
-      await this.validarControlCambioVinculado(dto.proyecto_id, dto.control_cambio_id);
+      await this.validarControlCambioVinculado(orden.grupos_ordenes_internas.proyecto_id, dto.control_cambio_id);
     }
 
     return this.prisma.$transaction(async (tx) => {
@@ -456,7 +456,7 @@ export class OrdenesInternasService {
         control_gestion: { select: { id: true, nombre: true, email: true } },
       },
     });
-    if (!orden) throw new NotFoundException('Orden Interna no encontrada.');
+    if (!orden || orden.procesos.eliminado_el) throw new NotFoundException('Orden Interna no encontrada.');
     return orden;
   }
 }

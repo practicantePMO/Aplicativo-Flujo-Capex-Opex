@@ -2,7 +2,7 @@ import { useState, type ReactNode } from 'react';
 import { ThemeProvider, Box, CssBaseline } from '@mui/material';
 import { nutresaTheme } from '../theme/theme';
 import { Topbar } from './Topbar';
-import { Sidebar, DRAWER_WIDTH, DRAWER_WIDTH_COLAPSADO } from './Sidebar';
+import { Sidebar } from './Sidebar';
 
 interface AppLayoutProps {
   children?: ReactNode;
@@ -20,8 +20,6 @@ export function AppLayout({
 
   const vistaActiva = vistaProp ?? vistaInterna;
   const manejarCambioVista = onCambiarVistaProp ?? setVistaInterna;
-
-  const anchoSidebar = sidebarAbierto ? DRAWER_WIDTH : DRAWER_WIDTH_COLAPSADO;
 
   return (
     <ThemeProvider theme={nutresaTheme}>

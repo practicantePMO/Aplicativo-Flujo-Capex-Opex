@@ -19,7 +19,7 @@ interface ModalCrearProyectoProps {
   open: boolean;
   onClose: () => void;
   onProyectoCreado: () => void;
-  onGuardar: (datos: CrearProyectoDto) => Promise<void>;
+  onGuardar: (datos: CrearProyectoDto) => Promise<unknown>;
 }
 
 interface PmDisponible {
@@ -99,7 +99,7 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth PaperProps={{ sx: styles.dialogPaper }}>
+    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth slotProps={{ paper: { sx: styles.dialogPaper } }}>
       <DialogTitle sx={styles.title}>Crear Nuevo Proyecto</DialogTitle>
       <form onSubmit={handleSubmit}>
         <DialogContent sx={styles.content}>
@@ -141,7 +141,7 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
             required
             value={fechaProyecto}
             onChange={(e) => setFechaProyecto(e.target.value)}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{ inputLabel: { shrink: true } }}
             helperText="El año seleccionado determinará el prefijo del ID (ej. 2026001)"
             sx={{ mb: puedeAsignarAOtroPm ? 2.5 : 0 }}
           />

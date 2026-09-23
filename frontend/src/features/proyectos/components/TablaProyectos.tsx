@@ -116,14 +116,14 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
         <Divider sx={{ mb: 2 }} />
 
         {/* Fila 2: filtros, con su propio encabezado para que no se confundan con la búsqueda */}
-        <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1.5 }}>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1.5 }}>
           <TuneIcon sx={{ fontSize: '1.1rem', color: '#94a3b8' }} />
           <Typography variant="caption" sx={{ fontWeight: 700, color: '#94a3b8', letterSpacing: '0.5px' }}>
             FILTRAR POR
           </Typography>
         </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }} flexWrap="wrap" useFlexGap>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
           <TextField
             select size="small" label="Año" value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}
             sx={{ minWidth: 140 }}

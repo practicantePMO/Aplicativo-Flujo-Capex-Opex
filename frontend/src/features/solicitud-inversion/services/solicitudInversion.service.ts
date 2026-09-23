@@ -1,5 +1,5 @@
 import axiosClient from '../../../api/axiosClient';
-import type { CrearSolicitudInversionDto, SolicitudInversionDetalle, Grupo, UsuarioActivo, CrearSolicitudPayload, Categoria } from '../types/solicitud.types';
+import type { SolicitudInversionDetalle, Grupo, UsuarioActivo, CrearSolicitudPayload, Categoria } from '../types/solicitud.types';
 
 export const obtenerCategorias = async (): Promise<Categoria[]> => {
   const { data } = await axiosClient.get<Categoria[]>('/solicitud-inversion/categorias');

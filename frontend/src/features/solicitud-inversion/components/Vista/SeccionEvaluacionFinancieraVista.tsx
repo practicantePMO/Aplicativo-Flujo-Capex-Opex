@@ -52,9 +52,9 @@ export function SeccionEvaluacionFinancieraVista({
 
         {tieneEvaluacion ? (
           <Grid container spacing={2}>
-            <Grid item xs={12} md={4}>{stat('TIR', <>{tir ?? '—'}%</>)}</Grid>
-            <Grid item xs={12} md={4}>{stat('VPN', <>{vpn ?? '—'}</>)}</Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>{stat('TIR', <>{tir ?? '—'}%</>)}</Grid>
+            <Grid size={{ xs: 12, md: 4 }}>{stat('VPN', <>{vpn ?? '—'}</>)}</Grid>
+            <Grid size={{ xs: 12, md: 4 }}>
               {stat('Payback', <>{payback ?? '—'} <Typography component="span" sx={{ fontSize: '0.9rem', fontWeight: 500 }}>meses</Typography></>)}
             </Grid>
           </Grid>

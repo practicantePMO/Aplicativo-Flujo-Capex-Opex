@@ -12,7 +12,7 @@ export function SeccionDocumentosLinksVista({ linkActa, linkPlan, linkPresentaci
   const tieneDocumentos = linkActa || linkPlan || linkPresentacion;
 
   const documento = (titulo: string, link: string) => (
-    <Grid item xs={12} sm={4}>
+    <Grid size={{ xs: 12, sm: 4 }}>
       <Box sx={{ p: 2, backgroundColor: '#f8fafc', border: '1px solid #e2e8f0' }}>
         <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 1 }}>
           {titulo}

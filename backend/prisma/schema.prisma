@@ -36,6 +36,7 @@ model asignaciones_proceso {
 
   @@index([rol_id, estado_asignacion], map: "idx_asignaciones_rol")
   @@index([usuario_id, estado_asignacion], map: "idx_asignaciones_usuario")
+  @@index([proceso_id])
 }
 
 model companias {
@@ -65,6 +66,7 @@ model historico_aprobaciones {
   fecha_registro DateTime? @default(now()) @db.Timestamp(6)
   procesos       procesos? @relation(fields: [proceso_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   usuarios       usuarios? @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([proceso_id])
 }
 
 model procesos {
@@ -81,6 +83,7 @@ model procesos {
   ordenes_internas       ordenes_internas?
   controles_cambio       controles_cambio?
   actas_cierre           actas_cierre?
+  @@index([proyecto_id])
 }
 
 model programas {
@@ -112,6 +115,8 @@ model proyectos {
   actas_cierre     actas_cierre?
 
   @@index([anio_proyecto, consecutivo])
+  @@index([compania_id])
+  @@index([creado_por])
 }
 
 model proyectos_aplazamientos {
@@ -125,6 +130,7 @@ model proyectos_aplazamientos {
 
   proyectos proyectos @relation(fields: [proyecto_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   usuarios  usuarios  @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([proyecto_id])
 }
 
 model roles {
@@ -153,6 +159,7 @@ model solicitud_flujo_caja {
   mes                   Int                    @default(1)
   monto                 Decimal?               @default(0) @db.Decimal(15, 2)
   solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([solicitud_id])
 }
 
 model solicitud_metas {
@@ -163,6 +170,7 @@ model solicitud_metas {
   indicador             String
   solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   acta_cierre_metas     acta_cierre_metas[]
+  @@index([solicitud_id])
 }
 
 model solicitud_valores {
@@ -172,6 +180,7 @@ model solicitud_valores {
   usd                   Decimal?               @db.Decimal(15, 2)
   cop                   Decimal?               @db.Decimal(15, 2)
   solicitudes_inversion solicitudes_inversion? @relation(fields: [solicitud_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([solicitud_id])
 }
 
 model solicitudes_inversion {
@@ -306,6 +315,8 @@ model ordenes_internas {
   controles_cambio        controles_cambio?       @relation(fields: [control_cambio_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   oi_valores              oi_valores[]
   acta_cierre_oi_valores_reales acta_cierre_oi_valores_reales[]
+  @@index([grupo_id])
+  @@index([control_cambio_id])
 }
 
 // Sección 3: "Valor Total del Proyecto", pero AQUÍ se llena manual (a
@@ -318,6 +329,7 @@ model oi_valores {
   cop              Decimal? @db.Decimal(15, 2)
 
   ordenes_internas ordenes_internas @relation(fields: [orden_interna_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([orden_interna_id])
 }
 
 model grupo_oi_historico_cierre {
@@ -330,6 +342,7 @@ model grupo_oi_historico_cierre {
 
   grupos_ordenes_internas grupos_ordenes_internas @relation(fields: [grupo_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   usuarios                usuarios                @relation(fields: [usuario_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  @@index([grupo_id])
 }
 
 // =====================================================================
@@ -357,6 +370,7 @@ model controles_cambio {
   usuarios              usuarios?               @relation(fields: [responsable_pm_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
   control_cambio_anexos control_cambio_anexos[]
   ordenes_internas      ordenes_internas[]
+  @@index([proyecto_id])
 }
 
 model control_cambio_anexos {
@@ -367,6 +381,7 @@ model control_cambio_anexos {
   descripcion       String? @db.VarChar(255)
 
   controles_cambio controles_cambio @relation(fields: [control_cambio_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([control_cambio_id])
 }
 
 // =====================================================================
@@ -406,6 +421,7 @@ model acta_cierre_metas {
 
   actas_cierre    actas_cierre    @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   solicitud_metas solicitud_metas @relation(fields: [solicitud_meta_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([acta_cierre_id])
 }
 
 model acta_cierre_valores {
@@ -416,6 +432,7 @@ model acta_cierre_valores {
   real_cop       Decimal? @db.Decimal(15, 2)
 
   actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([acta_cierre_id])
 }
 
 model acta_cierre_flujo_caja {
@@ -428,6 +445,7 @@ model acta_cierre_flujo_caja {
   monto_real     Decimal? @default(0) @db.Decimal(15, 2)
 
   actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([acta_cierre_id])
 }
 
 model acta_cierre_entregables {
@@ -442,6 +460,7 @@ model acta_cierre_entregables {
   anexo_url                String?
 
   actas_cierre actas_cierre @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([acta_cierre_id])
 }
 
 model acta_cierre_oi_valores_reales {
@@ -453,6 +472,7 @@ model acta_cierre_oi_valores_reales {
 
   actas_cierre     actas_cierre     @relation(fields: [acta_cierre_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
   ordenes_internas ordenes_internas @relation(fields: [orden_interna_id], references: [id], onDelete: Restrict, onUpdate: NoAction)
+  @@index([acta_cierre_id])
 }
 
 model empresas {

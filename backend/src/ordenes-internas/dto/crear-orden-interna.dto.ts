@@ -1,8 +1,9 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsBoolean, IsIn, IsNumber, IsInt, Min, Max,
-  ValidateIf, IsArray, ValidateNested,
+  ValidateIf, IsArray, ValidateNested, MaxLength, ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { LIMITE } from '../../common/validaciones';
 
 export class OiValorDto {
   @IsIn(['ACTIVO', 'GASTO']) categoria: 'ACTIVO' | 'GASTO';
@@ -11,20 +12,22 @@ export class OiValorDto {
 }
 
 export class CrearOrdenInternaDto {
-  @IsString() @IsNotEmpty() proyecto_id: string;
+  @IsString() @IsNotEmpty() @MaxLength(20) proyecto_id: string;
 
   @IsString() @IsNotEmpty({ message: 'El nombre descriptivo es obligatorio.' })
+  @MaxLength(LIMITE.TEXTO_CORTO, { message: `El nombre descriptivo no puede superar ${LIMITE.TEXTO_CORTO} caracteres.` })
   nombre_descriptivo: string;
 
   @IsIn(['ACTIVO', 'GASTO'], { message: 'El tipo de orden debe ser ACTIVO o GASTO.' })
   tipo_orden: 'ACTIVO' | 'GASTO';
 
-  @IsString() @IsOptional() centro_costos?: string;
-  @IsString() @IsOptional() oficina_ventas?: string;
-  @IsString() @IsOptional() linea_marca?: string;
-  @IsString() @IsOptional() cliente?: string;
-  @IsString() @IsOptional() ramo?: string;
-  @IsNumber() @IsOptional() porcentaje_1?: number;
+  // Los límites de estos campos son los mismos de sus columnas en la base de datos.
+  @IsString() @IsOptional() @MaxLength(100, { message: 'El centro de costos no puede superar 100 caracteres.' }) centro_costos?: string;
+  @IsString() @IsOptional() @MaxLength(100, { message: 'La oficina de ventas no puede superar 100 caracteres.' }) oficina_ventas?: string;
+  @IsString() @IsOptional() @MaxLength(100, { message: 'La línea/marca no puede superar 100 caracteres.' }) linea_marca?: string;
+  @IsString() @IsOptional() @MaxLength(150, { message: 'El cliente no puede superar 150 caracteres.' }) cliente?: string;
+  @IsString() @IsOptional() @MaxLength(100, { message: 'El ramo no puede superar 100 caracteres.' }) ramo?: string;
+  @IsNumber() @IsOptional() @Min(0) @Max(999.99) porcentaje_1?: number;
 
   // Decide si se muestra/exige la Sección 3.
   @IsBoolean() @IsOptional()
@@ -41,6 +44,7 @@ export class CrearOrdenInternaDto {
   // --- Sección 2 (solo si tipo_orden = ACTIVO se exigen todos; si es GASTO solo "presupuesto") ---
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
   @IsString() @IsNotEmpty({ message: 'El Activo Fijo en curso es obligatorio para órdenes de tipo Activo.' })
+  @MaxLength(150, { message: 'El Activo Fijo en curso no puede superar 150 caracteres.' })
   activo_fijo_curso?: string;
 
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
@@ -48,7 +52,7 @@ export class CrearOrdenInternaDto {
   tipo_activo?: string;
 
   @ValidateIf((o) => o.tipo_orden === 'ACTIVO')
-  @IsNumber() @IsOptional()
+  @IsNumber() @IsOptional() @Min(0) @Max(999.99)
   porcentaje_2?: number;
 
   @IsNumber({}, { message: 'El presupuesto es obligatorio.' })
@@ -63,11 +67,14 @@ export class CrearOrdenInternaDto {
   @IsIn(['SI', 'NO'], { message: 'El Activo Real Productivo debe ser Sí o No.' })
   activo_real_productivo?: string;
 
-  @IsString() @IsOptional() observaciones_pm?: string;
+  @IsString() @IsOptional()
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `Las observaciones no pueden superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  observaciones_pm?: string;
 
   // --- Sección 3 (solo si es_control_cambios = true) ---
   @ValidateIf((o) => o.es_control_cambios === true)
   @IsArray({ message: 'Debes registrar el valor total del proyecto.' })
+  @ArrayMaxSize(10)
   @ValidateNested({ each: true })
   @Type(() => OiValorDto)
   valores?: OiValorDto[];

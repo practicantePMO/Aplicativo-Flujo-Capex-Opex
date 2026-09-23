@@ -73,6 +73,7 @@ export function useSolicitudForm(
 
   // 5. INICIALIZAR EL FORMULARIO
   const [form, setForm] = useState({
+    incluyeTradicional: esTradicionalGuardada,
     incluyeNueva: esNuevaGuardada,
 
     grupoId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programas?.id_grupo || ('' as number | ''),

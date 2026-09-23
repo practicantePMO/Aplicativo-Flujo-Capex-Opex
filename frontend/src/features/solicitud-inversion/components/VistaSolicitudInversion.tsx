@@ -155,7 +155,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
       .map((a) => a.usuarios)
       .filter((u): u is NonNullable<typeof u> => !!u)
-      .map((u) => ({ id: u.id, nombre: u.nombre, email: u.email }));
+      .map((u) => ({ id: u.id, nombre: u.nombre, email: u.email ?? '' }));
     setPartesSeleccionadas(actuales);
     setDialogoPartes(true);
   };

@@ -27,7 +27,7 @@ export class ProyectosController {
   }
 
   @Get(':id/procesos')
-  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION')
+  @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS')
   async obtenerProcesos(@Req() req: any, @Param('id') id: string) {
     return this.proyectosService.obtenerProcesosPorProyecto(req.user.userId, id);
   }

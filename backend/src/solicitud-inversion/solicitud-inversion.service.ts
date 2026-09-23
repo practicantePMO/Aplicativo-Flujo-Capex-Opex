@@ -4,6 +4,7 @@ import {
   BadRequestException,
   InternalServerErrorException,
   ForbiddenException,
+  HttpException,
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
@@ -50,6 +51,7 @@ export class SolicitudInversionService {
     }
 
     const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
+    await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, proyecto.compania_id, usuarioId);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -107,6 +109,7 @@ export class SolicitudInversionService {
         return { proceso_id: proceso.id, estado_actual: proceso.estado_actual, mensaje: 'Solicitud guardada en BORRADOR.' };
       });
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       if (error.code === 'P2002') {
         throw new BadRequestException('Este proyecto ya tiene una Solicitud de Inversión activa.');
       }
@@ -544,7 +547,11 @@ export class SolicitudInversionService {
     if (!esPM && !esAdminOrPMO) {
       throw new ForbiddenException('Solo el PM responsable o un miembro de la PMO pueden modificar las partes interesadas.');
     }
-
+    await this.permisos.validarPartesInteresadas(
+      dto.partes_interesadas_ids,
+      companiaId,
+      proceso.solicitudes_inversion?.responsable_pm_id ?? null,
+    );
     return await this.prisma.$transaction(async (tx) => {
       await tx.asignaciones_proceso.deleteMany({
         where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS', estado_asignacion: 'PENDIENTE' },
@@ -580,6 +587,7 @@ export class SolicitudInversionService {
     }
 
     const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
+    await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, companiaId, solicitud.responsable_pm_id);
 
     try {
       return await this.prisma.$transaction(async (tx) => {
@@ -654,6 +662,7 @@ export class SolicitudInversionService {
         return { proceso_id: procesoId, mensaje: 'Borrador actualizado exitosamente.' };
       });
     } catch (error) {
+      if (error instanceof HttpException) throw error;
       this.logger.error('Error actualizando borrador de la solicitud', error.stack);
       throw new InternalServerErrorException('Error al actualizar el borrador en la base de datos.');
     }

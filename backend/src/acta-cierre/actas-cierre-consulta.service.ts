@@ -117,7 +117,7 @@ export class ActasCierreConsultaService {
 
     // --- Todas las Órdenes Internas del proyecto (para la tabla del Acta) ---
     const todasLasOi = await this.prisma.ordenes_internas.findMany({
-      where: { grupos_ordenes_internas: { proyecto_id: acta.proyecto_id } },
+      where: { grupos_ordenes_internas: { proyecto_id: acta.proyecto_id }, procesos: { eliminado_el: null } },
       select: { id: true, numero_oi: true, nombre_descriptivo: true, tipo_orden: true, presupuesto: true, presupuesto_moneda: true },
       orderBy: { id: 'asc' },
     });

@@ -20,22 +20,22 @@ export function SeccionMetas({ metas, setMetas }: Props) {
         </Box>
         {metas.map((m, i) => (
           <Grid container spacing={2} key={i} sx={{ mb: 1.5, alignItems: 'center' }}>
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <TextField label="Compromiso" fullWidth value={m.compromiso}
                 onChange={(e) => setMetas(metas.map((x, idx) => idx === i ? { ...x, compromiso: e.target.value } : x))} />
             </Grid>
-            <Grid item xs={6} md={3}>
+            <Grid size={{ xs: 6, md: 3 }}>
               <TextField
                 label="Fecha inicio" type="date" fullWidth
                 slotProps={{ inputLabel: { shrink: true } }} value={m.fecha_inicio}
                 onChange={(e) => setMetas(metas.map((x, idx) => idx === i ? { ...x, fecha_inicio: e.target.value } : x))}
               />
             </Grid>
-            <Grid item xs={5} md={3}>
+            <Grid size={{ xs: 5, md: 3 }}>
               <TextField label="Indicador" fullWidth value={m.indicador}
                 onChange={(e) => setMetas(metas.map((x, idx) => idx === i ? { ...x, indicador: e.target.value } : x))} />
             </Grid>
-            <Grid item xs={1}>
+            <Grid size={{ xs: 1 }}>
               <IconButton color="error" onClick={() => setMetas(metas.filter((_, idx) => idx !== i))}><DeleteIcon /></IconButton>
             </Grid>
           </Grid>

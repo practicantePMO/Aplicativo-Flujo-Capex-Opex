@@ -1,12 +1,15 @@
 import {
   IsString, IsNotEmpty, IsOptional, IsIn, IsInt, IsNumber, Min, Max,
-  IsArray, ValidateNested, Matches,
+  IsArray, ValidateNested, MaxLength, ArrayMaxSize,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { LIMITE, EsLinkSeguro } from '../../common/validaciones';
 
 export class ActaCierreMetaDto {
   @IsInt() solicitud_meta_id: number;
-  @IsString() @IsOptional() resultado_cierre?: string;
+  @IsString() @IsOptional()
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `El resultado de la meta no puede superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  resultado_cierre?: string;
 }
 
 export class ActaCierreValorDto {
@@ -18,21 +21,23 @@ export class ActaCierreValorDto {
 export class ActaCierreFlujoCajaDto {
   @IsIn(['CAPEX', 'GCAPEX', 'OPEX']) tipo: 'CAPEX' | 'GCAPEX' | 'OPEX';
   @IsIn(['USD', 'COP']) moneda: 'USD' | 'COP';
-  @IsInt() anio: number;
+  @IsInt() @Min(2000) @Max(2100) anio: number;
   @IsInt() @Min(1) @Max(12) mes: number;
   @IsNumber() @IsOptional() @Min(0) monto_real?: number;
 }
 
 export class ActaCierreEntregableDto {
   @IsString() @IsNotEmpty({ message: 'El Equipo/Sistema es obligatorio en cada entregable.' })
+  @MaxLength(LIMITE.TEXTO_MEDIO, { message: `El Equipo/Sistema no puede superar ${LIMITE.TEXTO_MEDIO} caracteres.` })
   equipo_sistema: string;
-  @IsString() @IsOptional() codigo_activo_produccion?: string;
-  @IsString() @IsOptional() codigo_activo_montaje?: string;
-  @IsString() @IsOptional() unidad_vida_util?: string;
-  @IsInt() @IsOptional() vida_util?: number;
-  @IsString() @IsOptional() observaciones?: string;
+  @IsString() @IsOptional() @MaxLength(LIMITE.TEXTO_CORTO) codigo_activo_produccion?: string;
+  @IsString() @IsOptional() @MaxLength(LIMITE.TEXTO_CORTO) codigo_activo_montaje?: string;
+  @IsString() @IsOptional() @MaxLength(LIMITE.TEXTO_CORTO) unidad_vida_util?: string;
+  @IsInt() @IsOptional() @Min(0) vida_util?: number;
   @IsString() @IsOptional()
-  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `Las observaciones del entregable no pueden superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  observaciones?: string;
+  @IsString() @IsOptional() @MaxLength(LIMITE.URL) @EsLinkSeguro()
   anexo_url?: string;
 }
 export class ActaCierreOiValorRealDto {
@@ -42,7 +47,7 @@ export class ActaCierreOiValorRealDto {
 }
 
 export class CrearActaCierreDto {
-  @IsString() @IsNotEmpty() proyecto_id: string;
+  @IsString() @IsNotEmpty() @MaxLength(20) proyecto_id: string;
 
   @IsIn(['CANCELACION', 'CULMINACION'], { message: 'El tipo de cierre debe ser CANCELACION o CULMINACION.' })
   tipo_cierre: 'CANCELACION' | 'CULMINACION';
@@ -50,27 +55,36 @@ export class CrearActaCierreDto {
   @IsInt({ message: 'Debes elegir quién de Control Gestión revisará este cierre.' })
   control_gestion_asignado_id: number;
 
-@IsString()
+  @IsString()
   @IsOptional()
-  @Matches(/^(?!\s*(javascript|data|vbscript|file):)/i, { message: 'Ese link no es válido.' })
+  @MaxLength(LIMITE.URL)
+  @EsLinkSeguro()
   presentacion_p5_link?: string;
 
-  @IsString() @IsOptional() entregable_real?: string;
-  @IsString() @IsOptional() explicacion_ejecucion?: string;
-  @IsString() @IsOptional() otros_entregables?: string;
+  @IsString() @IsOptional()
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `El entregable real no puede superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  entregable_real?: string;
 
-  @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => ActaCierreMetaDto)
+  @IsString() @IsOptional()
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `La explicación de la ejecución no puede superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  explicacion_ejecucion?: string;
+
+  @IsString() @IsOptional()
+  @MaxLength(LIMITE.TEXTO_LARGO, { message: `Los otros entregables no pueden superar ${LIMITE.TEXTO_LARGO} caracteres.` })
+  otros_entregables?: string;
+
+  @IsArray() @IsOptional() @ArrayMaxSize(LIMITE.LISTA) @ValidateNested({ each: true }) @Type(() => ActaCierreMetaDto)
   metas?: ActaCierreMetaDto[];
 
-  @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => ActaCierreValorDto)
+  @IsArray() @IsOptional() @ArrayMaxSize(10) @ValidateNested({ each: true }) @Type(() => ActaCierreValorDto)
   valores?: ActaCierreValorDto[];
 
-  @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => ActaCierreFlujoCajaDto)
+  @IsArray() @IsOptional() @ArrayMaxSize(1000) @ValidateNested({ each: true }) @Type(() => ActaCierreFlujoCajaDto)
   flujo_caja?: ActaCierreFlujoCajaDto[];
 
-  @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => ActaCierreEntregableDto)
+  @IsArray() @IsOptional() @ArrayMaxSize(LIMITE.LISTA) @ValidateNested({ each: true }) @Type(() => ActaCierreEntregableDto)
   entregables?: ActaCierreEntregableDto[];
 
-  @IsArray() @IsOptional() @ValidateNested({ each: true }) @Type(() => ActaCierreOiValorRealDto)
+  @IsArray() @IsOptional() @ArrayMaxSize(LIMITE.LISTA) @ValidateNested({ each: true }) @Type(() => ActaCierreOiValorRealDto)
   oi_valores_reales?: ActaCierreOiValorRealDto[];
 }

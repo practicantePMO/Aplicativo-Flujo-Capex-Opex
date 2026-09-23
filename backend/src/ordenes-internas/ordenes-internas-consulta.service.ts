@@ -103,11 +103,11 @@ export class OrdenesInternasConsultaService {
     return this.prisma.ordenes_internas.findMany({
       where: {
         OR: [
-          { responsable_pm_id: usuarioId, procesos: { estado_actual: 'BORRADOR' } },
-          { control_gestion_asignado_id: usuarioId, procesos: { estado_actual: 'PENDIENTE' } },
+          { responsable_pm_id: usuarioId, procesos: { estado_actual: 'BORRADOR', eliminado_el: null } },
+          { control_gestion_asignado_id: usuarioId, procesos: { estado_actual: 'PENDIENTE', eliminado_el: null } },
           {
             control_gestion_asignado_id: usuarioId,
-            procesos: { estado_actual: 'APROBADA' },
+            procesos: { estado_actual: 'APROBADA', eliminado_el: null },
             grupos_ordenes_internas: { estado: 'SOLICITADO_CIERRE' },
           },
         ],

@@ -55,6 +55,8 @@ describe('SolicitudInversionService', () => {
     const PM_RESPONSABLE_ID = 2;
     const OTRO_USUARIO_ID = 3;
 
+    
+    const respuestaHelperBorrador = {
       proceso: {
         id: PROCESO_ID,
         tipo_proceso: 'SOLICITUD_INVERSION',

@@ -1,11 +1,13 @@
-import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import axiosClient from '../api/axiosClient';
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import axiosClient, { EVENTO_SESION_INVALIDA } from '../api/axiosClient';
 import type { Usuario, AuthResponse } from './types';
 
 interface AuthContextType {
   usuario: Usuario | null;
   token: string | null;
   cargando: boolean;
+  // true cuando la sesión se cerró sola porque el token venció o dejó de ser válido
+  sesionExpirada: boolean;
   loginDev: (usuarioId: number) => Promise<void>;
   loginSSO: (idToken: string, proveedor?: 'GOOGLE' | 'MICROSOFT') => Promise<void>;
   logout: () => void;
@@ -33,14 +35,64 @@ function leerUsuarioGuardado(): Usuario | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [usuario, setUsuario] = useState<Usuario | null>(leerUsuarioGuardado);
   const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
-  const [cargando, setCargando] = useState<boolean>(false);
+  const [cargando] = useState<boolean>(false);
+  const [sesionExpirada, setSesionExpirada] = useState(false);
 
-  const logout = () => {
+  const guardarUsuario = (nuevo: Usuario) => {
+    localStorage.setItem('usuario', JSON.stringify(nuevo));
+    setUsuario(nuevo);
+  };
+
+  const cerrarSesion = useCallback((porExpiracion: boolean) => {
     localStorage.removeItem('token');
     localStorage.removeItem('usuario');
     setToken(null);
     setUsuario(null);
-  };
+    setSesionExpirada(porExpiracion);
+  }, []);
+
+  const logout = () => cerrarSesion(false);
+
+  // Trae del backend el perfil ACTUAL (roles al día). Si el token ya no
+  // sirve, el interceptor de axios dispara el evento y se cierra la sesión.
+  const refrescarUsuario = useCallback(async () => {
+    if (!localStorage.getItem('token')) return;
+    try {
+      const { data } = await axiosClient.get<Usuario>('/auth/me');
+      guardarUsuario(data);
+    } catch {
+      // El 401 lo maneja el listener de abajo; otros errores (red caída,
+      // backend reiniciando) no deben sacar al usuario de la app.
+    }
+  }, []);
+
+  // El backend rechazó la sesión (401).
+  useEffect(() => {
+    const manejarSesionInvalida = (evento: Event) => {
+      const mensaje = ((evento as CustomEvent).detail?.mensaje || '').toLowerCase();
+      if (mensaje.includes('desactivada')) {
+        // Mostramos la pantalla de "acceso desactivado" en vez de cerrar sesión.
+        setUsuario((actual) => {
+          if (!actual) return actual;
+          const desactivado = { ...actual, activo: false };
+          localStorage.setItem('usuario', JSON.stringify(desactivado));
+          return desactivado;
+        });
+      } else {
+        cerrarSesion(true);
+      }
+    };
+    window.addEventListener(EVENTO_SESION_INVALIDA, manejarSesionInvalida);
+    return () => window.removeEventListener(EVENTO_SESION_INVALIDA, manejarSesionInvalida);
+  }, [cerrarSesion]);
+
+  // Al abrir la app y cada vez que el usuario vuelve a esta pestaña,
+  // verificamos la sesión y actualizamos los roles.
+  useEffect(() => {
+    refrescarUsuario();
+    window.addEventListener('focus', refrescarUsuario);
+    return () => window.removeEventListener('focus', refrescarUsuario);
+  }, [refrescarUsuario]);
 
   const loginDev = async (usuarioId: number) => {
     const response = await axiosClient.post<AuthResponse>('/auth/login-dev', { usuarioId });
@@ -51,12 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setToken(access_token);
     setUsuario(usuario);
+    setSesionExpirada(false);
   };
 
-  
   // Login vía SSO — el backend ya valida el idToken y el dominio
   // corporativo; acá solo guardamos la sesión resultante.
-    const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
+  const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
     const response = await axiosClient.post<AuthResponse>('/auth/login-sso', { idToken, proveedor });
     const { access_token, usuario } = response.data;
 
@@ -71,9 +123,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     setToken(access_token);
     setUsuario(usuarioNormalizado);
+    setSesionExpirada(false);
   };
-
-  const MODO_MULTICOMPANIA_ACTIVO = false;
 
   const tieneRol = (codigoRol: string): boolean => {
     if (!usuario) return false;
@@ -99,6 +150,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         usuario,
         token,
         cargando,
+        sesionExpirada,
         loginDev,
         loginSSO,
         logout,

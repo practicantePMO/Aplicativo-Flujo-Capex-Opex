@@ -1,7 +1,8 @@
-import { Controller, Post, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Body, Req, UseGuards, NotFoundException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginSsoDto } from './dto/login-sso.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -13,8 +14,18 @@ export class AuthController {
     return this.authService.loginSSO(dto.idToken, dto.proveedor);
   }
 
+  // Perfil actual del usuario autenticado (roles al día desde la base de datos).
+  // Si el token venció o el usuario fue desactivado, responde 401.
+  @UseGuards(JwtAuthGuard)
+  @Get('me')
+  async me(@Req() req: any) {
+    return this.authService.obtenerPerfil(req.user.userId);
+  }
+
   // RUTA TEMPORAL PARA PRUEBAS EN DevSwitcher — cerrada por defecto,
   // solo se habilita si pones ALLOW_DEV_LOGIN=true a propósito en tu .env local.
+  // En producción esa variable NO debe existir (o debe ser false).
+  @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Post('login-dev')
   async loginDev(@Body() body: { usuarioId: number }) {
     if (process.env.ALLOW_DEV_LOGIN !== 'true') {

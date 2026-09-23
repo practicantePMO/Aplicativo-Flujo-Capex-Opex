@@ -9,7 +9,6 @@ import {
 
 import BusinessIcon from '@mui/icons-material/Business';
 import PersonIcon from '@mui/icons-material/Person';
-import FolderIcon from '@mui/icons-material/Folder';
 import AssignmentIcon from '@mui/icons-material/Assignment';
 
 interface Props {
@@ -176,7 +175,7 @@ export function EncabezadoSolicitud({
       {/* Información */}
       <CardContent sx={{ p: 3 }}>
         <Grid container spacing={2}>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <InfoCard
               icon={<BusinessIcon fontSize="small" />}
               titulo="Compañía"
@@ -184,7 +183,7 @@ export function EncabezadoSolicitud({
             />
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <InfoCard
               icon={<PersonIcon fontSize="small" />}
               titulo="Project Manager"

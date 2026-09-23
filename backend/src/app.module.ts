@@ -25,7 +25,7 @@ import { BackupModule } from './backup/backup.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 30,
+        limit: Number(process.env.THROTTLE_LIMIT) || 300,
       },
     ]),
     PrismaModule,
