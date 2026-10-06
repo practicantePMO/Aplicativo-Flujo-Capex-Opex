@@ -266,6 +266,7 @@ export class UsuariosService {
       throw new ForbiddenException('No tienes permiso para modificar a un Administrador.');
     }
 
+    await this.exigirGestionSobreRoles(usuarioSolicitanteId, usuario.usuario_roles_compania);
     await this.prisma.usuarios.update({ where: { id: usuarioId }, data: { area: area.trim() } });
     return { mensaje: 'Área actualizada exitosamente.' };
   }

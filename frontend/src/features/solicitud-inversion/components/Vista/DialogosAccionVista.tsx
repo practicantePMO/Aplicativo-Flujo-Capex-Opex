@@ -136,9 +136,9 @@ export function DialogosAccionVista({
             getOptionLabel={(u) => `${u.nombre} (${u.email})`}
             value={partesSeleccionadas}
             onChange={(_, value) => setPartesSeleccionadas(value)}
-            renderTags={(value, getTagProps) =>
+            renderValue={(value, getItemProps) =>
               value.map((option, index) => {
-                const { key, ...tagProps } = getTagProps({ index });
+                const { key, ...tagProps } = getItemProps({ index });
                 return <Chip key={option.id || key} label={option.nombre} {...tagProps} />;
               })
             }
