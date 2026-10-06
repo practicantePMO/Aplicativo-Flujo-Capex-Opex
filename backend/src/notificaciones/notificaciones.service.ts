@@ -52,7 +52,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    const rabbitUrl = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672');
+    const rabbitUrl = this.configService.getOrThrow<string>('RABBITMQ_URL');
 
     this.connection = amqp.connect([rabbitUrl]);
     this.channelWrapper = this.connection.createChannel({
