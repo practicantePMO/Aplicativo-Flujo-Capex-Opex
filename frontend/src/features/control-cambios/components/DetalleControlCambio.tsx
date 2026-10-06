@@ -14,16 +14,6 @@ import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solici
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
 
-const ESTADO_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
-  BORRADOR: { label: 'Borrador', color: 'default' },
-  PENDIENTE_PMO: { label: 'Pendiente PMO', color: 'warning' },
-  VERIFICACION_PARTES_INTERESADAS: { label: 'Verificación Partes Interesadas', color: 'warning' },
-  DIRECCION_PMO: { label: 'Dirección PMO', color: 'warning' },
-  GERENCIA: { label: 'Gerencia', color: 'warning' },
-  PRESIDENCIA: { label: 'Presidencia', color: 'warning' },
-  APROBADO_FINAL: { label: 'Aprobado Final', color: 'success' },
-};
-
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
   PENDIENTE: { label: 'Pendiente Control Gestión', color: 'warning' },
