@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
@@ -12,6 +13,7 @@ import { ActasCierreHelpersService, REGLA_POR_ETAPA } from './actas-cierre-helpe
 import { CrearActaCierreDto } from './dto/crear-acta-cierre.dto';
 import { AprobarActaCierreDto, RechazarActaCierreDto } from './dto/cambiar-estado-acta-cierre.dto';
 import { ActualizarPartesInteresadasActaCierreDto } from './dto/actualizar-partes-interesadas-acta-cierre.dto';
+
 
 @Injectable()
 export class ActasCierreService {
@@ -192,7 +194,7 @@ export class ActasCierreService {
   }
 
 
-  private async guardarSecciones(tx: any, actaCierreId: number, dto: CrearActaCierreDto) {
+  private async guardarSecciones(tx: Prisma.TransactionClient, actaCierreId: number, dto: CrearActaCierreDto) {
     if (dto.metas?.length) {
       await tx.acta_cierre_metas.createMany({
         data: dto.metas.map((m) => ({ ...m, acta_cierre_id: actaCierreId })),

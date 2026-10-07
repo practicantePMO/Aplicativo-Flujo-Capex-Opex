@@ -33,26 +33,26 @@ describe('AuthService', () => {
 
   describe('validarDominioCorporativo', () => {
     it('debe aceptar un correo del dominio corporativo permitido', () => {
-      // "as any" nos deja llamar un método privado solo para esta prueba,
-      // sin tener que hacerlo público en el código real.
-      expect(() => (service as any).validarDominioCorporativo('laura.pm@empresa.com')).not.toThrow();
+      // service['metodo'] nos deja llamar un método privado solo para esta prueba,
+      // sin tener que hacerlo público en el código real (y sin perder el tipado).
+      expect(() => service['validarDominioCorporativo']('laura.pm@empresa.com')).not.toThrow();
     });
 
     it('debe RECHAZAR un correo de un dominio externo (ej. gmail personal)', () => {
-      expect(() => (service as any).validarDominioCorporativo('cualquiera@gmail.com')).toThrow(
+      expect(() => service['validarDominioCorporativo']('cualquiera@gmail.com')).toThrow(
         UnauthorizedException,
       );
     });
 
     it('no debe dejarse engañar por un dominio que solo termina parecido (ej. "empresa.com.malicioso.com")', () => {
       expect(() =>
-        (service as any).validarDominioCorporativo('atacante@empresa.com.malicioso.com'),
+        service['validarDominioCorporativo']('atacante@empresa.com.malicioso.com'),
       ).toThrow(UnauthorizedException);
     });
 
     it('debe fallar de forma segura si ALLOWED_EMAIL_DOMAIN no está configurado', () => {
       delete process.env.ALLOWED_EMAIL_DOMAIN;
-      expect(() => (service as any).validarDominioCorporativo('laura.pm@empresa.com')).toThrow(
+      expect(() => service['validarDominioCorporativo']('laura.pm@empresa.com')).toThrow(
         'Falta configurar ALLOWED_EMAIL_DOMAIN',
       );
     });

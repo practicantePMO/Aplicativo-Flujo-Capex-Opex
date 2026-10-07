@@ -7,6 +7,7 @@ import { EditarEmpresaDto } from './dto/editar-empresa.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { RequestConUsuario } from '../auth/interfaces/usuario-autenticado.interface';
 
 @Controller('usuarios')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -46,20 +47,20 @@ export class UsuariosController {
 
   @Post('asignar-rol')
   @Roles('ADMIN', 'PMO')
-  asignarRol(@Req() req: any, @Body() dto: AsignarRolDto) {
+  asignarRol(@Req() req: RequestConUsuario, @Body() dto: AsignarRolDto) {
     return this.usuariosService.asignarRolCompania(req.user.userId, dto);
   }
 
   @Delete('roles/:asignacionId')
   @Roles('ADMIN', 'PMO')
-  quitarRol(@Req() req: any, @Param('asignacionId', ParseIntPipe) asignacionId: number) {
+  quitarRol(@Req() req: RequestConUsuario, @Param('asignacionId', ParseIntPipe) asignacionId: number) {
     return this.usuariosService.quitarRol(req.user.userId, asignacionId);
   }
 
   @Patch(':id/activo')
   @Roles('ADMIN', 'PMO')
   cambiarActivo(
-    @Req() req: any,
+    @Req() req: RequestConUsuario,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CambiarActivoDto,
   ) {
@@ -69,7 +70,7 @@ export class UsuariosController {
   @Patch(':id/area')
   @Roles('ADMIN', 'PMO')
   editarArea(
-    @Req() req: any,
+    @Req() req: RequestConUsuario,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: EditarAreaDto,
   ) {
@@ -79,7 +80,7 @@ export class UsuariosController {
   @Patch(':id/empresa')
   @Roles('ADMIN', 'PMO')
   editarEmpresa(
-    @Req() req: any,
+    @Req() req: RequestConUsuario,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: EditarEmpresaDto,
   ) {

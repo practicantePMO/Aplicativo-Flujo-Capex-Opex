@@ -3,6 +3,7 @@ import { PendientesService } from './pendientes.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
+import type { RequestConUsuario } from '../auth/interfaces/usuario-autenticado.interface';
 
 @Controller('pendientes')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -11,7 +12,7 @@ export class PendientesController {
 
   @Get('mis-pendientes')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'ADMIN')
-  obtenerMisPendientes(@Req() req: any) {
+  obtenerMisPendientes(@Req() req: RequestConUsuario) {
     return this.service.obtenerMisPendientes(req.user.userId);
   }
 }

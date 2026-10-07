@@ -3,6 +3,7 @@ import { Throttle } from '@nestjs/throttler';
 import { AuthService } from './auth.service';
 import { LoginSsoDto } from './dto/login-sso.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import type { RequestConUsuario } from './interfaces/usuario-autenticado.interface';
 
 @Controller('auth')
 export class AuthController {
@@ -18,7 +19,7 @@ export class AuthController {
   // Si el token venció o el usuario fue desactivado, responde 401.
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  me(@Req() req: any) {
+  me(@Req() req: RequestConUsuario) {
     return this.authService.obtenerPerfil(req.user.userId);
   }
 
