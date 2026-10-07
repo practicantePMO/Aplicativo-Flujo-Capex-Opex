@@ -7,6 +7,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { BackupService } from './backup.service';
 import { PermisosService } from '../permisos/permisos.service';
+import type { RequestConUsuario } from '../auth/interfaces/usuario-autenticado.interface';
 
 @Controller('backup')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -18,7 +19,7 @@ export class BackupController {
 
   @Get('excel')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO')
-  async descargarExcel(@Req() req: any, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
+  async descargarExcel(@Req() req: RequestConUsuario, @Res({ passthrough: true }) res: Response): Promise<StreamableFile> {
     // El backup trae datos de TODAS las compañías: solo lo descarga un
     // Administrador o un PMO / Director PMO con rol global.
     const usuarioId = req.user.userId;
