@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, ForbiddenException } from '@nestjs/common';
 import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { separarRolesUsuario } from '../common/roles-usuario';
 import { PermisosService } from '../permisos/permisos.service';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
 import { FiltrarProyectosDto } from './dto/filtrar-proyectos.dto';
@@ -87,10 +88,7 @@ export class ProyectosService {
       include: { roles: true },
     });
 
-    const codigosGlobales = rolesUsuario.filter((r) => r.compania_id === null && r.roles).map((r) => r.roles!.codigo);
-    const rolesPorCompania = rolesUsuario
-      .filter((r) => r.compania_id !== null && r.roles)
-      .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
+    const { codigosGlobales, rolesPorCompania } = separarRolesUsuario(rolesUsuario);
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
@@ -382,10 +380,7 @@ export class ProyectosService {
       where: { usuario_id: usuarioId },
       include: { roles: true },
     });
-    const codigosGlobales = rolesUsuario.filter((r) => r.compania_id === null && r.roles).map((r) => r.roles!.codigo);
-    const rolesPorCompania = rolesUsuario
-      .filter((r) => r.compania_id !== null && r.roles)
-      .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
+    const { codigosGlobales, rolesPorCompania } = separarRolesUsuario(rolesUsuario);
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];

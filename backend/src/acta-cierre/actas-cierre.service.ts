@@ -395,11 +395,15 @@ export class ActasCierreService {
       }
 
       if (estadoDestino === 'CONTROL_GESTION') {
+        const controlGestionId = proceso.actas_cierre?.control_gestion_asignado_id;
+        if (!controlGestionId) {
+          throw new BadRequestException('El Acta de Cierre no tiene asignado un responsable de Control Gestión.');
+        }
         await tx.asignaciones_proceso.create({
           data: {
             proceso_id: procesoId,
             etapa: 'CONTROL_GESTION',
-            usuario_id: proceso.actas_cierre!.control_gestion_asignado_id!,
+            usuario_id: controlGestionId,
             estado_asignacion: 'PENDIENTE',
           },
         });
@@ -530,7 +534,7 @@ export class ActasCierreService {
           });
         }
       } else if (REGLA_POR_ETAPA[nuevoEstado]?.roles) {
-        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles!, companiaId);
+        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles ?? [], companiaId);
         if (destinatariosSiguiente.length) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'AC_NUEVA_ETAPA',

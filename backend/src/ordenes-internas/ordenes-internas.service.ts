@@ -221,10 +221,10 @@ export class OrdenesInternasService {
     if (!esCgAsignado && !esAdmin) throw new ForbiddenException('No fuiste asignado como Control Gestión de esta Orden Interna.');
 
     const nombreGrupoExistente = orden.grupos_ordenes_internas.nombre;
-    if (!nombreGrupoExistente && !dto.grupo_texto?.trim()) {
+    const grupoTextoFinal = nombreGrupoExistente || dto.grupo_texto?.trim();
+    if (!grupoTextoFinal) {
       throw new BadRequestException('El grupo de Órdenes Internas es obligatorio: es la primera Orden Interna de este proyecto.');
     }
-    const grupoTextoFinal = nombreGrupoExistente || dto.grupo_texto!.trim();
 
     await this.prisma.$transaction(async (tx) => {
       const { count } = await tx.procesos.updateMany({
@@ -247,7 +247,7 @@ export class OrdenesInternasService {
         });
         if (grupoNombrado === 0) {
           const grupoActual = await tx.grupos_ordenes_internas.findUnique({ where: { id: orden.grupo_id } });
-          grupoTextoDefinitivo = grupoActual!.nombre!;
+          grupoTextoDefinitivo = grupoActual?.nombre ?? grupoTextoFinal;
         }
       }
 
