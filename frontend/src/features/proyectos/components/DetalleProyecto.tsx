@@ -29,6 +29,19 @@ const ESTADO_GRUPO_OI_CONFIG: Record<string, { label: string; color: 'success' |
   CERRADO: { label: 'Cerrado', color: 'default' },
 };
 
+const styles = {
+  backBtn: { mb: 2, color: '#64748b', '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' } },
+  sectionTitle: { fontWeight: 700, color: '#0e381e', mb: 1 },
+  centerBox: { display: 'flex', justifyContent: 'center', py: 5 },
+  emptyBox: { textAlign: 'center', py: 6, backgroundColor: '#ffffff', borderRadius: 3, border: '1px dashed #cbd5e1' },
+  processCard: {
+    width: '100%',
+    borderRadius: 3, border: '1px solid #e2e8f0', boxShadow: 'none', transition: 'transform 0.2s', cursor: 'pointer',
+    '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', borderColor: '#75b70e' },
+  },
+  processIcon: { backgroundColor: '#f0fdf4', color: '#75b70e' },
+};
+
 export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: DetalleProyectoProps) {
   const { tieneRol } = useAuth();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
@@ -48,8 +61,6 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
   const [procesoInicialAplicado, setProcesoInicialAplicado] = useState(false);
 
   const puedeCrearProceso = tieneRol('PM') || tieneRol('ADMIN');
-
-  useEffect(() => { cargarProcesos(); }, [proyecto.id]);
 
   // Al llegar desde "Mis pendientes": cuando terminan de cargar los procesos,
   // abre directamente el proceso pendiente (solo una vez, para que "Volver"
@@ -84,6 +95,17 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
     }
   }, [procesoIdInicial, procesoInicialAplicado, cargando, procesos, proyecto.id]);
 
+    const cargarEstadoOi = async () => {
+    try {
+      const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
+      setGrupoOiEstado(grupo?.estado ?? null);
+      setHayOrdenesInternas((grupo?.ordenes_internas?.length ?? 0) > 0);
+    } catch {
+      setGrupoOiEstado(null);
+      setHayOrdenesInternas(false);
+    }
+  };
+
   const cargarProcesos = async () => {
     try {
       setCargando(true);
@@ -97,16 +119,7 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
     cargarEstadoOi();
   };
 
-  const cargarEstadoOi = async () => {
-    try {
-      const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
-      setGrupoOiEstado(grupo?.estado ?? null);
-      setHayOrdenesInternas((grupo?.ordenes_internas?.length ?? 0) > 0);
-    } catch {
-      setGrupoOiEstado(null);
-      setHayOrdenesInternas(false);
-    }
-  };
+  useEffect(() => { cargarProcesos(); }, [proyecto.id]);
 
   const solicitudesInversion = procesos.filter(
     (p) => p.tipo_proceso === 'SOLICITUD_INVERSION'
@@ -343,15 +356,3 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
   );
 }
 
-const styles = {
-  backBtn: { mb: 2, color: '#64748b', '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' } },
-  sectionTitle: { fontWeight: 700, color: '#0e381e', mb: 1 },
-  centerBox: { display: 'flex', justifyContent: 'center', py: 5 },
-  emptyBox: { textAlign: 'center', py: 6, backgroundColor: '#ffffff', borderRadius: 3, border: '1px dashed #cbd5e1' },
-  processCard: {
-    width: '100%',
-    borderRadius: 3, border: '1px solid #e2e8f0', boxShadow: 'none', transition: 'transform 0.2s', cursor: 'pointer',
-    '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', borderColor: '#75b70e' },
-  },
-  processIcon: { backgroundColor: '#f0fdf4', color: '#75b70e' },
-};

@@ -17,6 +17,19 @@ import { obtenerCompanias, obtenerEmpresas } from '../../proyectos/services/proy
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
 
+const styles = {
+  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
+  title: { fontWeight: 700, color: '#0e381e' },
+  filterCard: { p: 2, mb: 2.5 },
+  tableCard: { borderRadius: 3, overflow: 'hidden' },
+  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
+  tableHeaderRow: { backgroundColor: '#f8fafc' },
+  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
+  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
+  rolChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.7rem' },
+};
+
+
 export function TablaUsuarios() {
   const { usuario: usuarioActual, tieneRol } = useAuth();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
@@ -47,10 +60,6 @@ export function TablaUsuarios() {
     obtenerEmpresas().then(setEmpresas).catch(() => setEmpresas([]));
   }, []);
 
-  useEffect(() => {
-    cargarUsuarios();
-  }, [usuarioActual?.id]);
-
   const cargarUsuarios = async () => {
     try {
       setCargando(true);
@@ -65,6 +74,10 @@ export function TablaUsuarios() {
       setCargando(false);
     }
   };
+
+  useEffect(() => {
+    cargarUsuarios();
+  }, [usuarioActual?.id]);
 
   const areasDisponibles = Array.from(new Set(usuarios.map((u) => u.area).filter(Boolean))) as string[];
 
@@ -405,14 +418,3 @@ export function TablaUsuarios() {
   );
 }
 
-const styles = {
-  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
-  title: { fontWeight: 700, color: '#0e381e' },
-  filterCard: { p: 2, mb: 2.5 },
-  tableCard: { borderRadius: 3, overflow: 'hidden' },
-  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
-  tableHeaderRow: { backgroundColor: '#f8fafc' },
-  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
-  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
-  rolChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.7rem' },
-};

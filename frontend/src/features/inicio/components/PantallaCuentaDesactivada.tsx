@@ -3,9 +3,32 @@ import BlockIcon from '@mui/icons-material/Block';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../../../auth/AuthContext';
 
+const styles = {
+  wrapper: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    p: 2,
+  },
+  card: {
+    maxWidth: 480,
+    width: '100%',
+    p: 4,
+    borderRadius: 4,
+    textAlign: 'center',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+  },
+  avatar: { width: 64, height: 64, mx: 'auto', mb: 2, backgroundColor: '#fee2e2' },
+  title: { fontWeight: 700, color: '#0e381e', mb: 1.5 },
+  subtitle: { color: '#475569', mb: 3, lineHeight: 1.6 },
+  emailText: { display: 'block', color: '#94a3b8', mb: 3 },
+  logoutBtn: { borderRadius: '10px' },
+};
+
 export function PantallaCuentaDesactivada() {
   const { usuario, logout } = useAuth();
-
   return (
     <Box sx={styles.wrapper}>
       <Card sx={styles.card}>
@@ -38,26 +61,3 @@ export function PantallaCuentaDesactivada() {
   );
 }
 
-const styles = {
-  wrapper: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-    p: 2,
-  },
-  card: {
-    maxWidth: 480,
-    width: '100%',
-    p: 4,
-    borderRadius: 4,
-    textAlign: 'center',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-  },
-  avatar: { width: 64, height: 64, mx: 'auto', mb: 2, backgroundColor: '#fee2e2' },
-  title: { fontWeight: 700, color: '#0e381e', mb: 1.5 },
-  subtitle: { color: '#475569', mb: 3, lineHeight: 1.6 },
-  emailText: { display: 'block', color: '#94a3b8', mb: 3 },
-  logoutBtn: { borderRadius: '10px' },
-};

@@ -3,29 +3,6 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlin
 import { GoogleLoginButton } from '../../../auth/GoogleLoginButton';
 import { useAuth } from '../../../auth/AuthContext';
 
-export function PantallaSesionCerrada() {
-  const { sesionExpirada } = useAuth();
-
-  return (
-    <Box sx={styles.wrapper}>
-      <Card sx={styles.card}>
-        <Avatar sx={styles.avatar}>
-          <CheckCircleOutlineIcon sx={{ fontSize: 32, color: '#0e381e' }} />
-        </Avatar>
-        <Typography variant="h5" sx={styles.title}>
-          {sesionExpirada ? 'Tu sesión expiró' : 'Sesión cerrada'}
-        </Typography>
-        <Typography variant="body1" sx={styles.subtitle}>
-          {sesionExpirada
-            ? 'Por seguridad, la sesión se cierra automáticamente después de un tiempo. Vuelve a iniciar sesión para continuar.'
-            : 'Saliste del Sistema de Gestión de Proyectos correctamente.'}
-        </Typography>
-        <GoogleLoginButton />
-      </Card>
-    </Box>
-  );
-}
-
 const styles = {
   wrapper: {
     minHeight: '100vh',
@@ -47,3 +24,26 @@ const styles = {
   title: { fontWeight: 700, color: '#0e381e', mb: 1.5 },
   subtitle: { color: '#475569' },
 };
+
+export function PantallaSesionCerrada() {
+  const { sesionExpirada } = useAuth();
+  return (
+    <Box sx={styles.wrapper}>
+      <Card sx={styles.card}>
+        <Avatar sx={styles.avatar}>
+          <CheckCircleOutlineIcon sx={{ fontSize: 32, color: '#0e381e' }} />
+        </Avatar>
+        <Typography variant="h5" sx={styles.title}>
+          {sesionExpirada ? 'Tu sesión expiró' : 'Sesión cerrada'}
+        </Typography>
+        <Typography variant="body1" sx={styles.subtitle}>
+          {sesionExpirada
+            ? 'Por seguridad, la sesión se cierra automáticamente después de un tiempo. Vuelve a iniciar sesión para continuar.'
+            : 'Saliste del Sistema de Gestión de Proyectos correctamente.'}
+        </Typography>
+        <GoogleLoginButton />
+      </Card>
+    </Box>
+  );
+}
+
