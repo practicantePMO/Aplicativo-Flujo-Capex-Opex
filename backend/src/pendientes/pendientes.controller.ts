@@ -11,7 +11,7 @@ export class PendientesController {
 
   @Get('mis-pendientes')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS', 'ADMIN')
-  async obtenerMisPendientes(@Req() req: any) {
+  obtenerMisPendientes(@Req() req: any) {
     return this.service.obtenerMisPendientes(req.user.userId);
   }
 }

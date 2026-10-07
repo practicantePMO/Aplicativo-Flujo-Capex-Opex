@@ -14,27 +14,27 @@ export class ProyectosController {
 
   @Post()
   @Roles('ADMIN', 'PMO', 'PM')
-  async crearProyecto(@Req() req: any, @Body() dto: CrearProyectoDto) {
+  crearProyecto(@Req() req: any, @Body() dto: CrearProyectoDto) {
     const usuarioId = req.user.userId;
     return this.proyectosService.crearProyecto(usuarioId, dto);
   }
 
   @Get()
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS')
-  async listarProyectos(@Req() req: any, @Query() filtros: FiltrarProyectosDto) {
+  listarProyectos(@Req() req: any, @Query() filtros: FiltrarProyectosDto) {
     const usuarioId = req.user.userId;
     return this.proyectosService.listarProyectos(usuarioId, filtros);
   }
 
   @Get(':id/procesos')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ACTIVOS_FIJOS')
-  async obtenerProcesos(@Req() req: any, @Param('id') id: string) {
+  obtenerProcesos(@Req() req: any, @Param('id') id: string) {
     return this.proyectosService.obtenerProcesosPorProyecto(req.user.userId, id);
   }
 
   @Patch(':id/aplazar')
   @Roles('ADMIN', 'PMO')
-  async aplazarProyecto(@Req() req: any, @Param('id') id: string, @Body() dto: AplazarProyectoDto) {
+  aplazarProyecto(@Req() req: any, @Param('id') id: string, @Body() dto: AplazarProyectoDto) {
     return this.proyectosService.aplazarProyecto(req.user.userId, id, dto);
   }
 }

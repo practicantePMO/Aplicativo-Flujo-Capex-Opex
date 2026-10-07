@@ -61,7 +61,7 @@ export class AuthService {
     });
   }
 
-  async verificarTokenMicrosoft(idToken: string) {
+  verificarTokenMicrosoft(idToken: string) {
     return new Promise<{ email: string; nombre: string }>((resolve, reject) => {
       jwt.verify(
         idToken,

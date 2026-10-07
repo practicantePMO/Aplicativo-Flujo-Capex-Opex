@@ -51,7 +51,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
     this.pausaMs = Number(this.configService.get<number>('NOTIF_PAUSA_MS', 5000));
   }
 
-  async onModuleInit() {
+  onModuleInit() {
     const rabbitUrl = this.configService.getOrThrow<string>('RABBITMQ_URL');
 
     this.connection = amqp.connect([rabbitUrl]);
