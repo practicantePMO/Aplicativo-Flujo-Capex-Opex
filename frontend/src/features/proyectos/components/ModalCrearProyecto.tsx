@@ -28,6 +28,13 @@ interface PmDisponible {
   email: string;
 }
 
+const styles = {
+  dialogPaper: { borderRadius: 3, p: 1 },
+  title: { fontWeight: 700, color: '#0e381e', pb: 1 },
+  content: { pt: 1 },
+  actions: { px: 3, pb: 2 },
+};
+
 export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar }: ModalCrearProyectoProps) {
   const [nombre, setNombre] = useState('');
   const [companiaId, setCompaniaId] = useState<number | ''>('');
@@ -38,15 +45,7 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { usuario, tieneRol } = useAuth();
-
   const puedeAsignarAOtroPm = tieneRol('PMO') || tieneRol('ADMIN');
-
-  useEffect(() => {
-    if (open) {
-      cargarCompanias();
-      if (puedeAsignarAOtroPm) cargarPms();
-    }
-  }, [open]);
 
   const cargarCompanias = async () => {
     try {
@@ -70,6 +69,13 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
       setPmsDisponibles([]);
     }
   };
+
+  useEffect(() => {
+    if (open) {
+      cargarCompanias();
+      if (puedeAsignarAOtroPm) cargarPms();
+    }
+  }, [open]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -182,9 +188,3 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   );
 }
 
-const styles = {
-  dialogPaper: { borderRadius: 3, p: 1 },
-  title: { fontWeight: 700, color: '#0e381e', pb: 1 },
-  content: { pt: 1 },
-  actions: { px: 3, pb: 2 },
-};

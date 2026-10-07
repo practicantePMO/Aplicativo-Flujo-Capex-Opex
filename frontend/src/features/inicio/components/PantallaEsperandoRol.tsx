@@ -3,6 +3,41 @@ import HourglassTopIcon from '@mui/icons-material/HourglassTop';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useAuth } from '../../../auth/AuthContext';
 
+const styles = {
+  wrapper: {
+    minHeight: '100vh',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f8fafc',
+    p: 2,
+  },
+  card: {
+    maxWidth: 480,
+    width: '100%',
+    p: 4,
+    borderRadius: 4,
+    textAlign: 'center',
+    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
+  },
+  avatar: {
+    width: 64, height: 64, mx: 'auto', mb: 2,
+    backgroundColor: '#fffbeb',
+  },
+  title: { fontWeight: 700, color: '#0e381e', mb: 1.5 },
+  subtitle: { color: '#475569', mb: 3, lineHeight: 1.6 },
+  infoBox: {
+    backgroundColor: '#fffbeb',
+    border: '1px solid #fde68a',
+    borderRadius: 2,
+    p: 2,
+    mb: 3,
+    textAlign: 'left',
+  },
+  emailText: { display: 'block', color: '#94a3b8', mb: 3 },
+  logoutBtn: { borderRadius: '10px' },
+};
+
 export function PantallaEsperandoRol() {
   const { usuario, logout } = useAuth();
 
@@ -46,37 +81,3 @@ export function PantallaEsperandoRol() {
   );
 }
 
-const styles = {
-  wrapper: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#f8fafc',
-    p: 2,
-  },
-  card: {
-    maxWidth: 480,
-    width: '100%',
-    p: 4,
-    borderRadius: 4,
-    textAlign: 'center',
-    boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
-  },
-  avatar: {
-    width: 64, height: 64, mx: 'auto', mb: 2,
-    backgroundColor: '#fffbeb',
-  },
-  title: { fontWeight: 700, color: '#0e381e', mb: 1.5 },
-  subtitle: { color: '#475569', mb: 3, lineHeight: 1.6 },
-  infoBox: {
-    backgroundColor: '#fffbeb',
-    border: '1px solid #fde68a',
-    borderRadius: 2,
-    p: 2,
-    mb: 3,
-    textAlign: 'left',
-  },
-  emailText: { display: 'block', color: '#94a3b8', mb: 3 },
-  logoutBtn: { borderRadius: '10px' },
-};

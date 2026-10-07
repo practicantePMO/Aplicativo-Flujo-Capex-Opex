@@ -10,6 +10,24 @@ interface AppLayoutProps {
   onCambiarVista?: (vista: string) => void;
 }
 
+const styles = {
+  layoutWrapper: {
+    display: 'flex',
+    minHeight: '100vh',
+    backgroundColor: '#f4f6f8',
+    overflow: 'hidden',
+  },
+
+  mainContent: {
+    flexGrow: 1,
+    minWidth: 0,
+    padding: 3,
+    marginTop: '90px',
+    overflowY: 'auto',
+    boxSizing: 'border-box',
+  },
+};
+
 export function AppLayout({
   children,
   vistaActual: vistaProp,
@@ -48,21 +66,3 @@ export function AppLayout({
     </ThemeProvider>
   );
 }
-
-const styles = {
-  layoutWrapper: {
-    display: 'flex',
-    minHeight: '100vh',
-    backgroundColor: '#f4f6f8',
-    overflow: 'hidden',
-  },
-
-  mainContent: {
-    flexGrow: 1,
-    minWidth: 0,
-    padding: 3,
-    marginTop: '90px',
-    overflowY: 'auto',
-    boxSizing: 'border-box',
-  },
-};

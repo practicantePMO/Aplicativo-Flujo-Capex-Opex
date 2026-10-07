@@ -14,6 +14,24 @@ interface Props {
   onIrAProyectos: () => void;
 }
 
+const styles = {
+  cardsRow: { display: 'flex', gap: 2, flexWrap: 'wrap' as const },
+  statCard: {
+    flex: '1 1 240px',
+    p: 2.5,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+    cursor: 'pointer',
+    transition: 'border-color 0.15s ease, background-color 0.15s ease',
+    '&:hover': { borderColor: '#94a3b8', backgroundColor: '#f8fafc' },
+  },
+  iconBox: {
+    width: 40, height: 40,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+};
+
 export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [totalPendientes, setTotalPendientes] = useState<number | null>(null);
@@ -88,20 +106,3 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
   );
 }
 
-const styles = {
-  cardsRow: { display: 'flex', gap: 2, flexWrap: 'wrap' as const },
-  statCard: {
-    flex: '1 1 240px',
-    p: 2.5,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 2,
-    cursor: 'pointer',
-    transition: 'border-color 0.15s ease, background-color 0.15s ease',
-    '&:hover': { borderColor: '#94a3b8', backgroundColor: '#f8fafc' },
-  },
-  iconBox: {
-    width: 40, height: 40,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-};

@@ -29,6 +29,20 @@ const ESTADO_CONFIG: Record<string, { label: string; color: 'success' | 'warning
   FINALIZADO: { label: 'Finalizado', color: 'success' },
 };
 
+const styles = {
+  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
+  title: { fontWeight: 700, color: '#0e381e' },
+  createBtn: { borderRadius: '10px', px: 2.5 },
+  filterCard: { p: 2, mb: 2.5 },
+  tableCard: { borderRadius: 3, overflow: 'hidden' },
+  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
+  tableHeaderRow: { backgroundColor: '#f8fafc' },
+  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
+  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
+  idCell: { color: '#0e381e' },
+  companiaChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.73rem' },
+};
+
 export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   const { usuario, tieneRol } = useAuth();
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
@@ -50,10 +64,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
     obtenerCompanias().then(setCompanias).catch(() => setCompanias([]));
   }, []);
 
-  useEffect(() => {
-    cargarListaProyectos();
-  }, [usuario?.id, filtroAnio, filtroCompania, filtroAplazados]);
-
   const cargarListaProyectos = async () => {
     try {
       setCargando(true);
@@ -72,6 +82,11 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
       setCargando(false);
     }
   };
+
+  useEffect(() => {
+    cargarListaProyectos();
+  }, [usuario?.id, filtroAnio, filtroCompania, filtroAplazados]);
+
 
   const proyectosFiltrados = proyectos.filter(
     (p) =>
@@ -243,16 +258,3 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   );
 }
 
-const styles = {
-  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
-  title: { fontWeight: 700, color: '#0e381e' },
-  createBtn: { borderRadius: '10px', px: 2.5 },
-  filterCard: { p: 2, mb: 2.5 },
-  tableCard: { borderRadius: 3, overflow: 'hidden' },
-  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
-  tableHeaderRow: { backgroundColor: '#f8fafc' },
-  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
-  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
-  idCell: { color: '#0e381e' },
-  companiaChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.73rem' },
-};
