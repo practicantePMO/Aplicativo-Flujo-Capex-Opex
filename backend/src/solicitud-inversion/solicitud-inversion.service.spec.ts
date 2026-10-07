@@ -72,7 +72,7 @@ describe('SolicitudInversionService', () => {
       helpersMock.obtenerProcesoConCompania.mockResolvedValue(respuestaHelperBorrador);
       permisosMock.esAdminGlobal.mockResolvedValue(false);
 
-      prismaMock.$transaction.mockImplementation(async (callback) => {
+      prismaMock.$transaction.mockImplementation((callback) => {
         const txMock = {
           procesos: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
           historico_aprobaciones: { create: jest.fn().mockResolvedValue({}) },
@@ -102,7 +102,7 @@ describe('SolicitudInversionService', () => {
       helpersMock.obtenerProcesoConCompania.mockResolvedValue(respuestaHelperBorrador);
       permisosMock.esAdminGlobal.mockResolvedValue(true);
 
-      prismaMock.$transaction.mockImplementation(async (callback) => {
+      prismaMock.$transaction.mockImplementation((callback) => {
         const txMock = {
           procesos: { updateMany: jest.fn().mockResolvedValue({ count: 1 }) },
           historico_aprobaciones: { create: jest.fn().mockResolvedValue({}) },

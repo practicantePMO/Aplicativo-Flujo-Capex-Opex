@@ -168,7 +168,7 @@ export class SolicitudInversionConsultaService {
     });
   }
 
-  async obtenerCategorias() {
+  obtenerCategorias() {
     return this.prisma.categorias.findMany({
       where: { eliminado_el: null },
       select: { id: true, nombre: true, requiere_evaluacion_obligatoria: true },

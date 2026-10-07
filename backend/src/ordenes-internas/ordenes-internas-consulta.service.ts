@@ -99,7 +99,7 @@ export class OrdenesInternasConsultaService {
     return { ...orden, proyecto_nombre: proyecto.nombre };
   }
 
-  async obtenerMisPendientes(usuarioId: number) {
+  obtenerMisPendientes(usuarioId: number) {
     return this.prisma.ordenes_internas.findMany({
       where: {
         OR: [

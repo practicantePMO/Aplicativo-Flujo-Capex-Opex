@@ -8,7 +8,7 @@ export class CompaniasController {
   constructor(private readonly prisma: PrismaService) {}
 
   @Get()
-  async listar() {
+  listar() {
     return this.prisma.companias.findMany({
       where: { activa: true },
       select: {

@@ -15,7 +15,7 @@ export class OrdenesInternasService {
     private readonly notificaciones: NotificacionesService,
   ) {}
 
-  private async obtenerOCrearGrupo(proyectoId: string) {
+  private obtenerOCrearGrupo(proyectoId: string) {
     return this.prisma.grupos_ordenes_internas.upsert({
       where: { proyecto_id: proyectoId },
       update: {},

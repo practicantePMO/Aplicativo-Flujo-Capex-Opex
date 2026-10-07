@@ -10,7 +10,7 @@ export class AuthController {
 
   @Throttle({ default: { ttl: 60000, limit: 5 } }) // máx 5 intentos de login por minuto por IP
   @Post('login-sso')
-  async loginSSO(@Body() dto: LoginSsoDto) {
+  loginSSO(@Body() dto: LoginSsoDto) {
     return this.authService.loginSSO(dto.idToken, dto.proveedor);
   }
 
@@ -18,7 +18,7 @@ export class AuthController {
   // Si el token venció o el usuario fue desactivado, responde 401.
   @UseGuards(JwtAuthGuard)
   @Get('me')
-  async me(@Req() req: any) {
+  me(@Req() req: any) {
     return this.authService.obtenerPerfil(req.user.userId);
   }
 
@@ -27,7 +27,7 @@ export class AuthController {
   // En producción esa variable NO debe existir (o debe ser false).
   @Throttle({ default: { ttl: 60000, limit: 30 } })
   @Post('login-dev')
-  async loginDev(@Body() body: { usuarioId: number }) {
+  loginDev(@Body() body: { usuarioId: number }) {
     if (process.env.ALLOW_DEV_LOGIN !== 'true') {
       throw new NotFoundException();
     }
