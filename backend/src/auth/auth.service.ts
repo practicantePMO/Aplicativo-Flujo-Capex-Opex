@@ -70,8 +70,8 @@ export class AuthService {
           audience: process.env.MICROSOFT_CLIENT_ID,
           issuer: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/v2.0`,
         },
-        (err, decoded: any) => {
-          if (err || !decoded) {
+        (err, decoded) => {
+          if (err || !decoded || typeof decoded === 'string') {
             return reject(new UnauthorizedException('Token de autenticación de Microsoft inválido o expirado.'));
           }
 

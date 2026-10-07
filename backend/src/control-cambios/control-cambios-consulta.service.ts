@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 
@@ -94,7 +95,7 @@ export class ControlCambiosConsultaService {
       PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
     };
 
-    const condicionesEtapas: any[] = [];
+    const condicionesEtapas: Prisma.procesosWhereInput[] = [];
 
     Object.entries(etapasRolesMap).forEach(([etapa, rolesPermitidos]) => {
       const tieneGlobal = codigosGlobales.some((rol) => rolesPermitidos.includes(rol));

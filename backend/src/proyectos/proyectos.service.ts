@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
@@ -116,21 +117,15 @@ export class ProyectosService {
       },
     };
 
-    const condicionesFiltro: any = { eliminado_el: null };
+    const condicionesFiltro: Prisma.proyectosWhereInput = { eliminado_el: null };
     if (filtros.id) condicionesFiltro.id = { contains: filtros.id };
     if (filtros.anio) condicionesFiltro.anio_asignado = filtros.anio;
     if (filtros.companiaId) condicionesFiltro.compania_id = filtros.companiaId;
 
-    let proyectos: any[];
+    let where: Prisma.proyectosWhereInput = condicionesFiltro;
 
-    if (tieneAccesoTotal) {
-      proyectos = await this.prisma.proyectos.findMany({
-        where: condicionesFiltro,
-        select: selectCampos,
-        orderBy: { fecha_creacion: 'desc' },
-      });
-    } else {
-      const condicionesOR: any[] = [];
+    if (!tieneAccesoTotal) {
+      const condicionesOR: Prisma.proyectosWhereInput[] = [];
 
       if (codigosRoles.includes('PM')) {
         condicionesOR.push({ creado_por: usuarioId });
@@ -225,19 +220,21 @@ export class ProyectosService {
         );
       }
 
-      proyectos = await this.prisma.proyectos.findMany({
-        where: { ...condicionesFiltro, OR: condicionesOR },
-        select: selectCampos,
-        orderBy: { fecha_creacion: 'desc' },
-      });
+      where = { ...condicionesFiltro, OR: condicionesOR };
     }
 
-    proyectos = proyectos.map((p) => {
+    const proyectosBD = await this.prisma.proyectos.findMany({
+      where,
+      select: selectCampos,
+      orderBy: { fecha_creacion: 'desc' },
+    });
+
+    let proyectos = proyectosBD.map((p) => {
       const procesosProyecto = p.procesos || [];
       const actaCierreCerrada = procesosProyecto.find(
-        (proc: any) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
+        (proc) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
       );
-      const tieneProcesoCancelado = procesosProyecto.some((proc: any) => proc.estado_actual === 'CANCELADO');
+      const tieneProcesoCancelado = procesosProyecto.some((proc) => proc.estado_actual === 'CANCELADO');
 
       let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'FINALIZADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO' = 'ACTIVO';
       if (actaCierreCerrada) {

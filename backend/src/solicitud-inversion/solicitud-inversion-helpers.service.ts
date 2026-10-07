@@ -1,4 +1,5 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 
@@ -70,7 +71,7 @@ export class SolicitudInversionHelpersService {
   }
 
   async validarClasificacion(
-    prismaClient: any,
+    prismaClient: Prisma.TransactionClient,
     dto: { incluye_tradicional?: boolean; incluye_nueva?: boolean; subprograma_id?: number; categoria_id?: number; tiene_evaluacion_financiera: boolean },
   ): Promise<{ tipoClasificacion: 'TRADICIONAL' | 'NUEVA' | 'AMBAS' }> {
     if (!dto.incluye_tradicional && !dto.incluye_nueva) {

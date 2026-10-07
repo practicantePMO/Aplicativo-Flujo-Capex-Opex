@@ -26,7 +26,7 @@ export interface EventoNotificacion {
     | 'AC_RECHAZADO';
 
   destinatarios: string[];
-  datos: Record<string, any>;
+  datos: Record<string, string | number | null | undefined>;
 }
 @Injectable()
 export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
@@ -85,7 +85,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
     await this.connection.close();
   }
 
-  private renderTemplate(templateName: string, datos: Record<string, any>): string {
+  private renderTemplate(templateName: string, datos: Record<string, string | number | null | undefined>): string {
     // lista de rutas donde buscar la plantilla (dist y src directo)
     const posiblesRutas = [
       path.join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
