@@ -11,4 +11,6 @@ import { ActasCierreModule } from '../acta-cierre/actas-cierre.module';
   controllers: [PendientesController],
   providers: [PendientesService],
 })
+
+// skipcq: JS-0327 -- Los módulos de NestJS son clases vacías con @Module por diseño del framework.
 export class PendientesModule {}
