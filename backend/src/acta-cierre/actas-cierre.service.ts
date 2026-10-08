@@ -14,6 +14,45 @@ import { CrearActaCierreDto } from './dto/crear-acta-cierre.dto';
 import { AprobarActaCierreDto, RechazarActaCierreDto } from './dto/cambiar-estado-acta-cierre.dto';
 import { ActualizarPartesInteresadasActaCierreDto } from './dto/actualizar-partes-interesadas-acta-cierre.dto';
 
+async function guardarSecciones(tx: Prisma.TransactionClient, actaCierreId: number, dto: CrearActaCierreDto) {
+  if (dto.metas?.length) {
+    await tx.acta_cierre_metas.createMany({
+      data: dto.metas.map((m) => ({ ...m, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.valores?.length) {
+    await tx.acta_cierre_valores.createMany({
+      data: dto.valores.map((v) => ({ ...v, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.flujo_caja?.length) {
+    await tx.acta_cierre_flujo_caja.createMany({
+      data: dto.flujo_caja.map((f) => ({ ...f, monto_real: f.monto_real ?? 0, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.entregables?.length) {
+    await tx.acta_cierre_entregables.createMany({
+      data: dto.entregables.map((e) => ({ ...e, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.oi_valores_reales?.length) {
+    await tx.acta_cierre_oi_valores_reales.createMany({
+      data: dto.oi_valores_reales.map((o) => ({ ...o, acta_cierre_id: actaCierreId })),
+    });
+  }
+}
+
+// Etapas en las que se avisa por correo a los usuarios asignados,
+// con el nombre de la etapa tal como aparece en el correo.
+const ETAPAS_CON_ASIGNADOS: Record<string, string> = {
+  ACTIVOS_FIJOS: 'Activos Fijos',
+  VERIFICACION_PARTES_INTERESADAS: 'Verificación de Partes Interesadas',
+  GERENCIA: 'Gerencia',
+};
+
+// Lo que devuelve obtenerProcesoConCompania (proceso, proyecto y compañía).
+type ProcesoConCompania = Awaited<ReturnType<ActasCierreHelpersService['obtenerProcesoConCompania']>>;
+
 
 @Injectable()
 export class ActasCierreService {
@@ -117,7 +156,7 @@ export class ActasCierreService {
         },
       });
 
-      await this.guardarSecciones(tx, acta.id, dto);
+      await guardarSecciones(tx, acta.id, dto);
 
       return { proceso_id: proceso.id, acta_cierre_id: acta.id, mensaje: 'Acta de Cierre guardada en Borrador.' };
     });
@@ -163,7 +202,7 @@ export class ActasCierreService {
       await tx.acta_cierre_entregables.deleteMany({ where: { acta_cierre_id: acta.id } });
       await tx.acta_cierre_oi_valores_reales.deleteMany({ where: { acta_cierre_id: acta.id } });
 
-      await this.guardarSecciones(tx, acta.id, dto);
+      await guardarSecciones(tx, acta.id, dto);
 
       return { procesoId, mensaje: 'Acta de Cierre actualizada.' };
     });
@@ -190,35 +229,6 @@ export class ActasCierreService {
       if (oiDelProyecto !== idsOi.length) {
         throw new BadRequestException('Una o más Órdenes Internas no pertenecen a este proyecto.');
       }
-    }
-  }
-
-
-  private async guardarSecciones(tx: Prisma.TransactionClient, actaCierreId: number, dto: CrearActaCierreDto) {
-    if (dto.metas?.length) {
-      await tx.acta_cierre_metas.createMany({
-        data: dto.metas.map((m) => ({ ...m, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.valores?.length) {
-      await tx.acta_cierre_valores.createMany({
-        data: dto.valores.map((v) => ({ ...v, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.flujo_caja?.length) {
-      await tx.acta_cierre_flujo_caja.createMany({
-        data: dto.flujo_caja.map((f) => ({ ...f, monto_real: f.monto_real ?? 0, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.entregables?.length) {
-      await tx.acta_cierre_entregables.createMany({
-        data: dto.entregables.map((e) => ({ ...e, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.oi_valores_reales?.length) {
-      await tx.acta_cierre_oi_valores_reales.createMany({
-        data: dto.oi_valores_reales.map((o) => ({ ...o, acta_cierre_id: actaCierreId })),
-      });
     }
   }
 
@@ -275,7 +285,8 @@ export class ActasCierreService {
 
   // Aprobar la etapa actual
   async aprobarEtapa(procesoId: number, usuarioId: number, dto: AprobarActaCierreDto) {
-    const { proceso, proyecto, companiaId } = await this.helpers.obtenerProcesoConCompania(procesoId);
+    const datosProceso = await this.helpers.obtenerProcesoConCompania(procesoId);
+    const { proceso, companiaId } = datosProceso;
     const estadoOrigen = proceso.estado_actual;
 
     await this.helpers.validarPermisoParaEtapa(usuarioId, procesoId, companiaId, estadoOrigen);
@@ -451,6 +462,21 @@ export class ActasCierreService {
       return { procesoId, estado_anterior: estadoOrigen, estado_actual: estadoDestino, mensaje: 'Aprobado exitosamente.' };
     });
 
+    await this.notificarAprobacion(datosProceso, procesoId, usuarioId, resultado.estado_actual);
+
+    return resultado;
+  }
+
+  // Envía los correos después de aprobar una etapa. Si algo falla aquí, solo
+  // queda en el log: la aprobación ya quedó guardada.
+  private async notificarAprobacion(
+    datosProceso: ProcesoConCompania,
+    procesoId: number,
+    usuarioId: number,
+    nuevoEstado: string,
+  ) {
+    const { proceso, proyecto, companiaId } = datosProceso;
+
     try {
       const pmEmail = proceso.actas_cierre?.pm?.email;
       const usuarioAprobador = await this.prisma.usuarios.findUnique({ where: { id: usuarioId }, select: { nombre: true } });
@@ -463,13 +489,18 @@ export class ActasCierreService {
             nombrePM: proceso.actas_cierre?.pm?.nombre,
             codigoProyecto: proyecto.id.toString(),
             nombreProyecto: proyecto.nombre,
-            nuevoEstado: resultado.estado_actual,
+            nuevoEstado,
             nombreAprobador: usuarioAprobador?.nombre || 'Aprobador',
           },
         });
       }
 
-      const nuevoEstado = resultado.estado_actual;
+      // Datos del proyecto que van en todos los correos de "nueva etapa"
+      const datosProyecto = {
+        codigoProyecto: proyecto.id.toString(),
+        nombreProyecto: proyecto.nombre,
+        nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
+      };
 
       if (nuevoEstado === 'CONTROL_GESTION') {
         const cgEmail = proceso.actas_cierre?.control_gestion?.email;
@@ -480,56 +511,20 @@ export class ActasCierreService {
             datos: {
               nombreUsuario: proceso.actas_cierre?.control_gestion?.nombre || 'Control Gestión',
               etapaActual: 'Control Gestión',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
+              ...datosProyecto,
             },
           });
         }
-
-      } else if (nuevoEstado === 'ACTIVOS_FIJOS') {
-        const asignadosActivosFijos = await this.helpers.obtenerAsignados(procesoId, 'ACTIVOS_FIJOS');
-        for (const asignado of asignadosActivosFijos) {
+      } else if (ETAPAS_CON_ASIGNADOS[nuevoEstado]) {
+        const asignados = await this.helpers.obtenerAsignados(procesoId, nuevoEstado);
+        for (const asignado of asignados) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'AC_NUEVA_ETAPA',
             destinatarios: [asignado.email],
             datos: {
               nombreUsuario: asignado.nombre,
-              etapaActual: 'Activos Fijos',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
-            },
-          });
-        }
-
-      } else if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
-        const asignadosPartes = await this.helpers.obtenerAsignados(procesoId, 'VERIFICACION_PARTES_INTERESADAS');
-        for (const asignado of asignadosPartes) {
-          await this.notificaciones.encolarNotificacion({
-            tipo: 'AC_NUEVA_ETAPA',
-            destinatarios: [asignado.email],
-            datos: {
-              nombreUsuario: asignado.nombre,
-              etapaActual: 'Verificación de Partes Interesadas',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
-            },
-          });
-        }
-      } else if (nuevoEstado === 'GERENCIA') {
-        const asignadosGerencia = await this.helpers.obtenerAsignados(procesoId, 'GERENCIA');
-        for (const asignado of asignadosGerencia) {
-          await this.notificaciones.encolarNotificacion({
-            tipo: 'AC_NUEVA_ETAPA',
-            destinatarios: [asignado.email],
-            datos: {
-              nombreUsuario: asignado.nombre,
-              etapaActual: 'Gerencia',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
+              etapaActual: ETAPAS_CON_ASIGNADOS[nuevoEstado],
+              ...datosProyecto,
             },
           });
         }
@@ -542,9 +537,7 @@ export class ActasCierreService {
             datos: {
               nombreUsuario: 'Equipo responsable',
               etapaActual: nuevoEstado.replace(/_/g, ' '),
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.actas_cierre?.pm?.nombre || 'Project Manager',
+              ...datosProyecto,
             },
           });
         }
@@ -552,8 +545,6 @@ export class ActasCierreService {
     } catch (error) {
       this.logger.error('Error al notificar (aprobarEtapa Acta Cierre)', error);
     }
-
-    return resultado;
   }
 
   // Rechazar la etapa actual — vuelve a BORRADOR

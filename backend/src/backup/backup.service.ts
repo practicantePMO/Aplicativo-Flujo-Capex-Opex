@@ -2,19 +2,41 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import ExcelJS from 'exceljs';
 
+function encabezado(hoja: ExcelJS.Worksheet) {
+  hoja.getRow(1).font = { bold: true };
+  hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: hoja.columns?.length || 1 } };
+  hoja.views = [{ state: 'frozen', ySplit: 1 }];
+}
+
 @Injectable()
 export class BackupService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private encabezado(hoja: ExcelJS.Worksheet) {
-    hoja.getRow(1).font = { bold: true };
-    hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: hoja.columns?.length || 1 } };
-    hoja.views = [{ state: 'frozen', ySplit: 1 }];
-  }
-
+  // Arma el Excel completo: una hoja por cada tabla del sistema.
   async generarExcel(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
 
+    await this.agregarHojaProyectos(workbook);
+    await this.agregarHojaSolicitudes(workbook);
+    await this.agregarHojaSiFlujoCaja(workbook);
+    await this.agregarHojaSiValores(workbook);
+    await this.agregarHojaSiMetas(workbook);
+    await this.agregarHojaOrdenesInternas(workbook);
+    await this.agregarHojaOiValores(workbook);
+    await this.agregarHojaControlesCambio(workbook);
+    await this.agregarHojaCcAnexos(workbook);
+    await this.agregarHojaActasCierre(workbook);
+    await this.agregarHojaAcMetas(workbook);
+    await this.agregarHojaAcValores(workbook);
+    await this.agregarHojaAcFlujoCaja(workbook);
+    await this.agregarHojaAcEntregables(workbook);
+    await this.agregarHojaAcOiValores(workbook);
+
+    const buffer = await workbook.xlsx.writeBuffer();
+    return Buffer.from(buffer);
+  }
+
+  private async agregarHojaProyectos(workbook: ExcelJS.Workbook) {
     // ---------- Proyectos ----------
     const proyectos = await this.prisma.proyectos.findMany({
       where: { eliminado_el: null },
@@ -51,8 +73,10 @@ export class BackupService {
         fechaCreacion: p.fecha_creacion,
       });
     }
-    this.encabezado(hojaProyectos);
+    encabezado(hojaProyectos);
+  }
 
+  private async agregarHojaSolicitudes(workbook: ExcelJS.Workbook) {
     // ---------- Solicitudes de Inversión ----------
     const solicitudes = await this.prisma.solicitudes_inversion.findMany({
       include: {
@@ -104,8 +128,11 @@ export class BackupService {
         fecha: s.procesos?.fecha_creacion || '',
       });
     }
-    this.encabezado(hojaSI);
+    encabezado(hojaSI);
 
+  }
+
+  private async agregarHojaSiFlujoCaja(workbook: ExcelJS.Workbook) {
     // ---------- SI - Flujo de Caja ----------
     const flujoPlaneado = await this.prisma.solicitud_flujo_caja.findMany({
       include: { solicitudes_inversion: { include: { procesos: { select: { proyecto_id: true } } } } },
@@ -130,8 +157,11 @@ export class BackupService {
         monto: f.monto ? Number(f.monto) : 0,
       });
     }
-    this.encabezado(hojaFlujoPlaneado);
+    encabezado(hojaFlujoPlaneado);
 
+  }
+
+  private async agregarHojaSiValores(workbook: ExcelJS.Workbook) {
     // ---------- SI - Valores ----------
     const valoresPlaneados = await this.prisma.solicitud_valores.findMany({
       include: { solicitudes_inversion: { include: { procesos: { select: { proyecto_id: true } } } } },
@@ -151,8 +181,11 @@ export class BackupService {
         cop: v.cop ? Number(v.cop) : '',
       });
     }
-    this.encabezado(hojaValoresPlaneados);
+    encabezado(hojaValoresPlaneados);
 
+  }
+
+  private async agregarHojaSiMetas(workbook: ExcelJS.Workbook) {
     // ---------- SI - Metas ----------
     const metas = await this.prisma.solicitud_metas.findMany({
       include: { solicitudes_inversion: { include: { procesos: { select: { proyecto_id: true } } } } },
@@ -172,8 +205,11 @@ export class BackupService {
         indicador: m.indicador,
       });
     }
-    this.encabezado(hojaMetas);
+    encabezado(hojaMetas);
 
+  }
+
+  private async agregarHojaOrdenesInternas(workbook: ExcelJS.Workbook) {
     // ---------- Órdenes Internas ----------
     const ordenes = await this.prisma.ordenes_internas.findMany({
       include: {
@@ -234,8 +270,11 @@ export class BackupService {
         esCC: o.es_control_cambios ? 'Sí' : 'No',
       });
     }
-    this.encabezado(hojaOI);
+    encabezado(hojaOI);
 
+  }
+
+  private async agregarHojaOiValores(workbook: ExcelJS.Workbook) {
     // ---------- OI - Valores ----------
     const oiValores = await this.prisma.oi_valores.findMany({
       include: {
@@ -263,8 +302,11 @@ export class BackupService {
         cop: v.cop ? Number(v.cop) : '',
       });
     }
-    this.encabezado(hojaOiValores);
+    encabezado(hojaOiValores);
 
+  }
+
+  private async agregarHojaControlesCambio(workbook: ExcelJS.Workbook) {
     // ---------- Controles de Cambio ----------
     const controles = await this.prisma.controles_cambio.findMany({
       include: {
@@ -306,8 +348,11 @@ export class BackupService {
         fecha: c.fecha_creacion,
       });
     }
-    this.encabezado(hojaCC);
+    encabezado(hojaCC);
 
+  }
+
+  private async agregarHojaCcAnexos(workbook: ExcelJS.Workbook) {
     // ---------- CC - Anexos ----------
     const ccAnexos = await this.prisma.control_cambio_anexos.findMany({
       include: { controles_cambio: { select: { proyecto_id: true } } },
@@ -327,8 +372,11 @@ export class BackupService {
         descripcion: a.descripcion || '',
       });
     }
-    this.encabezado(hojaCcAnexos);
+    encabezado(hojaCcAnexos);
 
+  }
+
+  private async agregarHojaActasCierre(workbook: ExcelJS.Workbook) {
     // ---------- Actas de Cierre ----------
     const actas = await this.prisma.actas_cierre.findMany({
       include: {
@@ -364,8 +412,10 @@ export class BackupService {
         fecha: a.fecha_creacion,
       });
     }
-    this.encabezado(hojaAC);
+    encabezado(hojaAC);
+  }
 
+  private async agregarHojaAcMetas(workbook: ExcelJS.Workbook) {
     // ---------- AC - Metas ----------
     const acMetas = await this.prisma.acta_cierre_metas.findMany({
       include: {
@@ -390,8 +440,11 @@ export class BackupService {
         resultado: m.resultado_cierre || '',
       });
     }
-    this.encabezado(hojaAcMetas);
+    encabezado(hojaAcMetas);
 
+  }
+
+  private async agregarHojaAcValores(workbook: ExcelJS.Workbook) {
     // ---------- AC - Valores Reales ----------
     const acValores = await this.prisma.acta_cierre_valores.findMany({
       include: { actas_cierre: { select: { proyecto_id: true } } },
@@ -411,8 +464,11 @@ export class BackupService {
         realCop: v.real_cop ? Number(v.real_cop) : '',
       });
     }
-    this.encabezado(hojaAcValores);
+    encabezado(hojaAcValores);
 
+  }
+
+  private async agregarHojaAcFlujoCaja(workbook: ExcelJS.Workbook) {
     // ---------- AC - Flujo de Caja Real ----------
     const acFlujo = await this.prisma.acta_cierre_flujo_caja.findMany({
       include: { actas_cierre: { select: { proyecto_id: true } } },
@@ -437,8 +493,10 @@ export class BackupService {
         montoReal: f.monto_real ? Number(f.monto_real) : 0,
       });
     }
-    this.encabezado(hojaAcFlujo);
+    encabezado(hojaAcFlujo);
+  }
 
+  private async agregarHojaAcEntregables(workbook: ExcelJS.Workbook) {
     // ---------- AC - Entregables ----------
     const acEntregables = await this.prisma.acta_cierre_entregables.findMany({
       include: { actas_cierre: { select: { proyecto_id: true } } },
@@ -466,8 +524,10 @@ export class BackupService {
         anexoUrl: e.anexo_url || '',
       });
     }
-    this.encabezado(hojaAcEntregables);
+    encabezado(hojaAcEntregables);
+  }
 
+  private async agregarHojaAcOiValores(workbook: ExcelJS.Workbook) {
     // ---------- AC - OI Valores Reales ----------
     const acOiValores = await this.prisma.acta_cierre_oi_valores_reales.findMany({
       include: {
@@ -492,9 +552,6 @@ export class BackupService {
         moneda: v.valor_real_moneda,
       });
     }
-    this.encabezado(hojaAcOiValores);
-
-    const buffer = await workbook.xlsx.writeBuffer();
-    return Buffer.from(buffer);
+    encabezado(hojaAcOiValores);
   }
 }

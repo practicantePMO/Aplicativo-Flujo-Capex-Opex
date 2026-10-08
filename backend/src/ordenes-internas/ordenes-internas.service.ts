@@ -7,6 +7,27 @@ import { EnviarOrdenInternaDto } from './dto/enviar-orden-interna.dto';
 import { AprobarOrdenInternaDto, RechazarOrdenInternaDto } from './dto/cambiar-estado-orden.dto';
 import { SolicitarCierreGrupoDto } from './dto/solicitar-cierre-grupo.dto';
 
+function mapearDatosOi(dto: CrearOrdenInternaDto) {
+  return {
+    nombre_descriptivo: dto.nombre_descriptivo,
+    tipo_orden: dto.tipo_orden,
+    es_control_cambios: Boolean(dto.es_control_cambios),
+    control_cambio_id: dto.es_control_cambios ? dto.control_cambio_id : null,
+    centro_costos: dto.centro_costos,
+    oficina_ventas: dto.oficina_ventas,
+    linea_marca: dto.linea_marca,
+    cliente: dto.cliente,
+    ramo: dto.ramo,
+    porcentaje_1: dto.porcentaje_1,
+    activo_fijo_curso: dto.tipo_orden === 'ACTIVO' ? dto.activo_fijo_curso : null,
+    tipo_activo: dto.tipo_orden === 'ACTIVO' ? dto.tipo_activo : null,
+    porcentaje_2: dto.tipo_orden === 'ACTIVO' ? dto.porcentaje_2 : null,
+    presupuesto: dto.presupuesto,
+    presupuesto_moneda: dto.presupuesto_moneda || 'COP',
+    activo_real_productivo: dto.tipo_orden === 'ACTIVO' ? dto.activo_real_productivo : null,
+    observaciones_pm: dto.observaciones_pm,
+  };
+}
 @Injectable()
 export class OrdenesInternasService {
   constructor(
@@ -51,28 +72,6 @@ export class OrdenesInternasService {
     }
   }
 
-  private mapearDatosOi(dto: CrearOrdenInternaDto) {
-    return {
-      nombre_descriptivo: dto.nombre_descriptivo,
-      tipo_orden: dto.tipo_orden,
-      es_control_cambios: Boolean(dto.es_control_cambios),
-      control_cambio_id: dto.es_control_cambios ? dto.control_cambio_id : null,
-      centro_costos: dto.centro_costos,
-      oficina_ventas: dto.oficina_ventas,
-      linea_marca: dto.linea_marca,
-      cliente: dto.cliente,
-      ramo: dto.ramo,
-      porcentaje_1: dto.porcentaje_1,
-      activo_fijo_curso: dto.tipo_orden === 'ACTIVO' ? dto.activo_fijo_curso : null,
-      tipo_activo: dto.tipo_orden === 'ACTIVO' ? dto.tipo_activo : null,
-      porcentaje_2: dto.tipo_orden === 'ACTIVO' ? dto.porcentaje_2 : null,
-      presupuesto: dto.presupuesto,
-      presupuesto_moneda: dto.presupuesto_moneda || 'COP',
-      activo_real_productivo: dto.tipo_orden === 'ACTIVO' ? dto.activo_real_productivo : null,
-      observaciones_pm: dto.observaciones_pm,
-    };
-  }
-
   // Crear (BORRADOR)
   async crear(usuarioId: number, dto: CrearOrdenInternaDto) {
     const proyecto = await this.prisma.proyectos.findFirst({ where: { id: dto.proyecto_id, eliminado_el: null } });
@@ -104,7 +103,7 @@ export class OrdenesInternasService {
           grupo_id: grupo.id,
           proceso_id: proceso.id,
           responsable_pm_id: usuarioId,
-          ...this.mapearDatosOi(dto),
+          ...mapearDatosOi(dto),
         },
       });
 
@@ -136,7 +135,7 @@ export class OrdenesInternasService {
     return this.prisma.$transaction(async (tx) => {
       await tx.ordenes_internas.update({
         where: { id: ordenInternaId },
-        data: this.mapearDatosOi(dto),
+        data: mapearDatosOi(dto),
       });
 
       await tx.oi_valores.deleteMany({ where: { orden_interna_id: ordenInternaId } });

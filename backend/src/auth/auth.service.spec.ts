@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService } from './auth.service';
+import { AuthService, validarDominioCorporativo } from './auth.service';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -31,28 +31,30 @@ describe('AuthService', () => {
     process.env.ALLOWED_EMAIL_DOMAIN = dominioOriginal;
   });
 
+  it('debe crearse correctamente', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('validarDominioCorporativo', () => {
     it('debe aceptar un correo del dominio corporativo permitido', () => {
-      // service['metodo'] nos deja llamar un método privado solo para esta prueba,
-      // sin tener que hacerlo público en el código real (y sin perder el tipado).
-      expect(() => service['validarDominioCorporativo']('laura.pm@empresa.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('laura.pm@empresa.com')).not.toThrow();
     });
 
     it('debe RECHAZAR un correo de un dominio externo (ej. gmail personal)', () => {
-      expect(() => service['validarDominioCorporativo']('cualquiera@gmail.com')).toThrow(
+      expect(() => validarDominioCorporativo('cualquiera@gmail.com')).toThrow(
         UnauthorizedException,
       );
     });
 
     it('no debe dejarse engañar por un dominio que solo termina parecido (ej. "empresa.com.malicioso.com")', () => {
       expect(() =>
-        service['validarDominioCorporativo']('atacante@empresa.com.malicioso.com'),
+        validarDominioCorporativo('atacante@empresa.com.malicioso.com'),
       ).toThrow(UnauthorizedException);
     });
 
     it('debe fallar de forma segura si ALLOWED_EMAIL_DOMAIN no está configurado', () => {
       delete process.env.ALLOWED_EMAIL_DOMAIN;
-      expect(() => service['validarDominioCorporativo']('laura.pm@empresa.com')).toThrow(
+      expect(() => validarDominioCorporativo('laura.pm@empresa.com')).toThrow(
         'Falta configurar ALLOWED_EMAIL_DOMAIN',
       );
     });
