@@ -3,7 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
-import * as jwt from 'jsonwebtoken';
+import { verify, type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
 @Injectable()
@@ -52,7 +52,7 @@ export class AuthService {
   }
 
   // Validamos que 'key' exista antes de llamar a getPublicKey()
-  private obtenerLlaveFirmaMicrosoft(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  private obtenerLlaveFirmaMicrosoft(header: JwtHeader, callback: SigningKeyCallback) {
     this.microsoftJwksClient.getSigningKey(header.kid, (err, key) => {
       if (err || !key) {
         callback(err || new Error('No se pudo obtener la llave de firma de Microsoft'));
@@ -64,7 +64,7 @@ export class AuthService {
 
   verificarTokenMicrosoft(idToken: string) {
     return new Promise<{ email: string; nombre: string }>((resolve, reject) => {
-      jwt.verify(
+      verify(
         idToken,
         (header, callback) => this.obtenerLlaveFirmaMicrosoft(header, callback),
         {

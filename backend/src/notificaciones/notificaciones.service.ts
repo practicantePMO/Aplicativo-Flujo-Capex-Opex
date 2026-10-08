@@ -1,12 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as amqp from 'amqp-connection-manager';
-import { ChannelWrapper } from 'amqp-connection-manager';
+import { connect, AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-manager';
 import { ConfirmChannel, ConsumeMessage } from 'amqplib';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as handlebars from 'handlebars';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { compile } from 'handlebars';
 
 export interface EventoNotificacion {
   tipo:
@@ -31,7 +30,7 @@ export interface EventoNotificacion {
 @Injectable()
 export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificacionesService.name);
-  private connection: amqp.AmqpConnectionManager;
+  private connection: AmqpConnectionManager;
   private channelWrapper: ChannelWrapper;
 
   private readonly queueName: string;
@@ -54,7 +53,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   onModuleInit() {
     const rabbitUrl = this.configService.getOrThrow<string>('RABBITMQ_URL');
 
-    this.connection = amqp.connect([rabbitUrl]);
+    this.connection = connect([rabbitUrl]);
     this.channelWrapper = this.connection.createChannel({
       json: true,
       setup: async (channel: ConfirmChannel) => {
@@ -88,19 +87,19 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   private renderTemplate(templateName: string, datos: Record<string, string | number | null | undefined>): string {
     // lista de rutas donde buscar la plantilla (dist y src directo)
     const posiblesRutas = [
-      path.join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
-      path.join(__dirname, 'templates', `${templateName}.hbs`),
-      path.join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
+      join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
+      join(__dirname, 'templates', `${templateName}.hbs`),
+      join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
     ];
 
     // Busca la primera ruta que exista físicamente en el disco
-    const templatePath = posiblesRutas.find((ruta) => fs.existsSync(ruta));
+    const templatePath = posiblesRutas.find((ruta) => existsSync(ruta));
 
     if (!templatePath) {
       throw new Error(`Plantilla no existe: ${templateName}.hbs`);
     }
 
-    return handlebars.compile(fs.readFileSync(templatePath, 'utf8'))(datos);
+    return compile(readFileSync(templatePath, 'utf8'))(datos);
   }
 
   async encolarNotificacion(evento: EventoNotificacion) {
