@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, Alert } from '@mui/material';
 import type { Proyecto } from '../types/proyecto.types';
 import { aplazarProyecto } from '../services/proyectos.service';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   proyecto: Proyecto | null;
@@ -35,8 +36,8 @@ export function DialogoAplazarProyecto({ proyecto, onClose, onAplazado }: Props)
       setAnioNuevo('');
       setMotivo('');
       onAplazado();
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Error al aplazar el proyecto.');
+    } catch (e) {
+      setError(mensajeDelBackend(e) || 'Error al aplazar el proyecto.');
     } finally {
       setEnviando(false);
     }

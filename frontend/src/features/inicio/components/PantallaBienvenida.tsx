@@ -40,7 +40,7 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
 
   useEffect(() => {
     obtenerMisPendientes()
-      .then((data: any[]) => setTotalPendientes(data.length))
+      .then((data) => setTotalPendientes(data.length))
       .catch(() => setTotalPendientes(null));
 
     obtenerProyectos()
@@ -51,10 +51,10 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
       .catch(() => { setTotalProyectos(null); setProyectosActivos(null); });
   }, [usuario?.id]);
 
-  const listaRoles = (usuario as any)?.roles || (usuario as any)?.usuario_roles_compania || [];
+  const listaRoles = usuario?.roles || [];
   const primerRol = listaRoles[0];
-  const nombreRol = primerRol?.rol?.nombre || primerRol?.roles?.nombre;
-  const nombreCompania = primerRol?.compania?.nombre || primerRol?.companias?.nombre || 'Global';
+  const nombreRol = primerRol?.rol?.nombre;
+  const nombreCompania = primerRol?.compania?.nombre || 'Global';
 
   const stat = (
     icon: React.ReactNode,

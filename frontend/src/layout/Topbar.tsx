@@ -11,10 +11,11 @@ import {
 import LogoutIcon from '@mui/icons-material/Logout';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import { useAuth } from '../auth/AuthContext';
+import type { Theme } from '@mui/material/styles';
 
 const styles = {
   appBar: {
-    zIndex: (theme: any) => theme.zIndex.drawer + 1,
+    zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
     backgroundColor: '#ffffff',
     borderBottom: '1px solid #e2e8f0',
     boxShadow: '0 1px 3px rgba(0,0,0,.04)',
@@ -120,7 +121,7 @@ const styles = {
 export function Topbar() {
   const { usuario, logout } = useAuth();
 
-  const rolPrincipal = usuario?.roles?.[0]?.rol.nombre || 'Sin Rol';
+  const rolPrincipal = usuario?.roles?.[0]?.rol?.nombre || 'Sin Rol';
   const inicial = usuario?.nombre?.charAt(0)?.toUpperCase() || 'U';
 
   return (

@@ -14,6 +14,7 @@ import type { Compania, CrearProyectoDto } from '../types/proyecto.types';
 import { obtenerCompanias } from '../services/proyectos.service';
 import { obtenerUsuarios } from '../../usuarios/services/usuarios.service';
 import { useAuth } from '../../../auth/AuthContext';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface ModalCrearProyectoProps {
   open: boolean;
@@ -97,8 +98,8 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
       setPmAsignadoId('');
       onProyectoCreado();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear el proyecto. Intenta nuevamente.');
+    } catch (err) {
+      setError(mensajeDelBackend(err) || 'Error al crear el proyecto. Intenta nuevamente.');
     } finally {
       setCargando(false);
     }
