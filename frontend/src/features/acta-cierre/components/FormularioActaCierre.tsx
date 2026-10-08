@@ -17,6 +17,7 @@ import {
 } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { obtenerProcesosPorProyecto } from '../../proyectos/services/proyectos.service';
 import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
