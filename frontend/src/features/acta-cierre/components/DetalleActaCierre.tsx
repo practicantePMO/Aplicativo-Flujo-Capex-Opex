@@ -17,6 +17,7 @@ import {
 } from '../service/actasCierre.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -116,8 +117,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await enviarActaCierre(procesoId);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar a revisión.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -154,8 +155,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await aprobarActaCierre(procesoId, comentarios, undefined, undefined, activosFijosElegido.id);
       setDialogoElegirActivosFijos(false); setComentarios(''); setActivosFijosElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -169,8 +170,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await aprobarActaCierre(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -183,8 +184,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await aprobarActaCierre(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -197,8 +198,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await aprobarActaCierre(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -211,8 +212,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await rechazarActaCierre(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }

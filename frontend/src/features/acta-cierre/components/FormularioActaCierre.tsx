@@ -39,7 +39,7 @@ interface FilaFlujoCaja {
 
 interface FilaOiValorReal {
   orden_interna_id: number;
-  numero_oi: string;
+  numero_oi: string | null;
   nombre_descriptivo: string;
   tipo_orden: string;
   presupuesto?: number;
@@ -105,7 +105,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
 
           if (!procesoId) {
             setMetas(
-              (si.solicitudes_inversion?.solicitud_metas || []).map((m: any) => ({
+              (si.solicitudes_inversion?.solicitud_metas || []).map((m) => ({
                 solicitud_meta_id: m.id,
                 compromiso: m.compromiso,
                 fecha_inicio: m.fecha_inicio,
@@ -114,7 +114,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
               })),
             );
             setFlujoCaja(
-              (si.solicitudes_inversion?.solicitud_flujo_caja || []).map((f: any) => ({
+              (si.solicitudes_inversion?.solicitud_flujo_caja || []).map((f) => ({
                 tipo: f.tipo,
                 moneda: f.moneda,
                 anio: f.anio,
@@ -129,7 +129,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         const ordenesInternas = ordenesGrupo?.ordenes_internas || [];
         if (!procesoId) {
           setOiValoresReales(
-            ordenesInternas.map((oi: any) => ({
+            ordenesInternas.map((oi) => ({
               orden_interna_id: oi.id,
               numero_oi: oi.numero_oi,
               nombre_descriptivo: oi.nombre_descriptivo,
@@ -257,8 +257,8 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       await actualizarPartesInteresadasAc(procesoIdResultante, partesSeleccionadas.map((u) => u.id));
 
       onGuardado(procesoIdResultante);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Error al guardar el Acta de Cierre.');
+    } catch (err) {
+      setError(mensajeDelBackend(err) || (err instanceof Error ? err.message : '') || 'Error al guardar el Acta de Cierre.');
     } finally {
       setGuardando(false);
     }

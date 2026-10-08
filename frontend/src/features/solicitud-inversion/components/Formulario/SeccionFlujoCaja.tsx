@@ -102,7 +102,7 @@ export function SeccionFlujoCaja({
   const quitarFlujosDeTipo = (anio: number, tipos: Tipo[]) => {
     setFlujos((prev) =>
       (Array.isArray(prev) ? prev : []).filter(
-        (f) => !(Number(f.anio) === Number(anio) && tipos.includes((f as any).tipo)),
+        (f) => !(Number(f.anio) === Number(anio) && tipos.includes(f.tipo)),
       ),
     );
     setTiposPorMes((prev) => {
@@ -126,7 +126,7 @@ export function SeccionFlujoCaja({
     if (!checked) {
       setFlujos((prev) =>
         (Array.isArray(prev) ? prev : []).filter(
-          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo),
+          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && f.tipo === tipo),
         ),
       );
     }
@@ -195,14 +195,14 @@ export function SeccionFlujoCaja({
     setMonedaPorColumna((prev) => ({ ...(prev || {}), [claveColumna(anio, tipo)]: moneda }));
     setFlujos((prev) =>
       (Array.isArray(prev) ? prev : []).map((f) =>
-        Number(f.anio) === Number(anio) && (f as any).tipo === tipo ? { ...f, moneda } : f,
+        Number(f.anio) === Number(anio) && f.tipo === tipo ? { ...f, moneda } : f,
       ),
     );
   };
 
   const obtenerMonto = (anio: number, tipo: string, mesNum: number): string => {
     const registro = safeFlujos.find(
-      (f) => f && Number(f.anio) === Number(anio) && (f as any).tipo === tipo && Number(f.mes) === Number(mesNum),
+      (f) => f && Number(f.anio) === Number(anio) && f.tipo === tipo && Number(f.mes) === Number(mesNum),
     );
     if (!registro || registro.monto === null || registro.monto === undefined) return '';
     return registro.monto.toString();
@@ -216,7 +216,7 @@ export function SeccionFlujoCaja({
     setFlujos((prev) => {
       const listaActual = Array.isArray(prev) ? prev : [];
       const sinActual = listaActual.filter(
-        (f) => !(Number(f.anio) === Number(anio) && (f as any).tipo === tipo && Number(f.mes) === Number(mesNum)),
+        (f) => !(Number(f.anio) === Number(anio) && f.tipo === tipo && Number(f.mes) === Number(mesNum)),
       );
       if (valorLimpio === '' || monto === 0) return sinActual;
       return [...sinActual, { anio: Number(anio), tipo, moneda, mes: Number(mesNum), monto } as FlujoCaja];
@@ -225,7 +225,7 @@ export function SeccionFlujoCaja({
 
   const calcularTotalColumna = (anio: number, tipo: string) =>
     safeFlujos
-      .filter((f) => f && Number(f.anio) === Number(anio) && (f as any).tipo === tipo)
+      .filter((f) => f && Number(f.anio) === Number(anio) && f.tipo === tipo)
       .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
 
   return (
@@ -251,7 +251,7 @@ export function SeccionFlujoCaja({
             if (tiposDeEsteMes.length === 0) return true;
             return tiposDeEsteMes.some((tipo) => {
               const monto = safeFlujos.find(
-                (f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo,
+                (f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && f.tipo === tipo,
               )?.monto;
               return !monto || Number(monto) <= 0;
             });

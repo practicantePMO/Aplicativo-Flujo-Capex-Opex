@@ -10,6 +10,7 @@ import type { CrearControlCambioPayload, AnexoControlCambio } from '../types/con
 import type { UsuarioActivo } from '../../solicitud-inversion/types/solicitud.types';
 import { crearControlCambio, actualizarControlCambio, obtenerControlCambioDetalle, actualizarPartesInteresadasCc } from '../services/controlCambios.service';
 import { obtenerPartesInteresadas } from '../../solicitud-inversion/services/solicitudInversion.service';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   proyectoId: string;
@@ -122,8 +123,8 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
       await actualizarPartesInteresadasCc(procesoIdResultante, partesSeleccionadas.map((u) => u.id));
 
       onGuardado(procesoIdResultante);
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar el Control de Cambios.');
+    } catch (err) {
+      setError((err instanceof Error ? err.message : '') || mensajeDelBackend(err) || 'Error al guardar el Control de Cambios.');
     } finally {
       setGuardando(false);
     }

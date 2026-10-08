@@ -123,7 +123,7 @@ export interface SolicitudInversionDetalle {
       vpn?: number | null;
       payback?: number | null;
     } | null;
-    solicitud_metas: Meta[];
+    solicitud_metas: (Meta & { id: number })[];
     solicitud_valores: Valor[];
     solicitud_flujo_caja: FlujoCaja[];
   };

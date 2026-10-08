@@ -12,6 +12,7 @@ import type { GrupoOrdenesInternas } from '../types/ordenInterna.types';
 import { obtenerOrdenesInternasPorProyecto, solicitarCierreGrupoOi } from '../services/ordenesInternas.service';
 import { DetalleOrdenInterna } from './DetalleOrdenInterna';
 import { FormularioOrdenInterna } from './FormularioOrdenInterna';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -83,8 +84,8 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
       setDialogoSolicitarCierre(false);
       setObservacionesCierre('');
       await cargar();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al solicitar el cierre.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al solicitar el cierre.');
     } finally {
       setProcesandoCierre(false);
     }
