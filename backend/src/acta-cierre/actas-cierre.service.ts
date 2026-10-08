@@ -14,6 +14,33 @@ import { CrearActaCierreDto } from './dto/crear-acta-cierre.dto';
 import { AprobarActaCierreDto, RechazarActaCierreDto } from './dto/cambiar-estado-acta-cierre.dto';
 import { ActualizarPartesInteresadasActaCierreDto } from './dto/actualizar-partes-interesadas-acta-cierre.dto';
 
+async function guardarSecciones(tx: Prisma.TransactionClient, actaCierreId: number, dto: CrearActaCierreDto) {
+  if (dto.metas?.length) {
+    await tx.acta_cierre_metas.createMany({
+      data: dto.metas.map((m) => ({ ...m, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.valores?.length) {
+    await tx.acta_cierre_valores.createMany({
+      data: dto.valores.map((v) => ({ ...v, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.flujo_caja?.length) {
+    await tx.acta_cierre_flujo_caja.createMany({
+      data: dto.flujo_caja.map((f) => ({ ...f, monto_real: f.monto_real ?? 0, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.entregables?.length) {
+    await tx.acta_cierre_entregables.createMany({
+      data: dto.entregables.map((e) => ({ ...e, acta_cierre_id: actaCierreId })),
+    });
+  }
+  if (dto.oi_valores_reales?.length) {
+    await tx.acta_cierre_oi_valores_reales.createMany({
+      data: dto.oi_valores_reales.map((o) => ({ ...o, acta_cierre_id: actaCierreId })),
+    });
+  }
+}
 
 @Injectable()
 export class ActasCierreService {
@@ -117,7 +144,7 @@ export class ActasCierreService {
         },
       });
 
-      await this.guardarSecciones(tx, acta.id, dto);
+      await guardarSecciones(tx, acta.id, dto);
 
       return { proceso_id: proceso.id, acta_cierre_id: acta.id, mensaje: 'Acta de Cierre guardada en Borrador.' };
     });
@@ -163,7 +190,7 @@ export class ActasCierreService {
       await tx.acta_cierre_entregables.deleteMany({ where: { acta_cierre_id: acta.id } });
       await tx.acta_cierre_oi_valores_reales.deleteMany({ where: { acta_cierre_id: acta.id } });
 
-      await this.guardarSecciones(tx, acta.id, dto);
+      await guardarSecciones(tx, acta.id, dto);
 
       return { procesoId, mensaje: 'Acta de Cierre actualizada.' };
     });
@@ -190,35 +217,6 @@ export class ActasCierreService {
       if (oiDelProyecto !== idsOi.length) {
         throw new BadRequestException('Una o más Órdenes Internas no pertenecen a este proyecto.');
       }
-    }
-  }
-
-
-  private async guardarSecciones(tx: Prisma.TransactionClient, actaCierreId: number, dto: CrearActaCierreDto) {
-    if (dto.metas?.length) {
-      await tx.acta_cierre_metas.createMany({
-        data: dto.metas.map((m) => ({ ...m, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.valores?.length) {
-      await tx.acta_cierre_valores.createMany({
-        data: dto.valores.map((v) => ({ ...v, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.flujo_caja?.length) {
-      await tx.acta_cierre_flujo_caja.createMany({
-        data: dto.flujo_caja.map((f) => ({ ...f, monto_real: f.monto_real ?? 0, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.entregables?.length) {
-      await tx.acta_cierre_entregables.createMany({
-        data: dto.entregables.map((e) => ({ ...e, acta_cierre_id: actaCierreId })),
-      });
-    }
-    if (dto.oi_valores_reales?.length) {
-      await tx.acta_cierre_oi_valores_reales.createMany({
-        data: dto.oi_valores_reales.map((o) => ({ ...o, acta_cierre_id: actaCierreId })),
-      });
     }
   }
 

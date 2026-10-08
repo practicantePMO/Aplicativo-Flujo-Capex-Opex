@@ -27,6 +27,25 @@ export interface EventoNotificacion {
   destinatarios: string[];
   datos: Record<string, string | number | null | undefined>;
 }
+
+function renderTemplate(templateName: string, datos: Record<string, string | number | null | undefined>): string {
+  // lista de rutas donde buscar la plantilla (dist y src directo)
+  const posiblesRutas = [
+    join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
+    join(__dirname, 'templates', `${templateName}.hbs`),
+    join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
+  ];
+
+  // Busca la primera ruta que exista físicamente en el disco
+  const templatePath = posiblesRutas.find((ruta) => existsSync(ruta));
+
+  if (!templatePath) {
+    throw new Error(`Plantilla no existe: ${templateName}.hbs`);
+  }
+
+  return compile(readFileSync(templatePath, 'utf8'))(datos);
+}
+
 @Injectable()
 export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificacionesService.name);
@@ -82,24 +101,6 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     await this.channelWrapper.close();
     await this.connection.close();
-  }
-
-  private renderTemplate(templateName: string, datos: Record<string, string | number | null | undefined>): string {
-    // lista de rutas donde buscar la plantilla (dist y src directo)
-    const posiblesRutas = [
-      join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
-      join(__dirname, 'templates', `${templateName}.hbs`),
-      join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
-    ];
-
-    // Busca la primera ruta que exista físicamente en el disco
-    const templatePath = posiblesRutas.find((ruta) => existsSync(ruta));
-
-    if (!templatePath) {
-      throw new Error(`Plantilla no existe: ${templateName}.hbs`);
-    }
-
-    return compile(readFileSync(templatePath, 'utf8'))(datos);
   }
 
   async encolarNotificacion(evento: EventoNotificacion) {
@@ -163,7 +164,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
       await this.mailerService.sendMail({
         to: contenido.destinatarios,
         subject: config.subject,
-        html: this.renderTemplate(config.template, contenido.datos),
+        html: renderTemplate(config.template, contenido.datos),
       });
 
       this.logger.log(`Correo enviado a: ${contenido.destinatarios.join(', ')}`);

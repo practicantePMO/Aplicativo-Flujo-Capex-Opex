@@ -2,15 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import ExcelJS from 'exceljs';
 
+function encabezado(hoja: ExcelJS.Worksheet) {
+  hoja.getRow(1).font = { bold: true };
+  hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: hoja.columns?.length || 1 } };
+  hoja.views = [{ state: 'frozen', ySplit: 1 }];
+}
+
 @Injectable()
 export class BackupService {
   constructor(private readonly prisma: PrismaService) {}
-
-  private encabezado(hoja: ExcelJS.Worksheet) {
-    hoja.getRow(1).font = { bold: true };
-    hoja.autoFilter = { from: { row: 1, column: 1 }, to: { row: 1, column: hoja.columns?.length || 1 } };
-    hoja.views = [{ state: 'frozen', ySplit: 1 }];
-  }
 
   async generarExcel(): Promise<Buffer> {
     const workbook = new ExcelJS.Workbook();
@@ -51,7 +51,7 @@ export class BackupService {
         fechaCreacion: p.fecha_creacion,
       });
     }
-    this.encabezado(hojaProyectos);
+    encabezado(hojaProyectos);
 
     // ---------- Solicitudes de Inversión ----------
     const solicitudes = await this.prisma.solicitudes_inversion.findMany({
@@ -104,7 +104,7 @@ export class BackupService {
         fecha: s.procesos?.fecha_creacion || '',
       });
     }
-    this.encabezado(hojaSI);
+    encabezado(hojaSI);
 
     // ---------- SI - Flujo de Caja ----------
     const flujoPlaneado = await this.prisma.solicitud_flujo_caja.findMany({
@@ -130,7 +130,7 @@ export class BackupService {
         monto: f.monto ? Number(f.monto) : 0,
       });
     }
-    this.encabezado(hojaFlujoPlaneado);
+    encabezado(hojaFlujoPlaneado);
 
     // ---------- SI - Valores ----------
     const valoresPlaneados = await this.prisma.solicitud_valores.findMany({
@@ -151,7 +151,7 @@ export class BackupService {
         cop: v.cop ? Number(v.cop) : '',
       });
     }
-    this.encabezado(hojaValoresPlaneados);
+    encabezado(hojaValoresPlaneados);
 
     // ---------- SI - Metas ----------
     const metas = await this.prisma.solicitud_metas.findMany({
@@ -172,7 +172,7 @@ export class BackupService {
         indicador: m.indicador,
       });
     }
-    this.encabezado(hojaMetas);
+    encabezado(hojaMetas);
 
     // ---------- Órdenes Internas ----------
     const ordenes = await this.prisma.ordenes_internas.findMany({
@@ -234,7 +234,7 @@ export class BackupService {
         esCC: o.es_control_cambios ? 'Sí' : 'No',
       });
     }
-    this.encabezado(hojaOI);
+    encabezado(hojaOI);
 
     // ---------- OI - Valores ----------
     const oiValores = await this.prisma.oi_valores.findMany({
@@ -263,7 +263,7 @@ export class BackupService {
         cop: v.cop ? Number(v.cop) : '',
       });
     }
-    this.encabezado(hojaOiValores);
+    encabezado(hojaOiValores);
 
     // ---------- Controles de Cambio ----------
     const controles = await this.prisma.controles_cambio.findMany({
@@ -306,7 +306,7 @@ export class BackupService {
         fecha: c.fecha_creacion,
       });
     }
-    this.encabezado(hojaCC);
+    encabezado(hojaCC);
 
     // ---------- CC - Anexos ----------
     const ccAnexos = await this.prisma.control_cambio_anexos.findMany({
@@ -327,7 +327,7 @@ export class BackupService {
         descripcion: a.descripcion || '',
       });
     }
-    this.encabezado(hojaCcAnexos);
+    encabezado(hojaCcAnexos);
 
     // ---------- Actas de Cierre ----------
     const actas = await this.prisma.actas_cierre.findMany({
@@ -364,7 +364,7 @@ export class BackupService {
         fecha: a.fecha_creacion,
       });
     }
-    this.encabezado(hojaAC);
+    encabezado(hojaAC);
 
     // ---------- AC - Metas ----------
     const acMetas = await this.prisma.acta_cierre_metas.findMany({
@@ -390,7 +390,7 @@ export class BackupService {
         resultado: m.resultado_cierre || '',
       });
     }
-    this.encabezado(hojaAcMetas);
+    encabezado(hojaAcMetas);
 
     // ---------- AC - Valores Reales ----------
     const acValores = await this.prisma.acta_cierre_valores.findMany({
@@ -411,7 +411,7 @@ export class BackupService {
         realCop: v.real_cop ? Number(v.real_cop) : '',
       });
     }
-    this.encabezado(hojaAcValores);
+    encabezado(hojaAcValores);
 
     // ---------- AC - Flujo de Caja Real ----------
     const acFlujo = await this.prisma.acta_cierre_flujo_caja.findMany({
@@ -437,7 +437,7 @@ export class BackupService {
         montoReal: f.monto_real ? Number(f.monto_real) : 0,
       });
     }
-    this.encabezado(hojaAcFlujo);
+    encabezado(hojaAcFlujo);
 
     // ---------- AC - Entregables ----------
     const acEntregables = await this.prisma.acta_cierre_entregables.findMany({
@@ -466,7 +466,7 @@ export class BackupService {
         anexoUrl: e.anexo_url || '',
       });
     }
-    this.encabezado(hojaAcEntregables);
+    encabezado(hojaAcEntregables);
 
     // ---------- AC - OI Valores Reales ----------
     const acOiValores = await this.prisma.acta_cierre_oi_valores_reales.findMany({
@@ -492,7 +492,7 @@ export class BackupService {
         moneda: v.valor_real_moneda,
       });
     }
-    this.encabezado(hojaAcOiValores);
+    encabezado(hojaAcOiValores);
 
     const buffer = await workbook.xlsx.writeBuffer();
     return Buffer.from(buffer);
