@@ -13,6 +13,7 @@ import { obtenerOrdenesInternasPorProyecto, solicitarCierreGrupoOi } from '../se
 import { DetalleOrdenInterna } from './DetalleOrdenInterna';
 import { FormularioOrdenInterna } from './FormularioOrdenInterna';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -37,6 +38,7 @@ interface Props {
 
 export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlCambioId, abrirOrdenInternaId, onVerControlCambio }: Props) {
   const { tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [grupo, setGrupo] = useState<GrupoOrdenesInternas | null | undefined>(undefined); // undefined = cargando
   const [mostrarFormulario, setMostrarFormulario] = useState(!!crearParaControlCambioId);
   const [mostrarLista, setMostrarLista] = useState(!!abrirOrdenInternaId);
@@ -85,7 +87,7 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
       setObservacionesCierre('');
       await cargar();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al solicitar el cierre.');
+      avisar(mensajeDelBackend(e) || 'Error al solicitar el cierre.');
     } finally {
       setProcesandoCierre(false);
     }

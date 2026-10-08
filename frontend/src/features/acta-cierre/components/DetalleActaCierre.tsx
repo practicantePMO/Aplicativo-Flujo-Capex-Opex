@@ -18,6 +18,8 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
+
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -40,6 +42,7 @@ interface Props {
 
 export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [detalle, setDetalle] = useState<ActaCierreDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -118,7 +121,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al enviar a revisión.');
+      avisar(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -148,72 +151,72 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarElegirActivosFijos = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!activosFijosElegido) return alert('Debes elegir a quién de Activos Fijos enviar el proceso.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!activosFijosElegido) return avisar('Debes elegir a quién de Activos Fijos enviar el proceso.');
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, undefined, activosFijosElegido.id);
       setDialogoElegirActivosFijos(false); setComentarios(''); setActivosFijosElegido(null);
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarElegirGerente = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!gerenteElegido) return avisar('Debes elegir a qué gerente enviar el proceso.');
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La razón del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) return avisar('La razón del rechazo es obligatoria.');
     setProcesando(true);
     try {
       await rechazarActaCierre(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al rechazar.');
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }

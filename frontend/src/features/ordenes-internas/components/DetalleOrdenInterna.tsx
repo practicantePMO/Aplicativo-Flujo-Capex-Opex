@@ -14,6 +14,7 @@ import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solici
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -26,6 +27,7 @@ interface Props {
 
 export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio, onEditar, onVerControlCambio }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar, confirmar } = useNotificaciones();
   const [detalle, setDetalle] = useState<OrdenInternaDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -77,14 +79,14 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
         const disponibles = await obtenerUsuariosPorRol('CONTROL_GESTION', companiaId);
         setCgDisponibles(disponibles);
         if (disponibles.length === 0) {
-          alert('No hay ningún usuario con el rol Control Gestión todavía. Pídele a un Admin que le asigne ese rol a alguien.');
+          avisar('No hay ningún usuario con el rol Control Gestión todavía. Pídele a un Admin que le asigne ese rol a alguien.');
           return;
         }
       }
       setCgElegido(null);
       setDialogoEnviar(true);
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
+      avisar(mensajeDelBackend(e) || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
       console.error('Error en abrirDialogoEnviar:', e);
     }
   };
@@ -98,15 +100,15 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al enviar.');
+      avisar(mensajeDelBackend(e) || 'Error al enviar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!numeroOi.trim()) return alert('El número de Orden Interna es obligatorio.');
-    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) return alert('El grupo de órdenes internas es obligatorio.');
+    if (!numeroOi.trim()) return avisar('El número de Orden Interna es obligatorio.');
+    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) return avisar('El grupo de órdenes internas es obligatorio.');
     setProcesando(true);
     try {
       await aprobarOrdenInterna(resumen.id, numeroOi.trim(), esPrimeraOiDelGrupo ? grupoTexto.trim() : undefined, observaciones.trim() || undefined);
@@ -115,14 +117,14 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La observación del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) return avisar('La observación del rechazo es obligatoria.');
     setProcesando(true);
     try {
       await rechazarOrdenInterna(resumen.id, razonRechazo.trim());
@@ -131,7 +133,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al rechazar.');
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
@@ -144,20 +146,20 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al cerrar.');
+      avisar(mensajeDelBackend(e) || 'Error al cerrar.');
     } finally {
       setProcesando(false);
     }
   };
 
     const confirmarCancelarBorrador = async () => {
-    if (!window.confirm('¿Seguro que quieres cancelar esta Orden Interna en Borrador? Esta acción no se puede deshacer.')) return;
+    if (!(await confirmar('¿Seguro que quieres cancelar esta Orden Interna en Borrador? Esta acción no se puede deshacer.'))) return;
     setProcesando(true);
     try {
       await cancelarOrdenInternaBorrador(resumen.id);
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al cancelar.');
+      avisar(mensajeDelBackend(e) || 'Error al cancelar.');
     } finally {
       setProcesando(false);
     }

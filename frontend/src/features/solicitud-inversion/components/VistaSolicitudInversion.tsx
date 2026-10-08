@@ -25,6 +25,7 @@ import { DialogosAccionVista } from './Vista/DialogosAccionVista';
 import { SeccionDocumentosLinksVista } from './Vista/SeccionDocumentosLinksVista';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 interface Props {
   procesoId: number;
@@ -42,6 +43,7 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
 
 export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [data, setData] = useState<SolicitudInversionDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -166,7 +168,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       setDialogoPartes(false);
       await cargar();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al actualizar partes interesadas.');
+      avisar(mensajeDelBackend(e) || 'Error al actualizar partes interesadas.');
     } finally {
       setProcesando(false);
     }
@@ -175,7 +177,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   const manejarEnviar = async () => {
     setProcesando(true);
     try { await enviarARevision(procesoId); await cargar(); }
-    catch (e) { alert(mensajeDelBackend(e) || 'Error al enviar a revisión.'); }
+    catch (e) { avisar(mensajeDelBackend(e) || 'Error al enviar a revisión.'); }
     finally { setProcesando(false); }
   };
 
@@ -195,58 +197,58 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarElegirGerente = async () => {
-    if (!razon.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!gerenteElegido) return avisar('Debes elegir a qué gerente enviar el proceso.');
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setRazon(''); setGerenteElegido(null);
       await cargar();
-    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
+    } catch (e) { avisar(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
   const confirmarAprobar = async () => {
-    if (!razon.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon);
       setDialogoAprobar(false); setRazon('');
       await cargar();
-    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
+    } catch (e) { avisar(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!razon.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon, enviarPresidencia === 'si');
       setDialogoGerencia(false); setRazon('');
       await cargar();
-    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
+    } catch (e) { avisar(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
   const confirmarRechazo = async () => {
-    if (!razon.trim()) return alert('La razón del rechazo es obligatoria.');
+    if (!razon.trim()) return avisar('La razón del rechazo es obligatoria.');
     setProcesando(true);
     try {
       await rechazarEtapa(procesoId, razon);
       setDialogoRechazo(false); setRazon('');
       await cargar();
-    } catch (e) { alert(mensajeDelBackend(e) || 'Error al rechazar.'); }
+    } catch (e) { avisar(mensajeDelBackend(e) || 'Error al rechazar.'); }
     finally { setProcesando(false); }
   };
 
   const confirmarCancelacion = async () => {
-    if (!razon.trim()) return alert('La razón de cancelación es obligatoria.');
+    if (!razon.trim()) return avisar('La razón de cancelación es obligatoria.');
     setProcesando(true);
     try {
       await cancelarDefinitivamente(procesoId, razon);
       setDialogoCancelacion(false); setRazon('');
       await cargar();
-    } catch (e) { alert(mensajeDelBackend(e) || 'Error al cancelar.'); }
+    } catch (e) { avisar(mensajeDelBackend(e) || 'Error al cancelar.'); }
     finally { setProcesando(false); }
   };
 
