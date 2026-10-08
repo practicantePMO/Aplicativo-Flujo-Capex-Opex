@@ -9,9 +9,11 @@ import InboxIcon from '@mui/icons-material/Inbox';
 import TuneIcon from '@mui/icons-material/Tune';
 import { obtenerMisPendientes } from '../services/procesos.service';
 import { useAuth } from '../../../auth/AuthContext';
+import type { Pendiente } from '../types/pendiente.types';
+import type { Proyecto } from '../../proyectos/types/proyecto.types';
 
 interface Props {
-  onAbrirProyecto: (proyecto: any, procesoId: number) => void;
+  onAbrirProyecto: (proyecto: Proyecto, procesoId: number) => void;
 }
 
 export const getEstadoChip = (estado: string) => {
@@ -33,7 +35,7 @@ export const getEstadoChip = (estado: string) => {
 
 export function VistaMisPendientes({ onAbrirProyecto }: Props) {
   const { usuario } = useAuth();
-  const [pendientes, setPendientes] = useState<any[]>([]);
+  const [pendientes, setPendientes] = useState<Pendiente[]>([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,10 +60,12 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
 
   const tiposDisponibles = Array.from(new Set(pendientes.map((p) => p.tipo_proceso).filter(Boolean)));
   const companiasDisponibles = Array.from(
-  new Map(pendientes.map((p) => [p.proyectos?.companias?.id, p.proyectos?.companias] as const).filter(([id]) => id)).values(),
+  new Map(
+    pendientes.flatMap((p) => (p.proyectos?.companias?.id ? [[p.proyectos.companias.id, p.proyectos.companias] as const] : [])),
+  ).values(),
   );
   const aniosDisponibles = Array.from(
-    new Set(pendientes.map((p) => p.proyectos?.anio_asignado).filter(Boolean)),
+    new Set(pendientes.map((p) => p.proyectos?.anio_asignado).filter((anio): anio is number => Boolean(anio))),
   ).sort((a, b) => b - a);
 
   const pendientesFiltrados = pendientes.filter((p) => {
@@ -111,7 +115,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
               onChange={(e) => setFiltroCompania(e.target.value)} sx={{ minWidth: 200 }}
             >
               <MenuItem value="">Todas las compañías</MenuItem>
-              {companiasDisponibles.map((c: any) => (
+              {companiasDisponibles.map((c) => (
                 <MenuItem key={c.id} value={String(c.id)}>{c.nombre}</MenuItem>
               ))}
             </TextField>

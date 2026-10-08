@@ -162,7 +162,7 @@ export function EncabezadoSolicitud({
 
           <Chip
             label={estado.replace(/_/g, ' ')}
-            color={colorEstado(estado) as any}
+            color={colorEstado(estado)}
             sx={{
               fontWeight: 800,
               fontSize: '.85rem',

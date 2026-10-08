@@ -13,6 +13,7 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -103,8 +104,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await enviarControlCambio(procesoId);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar a revisión.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -132,8 +133,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await aprobarControlCambio(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -146,8 +147,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await aprobarControlCambio(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -160,8 +161,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await aprobarControlCambio(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -174,8 +175,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await rechazarControlCambio(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
@@ -217,7 +218,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   return (
     <Box>
       <EncabezadoProceso
-        nombreProyecto={(detalle as any).proyecto_nombre || ''}
+        nombreProyecto={detalle.proyecto_nombre || ''} 
         nombreProceso="Control de Cambios"
         estado={estado}
       />

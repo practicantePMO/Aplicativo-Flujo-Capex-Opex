@@ -16,6 +16,7 @@ import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuar
 import { obtenerCompanias, obtenerEmpresas } from '../../proyectos/services/proyectos.service';
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 const styles = {
   headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
@@ -97,8 +98,8 @@ export function TablaUsuarios() {
     try {
       await quitarRol(asignacionId);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al quitar el rol.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al quitar el rol.');
     }
   };
 
@@ -110,8 +111,8 @@ export function TablaUsuarios() {
     try {
       await cambiarActivoUsuario(u.id, true);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al activar al usuario.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al activar al usuario.');
     }
   };
 
@@ -121,8 +122,8 @@ export function TablaUsuarios() {
       await cambiarActivoUsuario(usuarioParaDesactivar.id, false);
       setUsuarioParaDesactivar(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al desactivar al usuario.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al desactivar al usuario.');
     }
   };
 
@@ -138,8 +139,8 @@ export function TablaUsuarios() {
       await editarAreaUsuario(usuarioParaEditarArea.id, nuevaArea.trim());
       setUsuarioParaEditarArea(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al actualizar el área.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al actualizar el área.');
     } finally {
       setGuardandoArea(false);
     }
@@ -158,8 +159,8 @@ export function TablaUsuarios() {
       await editarEmpresaUsuario(usuarioParaEditarEmpresa.id, nuevaEmpresa?.id ?? null);
       setUsuarioParaEditarEmpresa(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al actualizar la empresa.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al actualizar la empresa.');
     } finally {
       setGuardandoEmpresa(false);
     }

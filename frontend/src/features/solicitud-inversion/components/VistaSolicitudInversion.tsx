@@ -24,6 +24,7 @@ import { SeccionHistoricoVista } from './Vista/SeccionHistoricoVista';
 import { DialogosAccionVista } from './Vista/DialogosAccionVista';
 import { SeccionDocumentosLinksVista } from './Vista/SeccionDocumentosLinksVista';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   procesoId: number;
@@ -84,7 +85,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   if (modoEdicion && data) {
     return (
       <FormularioSolicitudInversion
-        proyecto={data.proyectos as any}
+        proyecto={data.proyectos}
         solicitudExistente={data}
         onCancelar={() => setModoEdicion(false)}
         onCreada={async () => {
@@ -101,9 +102,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
 
   const nombrePmExtraido =
     solicitud?.usuarios?.nombre ||
-    (solicitud as any)?.usuario?.nombre ||
-    data?.proyectos?.usuarios?.nombre ||
-    (data?.proyectos as any)?.usuario?.nombre;
+    data?.proyectos?.usuarios?.nombre;
 
   const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
   const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
@@ -166,8 +165,8 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await actualizarPartesInteresadas(procesoId, partesSeleccionadas.map((u) => u.id));
       setDialogoPartes(false);
       await cargar();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al actualizar partes interesadas.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al actualizar partes interesadas.');
     } finally {
       setProcesando(false);
     }
@@ -176,7 +175,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   const manejarEnviar = async () => {
     setProcesando(true);
     try { await enviarARevision(procesoId); await cargar(); }
-    catch (e: any) { alert(e.response?.data?.message || 'Error al enviar a revisión.'); }
+    catch (e) { alert(mensajeDelBackend(e) || 'Error al enviar a revisión.'); }
     finally { setProcesando(false); }
   };
 
@@ -203,7 +202,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await aprobarEtapa(procesoId, razon, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setRazon(''); setGerenteElegido(null);
       await cargar();
-    } catch (e: any) { alert(e.response?.data?.message || 'Error al aprobar.'); }
+    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
@@ -214,7 +213,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await aprobarEtapa(procesoId, razon);
       setDialogoAprobar(false); setRazon('');
       await cargar();
-    } catch (e: any) { alert(e.response?.data?.message || 'Error al aprobar.'); }
+    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
@@ -225,7 +224,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await aprobarEtapa(procesoId, razon, enviarPresidencia === 'si');
       setDialogoGerencia(false); setRazon('');
       await cargar();
-    } catch (e: any) { alert(e.response?.data?.message || 'Error al aprobar.'); }
+    } catch (e) { alert(mensajeDelBackend(e) || 'Error al aprobar.'); }
     finally { setProcesando(false); }
   };
 
@@ -236,7 +235,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await rechazarEtapa(procesoId, razon);
       setDialogoRechazo(false); setRazon('');
       await cargar();
-    } catch (e: any) { alert(e.response?.data?.message || 'Error al rechazar.'); }
+    } catch (e) { alert(mensajeDelBackend(e) || 'Error al rechazar.'); }
     finally { setProcesando(false); }
   };
 
@@ -247,15 +246,15 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       await cancelarDefinitivamente(procesoId, razon);
       setDialogoCancelacion(false); setRazon('');
       await cargar();
-    } catch (e: any) { alert(e.response?.data?.message || 'Error al cancelar.'); }
+    } catch (e) { alert(mensajeDelBackend(e) || 'Error al cancelar.'); }
     finally { setProcesando(false); }
   };
 
-  const tipoClasif = (solicitud as any)?.tipo_clasificacion;
+  const tipoClasif = solicitud?.tipo_clasificacion;
   const textoTradicional = solicitud?.subprogramas
     ? `${solicitud.subprogramas.programas?.grupos?.nombre || '—'} / ${solicitud.subprogramas.programas?.nombre || '—'} / ${solicitud.subprogramas.nombre || '—'}`
     : undefined;
-  const textoNueva = (solicitud as any)?.categorias?.nombre || undefined;
+  const textoNueva = solicitud?.categorias?.nombre || undefined;
   const categoriaTradicional = (tipoClasif === 'TRADICIONAL' || tipoClasif === 'AMBAS') ? textoTradicional : undefined;
   const categoriaNueva = (tipoClasif === 'NUEVA' || tipoClasif === 'AMBAS') ? textoNueva : undefined;
     const ETAPAS_SI = [

@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, M
 import type { Usuario, RolDisponible, AsignarRolDto } from '../types/usuario.types';
 import type { Compania } from '../../proyectos/types/proyecto.types';
 import { asignarRol } from '../services/usuarios.service';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   usuario: Usuario | null;
@@ -41,8 +42,8 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
       setRolId('');
       setCompaniaId(GLOBAL);
       onAsignado();
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Error al asignar el rol.');
+    } catch (e) {
+      setError(mensajeDelBackend(e) || 'Error al asignar el rol.');
     } finally {
       setEnviando(false);
     }

@@ -8,6 +8,7 @@ import type { CrearOrdenInternaPayload } from '../types/ordenInterna.types';
 import { crearOrdenInterna, actualizarOrdenInterna, obtenerOrdenInternaDetalle } from '../services/ordenesInternas.service';
 import { obtenerControlCambiosPorProyecto } from '../../control-cambios/services/controlCambios.service';
 import type { ControlCambioResumen } from '../../control-cambios/types/controlCambio.types';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   proyectoId: string;
@@ -84,7 +85,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           activo_real_productivo: detalle.activo_real_productivo || '',
           observaciones_pm: detalle.observaciones_pm || '',
           valores: detalle.oi_valores?.length
-            ? detalle.oi_valores.map((v: any) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
+          ? detalle.oi_valores.map((v) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
             : CAMPO_VACIO.valores,
         });
       } catch {
@@ -133,8 +134,8 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
         const respuesta = await crearOrdenInterna(payload);
         onGuardada(respuesta.orden_interna_id);
       }
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar la Orden Interna.');
+    } catch (err) {
+      setError((err instanceof Error ? err.message : '') || mensajeDelBackend(err) || 'Error al guardar la Orden Interna.');
     } finally {
       setGuardando(false);
     }

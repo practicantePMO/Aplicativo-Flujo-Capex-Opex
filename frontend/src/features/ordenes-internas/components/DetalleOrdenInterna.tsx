@@ -13,6 +13,7 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -82,8 +83,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       }
       setCgElegido(null);
       setDialogoEnviar(true);
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
       console.error('Error en abrirDialogoEnviar:', e);
     }
   };
@@ -96,8 +97,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setDialogoEnviar(false);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al enviar.');
     } finally {
       setProcesando(false);
     }
@@ -113,8 +114,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setNumeroOi(''); setGrupoTexto(''); setObservaciones('');
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
@@ -129,8 +130,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setRazonRechazo('');
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
@@ -142,8 +143,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cerrarOrdenInterna(resumen.id);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al cerrar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al cerrar.');
     } finally {
       setProcesando(false);
     }
@@ -155,8 +156,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     try {
       await cancelarOrdenInternaBorrador(resumen.id);
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al cancelar.');
+    } catch (e) {
+      alert(mensajeDelBackend(e) || 'Error al cancelar.');
     } finally {
       setProcesando(false);
     }

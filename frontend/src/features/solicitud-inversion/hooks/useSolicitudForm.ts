@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Proyecto } from '../../proyectos/types/proyecto.types';
-import type { SolicitudInversionDetalle, FlujoCaja, Meta } from '../types/solicitud.types';
+import type { SolicitudInversionDetalle, FlujoCaja, Meta, Grupo, Programa, Subprograma, UsuarioActivo, CrearSolicitudPayload } from '../types/solicitud.types';
+import { mensajeDelBackend } from '../../../utils/errores';
 import {
   obtenerJerarquia,
   obtenerCategorias,
@@ -21,17 +22,17 @@ export function useSolicitudForm(
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [grupos, setGrupos] = useState<any[]>([]);
-  const [programas, setProgramas] = useState<any[]>([]);
-  const [subprogramas, setSubprogramas] = useState<any[]>([]);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [programas, setProgramas] = useState<Programa[]>([]);
+  const [subprogramas, setSubprogramas] = useState<Subprograma[]>([]);
   const [categorias, setCategorias] = useState<{ id: number; nombre: string; requiere_evaluacion_obligatoria: boolean }[]>([]);
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioActivo[]>([]);
 
   // 1. Extraer flujos existentes 
   const flujosGuardados = (solicitudExistente?.solicitudes_inversion?.solicitud_flujo_caja || []) as FlujoCaja[];
 
   // 2. Determinar el año base 
-  const anioBase = (proyecto as any)?.anio_proyecto || new Date().getFullYear();
+  const anioBase = proyecto?.anio_proyecto || new Date().getFullYear();
 
   // 3. Configurar años iniciales (flujos existentes o el año base si es nuevo)
   const initialAnios = flujosGuardados.length > 0
@@ -47,7 +48,7 @@ export function useSolicitudForm(
   if (flujosGuardados.length > 0) {
     flujosGuardados.forEach((f) => {
       const anio = Number(f.anio);
-      const tipo = (f as any).tipo as Tipo;
+      const tipo = f.tipo;
       const mes = Number(f.mes);
 
       if (!initialTipos[anio]) initialTipos[anio] = [];
@@ -68,7 +69,7 @@ export function useSolicitudForm(
     initialMeses[anioBase] = [];
   }
 
-  const esNuevaGuardada = Boolean((solicitudExistente?.solicitudes_inversion as any)?.categoria_id);
+  const esNuevaGuardada = Boolean(solicitudExistente?.solicitudes_inversion?.categoria_id);
   const esTradicionalGuardada = Boolean(solicitudExistente?.solicitudes_inversion?.subprograma_id);
 
   // 5. INICIALIZAR EL FORMULARIO
@@ -79,7 +80,7 @@ export function useSolicitudForm(
     grupoId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programas?.id_grupo || ('' as number | ''),
     programaId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programa_id || ('' as number | ''),
     subprogramaId: solicitudExistente?.solicitudes_inversion?.subprograma_id || ('' as number | ''),
-    categoriaId: (solicitudExistente?.solicitudes_inversion as any)?.categoria_id || ('' as number | ''),
+    categoriaId: solicitudExistente?.solicitudes_inversion?.categoria_id || ('' as number | ''),
 
     entregablePlaneado: solicitudExistente?.solicitudes_inversion?.entregable_planeado || '',
     tieneEvaluacionFinanciera: solicitudExistente?.solicitudes_inversion?.tiene_evaluacion_financiera ?? false,
@@ -91,7 +92,7 @@ export function useSolicitudForm(
     payback: solicitudExistente?.solicitudes_inversion?.solicitud_evaluacion_financiera?.payback?.toString() || '',
 
     metas: (solicitudExistente?.solicitudes_inversion?.solicitud_metas?.length
-      ? solicitudExistente.solicitudes_inversion.solicitud_metas.map((m: any) => ({
+      ? solicitudExistente.solicitudes_inversion.solicitud_metas.map((m) => ({
           compromiso: m.compromiso || '',
           fecha_inicio: m.fecha_inicio ? String(m.fecha_inicio).split('T')[0] : '',
           indicador: m.indicador || '',
@@ -108,7 +109,7 @@ export function useSolicitudForm(
     partesInteresadas: (solicitudExistente?.asignaciones_proceso || [])
       .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
       .map((a) => a.usuarios)
-      .filter((u): u is any => !!u),
+      .filter((u): u is NonNullable<typeof u> => !!u),
 
     linkActa: solicitudExistente?.solicitudes_inversion?.link_acta_aprobacion || '',
     linkPlan: solicitudExistente?.solicitudes_inversion?.link_plan_proyecto || '',
@@ -119,7 +120,7 @@ export function useSolicitudForm(
     (async () => {
       try {
         setCargandoCatalogos(true);
-        const companiaId = proyecto?.companias?.id || (proyecto as any)?.compania_id || 1;
+        const companiaId = proyecto?.companias?.id || proyecto?.compania_id || 1;
 
         const [resJerarquia, resCategorias, resUsuarios] = await Promise.allSettled([
           obtenerJerarquia(),
@@ -128,7 +129,7 @@ export function useSolicitudForm(
         ]);
 
         if (resJerarquia.status === 'fulfilled') setGrupos(resJerarquia.value);
-        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value as any);
+        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value);
         if (resUsuarios.status === 'fulfilled') setUsuarios(resUsuarios.value);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
@@ -174,7 +175,7 @@ export function useSolicitudForm(
 
   const sumarFlujos = (tipos: Tipo[], moneda: Moneda) =>
     (form.flujos || [])
-      .filter((f) => tipos.includes((f as any).tipo) && ((f as any).moneda || 'COP') === moneda)
+      .filter((f) => tipos.includes(f.tipo) && (f.moneda || 'COP') === moneda)
       .reduce((acc, f) => acc + (Number(f.monto) || 0), 0);
 
   const activoUsd = sumarFlujos(['CAPEX'], 'USD');
@@ -241,7 +242,7 @@ export function useSolicitudForm(
           }
           for (const tipo of tiposDeEsteMes) {
             const monto = (form.flujos || [])
-              .find((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo)
+              .find((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum)&& f.tipo === tipo)
               ?.monto;
             if (!monto || Number(monto) <= 0) {
               throw new Error(`Falta ingresar el valor de ${tipo} para el mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
@@ -255,8 +256,8 @@ export function useSolicitudForm(
         .map((f) => ({
           anio: Number(f.anio),
           mes: Number(f.mes),
-          tipo: (f as any).tipo,
-          moneda: (f as any).moneda || 'COP',
+          tipo: f.tipo,
+          moneda: f.moneda || 'COP',
           monto: Number(f.monto),
         }));
       if (flujosLimpios.length === 0) {
@@ -273,7 +274,7 @@ export function useSolicitudForm(
         throw new Error('Debes adjuntar los 3 links de documentos (Acta, Plan de proyecto y Presentación).');
       }
 
-      const dtoPayload: any = {
+      const dtoPayload: CrearSolicitudPayload = {
         proyecto_id: proyecto.id,
         incluye_tradicional: form.incluyeTradicional,
         incluye_nueva: form.incluyeNueva,
@@ -304,8 +305,8 @@ export function useSolicitudForm(
       }
 
       if (onCreada) onCreada(resProcesoId);
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar la solicitud.');
+    } catch (err) {
+      setError((err instanceof Error ? err.message : '') || mensajeDelBackend(err) || 'Error al guardar la solicitud.');
     } finally {
       setGuardando(false);
     }
