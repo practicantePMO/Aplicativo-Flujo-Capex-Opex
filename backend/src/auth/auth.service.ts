@@ -6,6 +6,17 @@ import { PrismaService } from '../prisma/prisma.service';
 import { verify, type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
+export function validarDominioCorporativo(email: string) {
+  const dominioPermitido = process.env.ALLOWED_EMAIL_DOMAIN;
+  if (!dominioPermitido) {
+    throw new Error('🛑 Falta configurar ALLOWED_EMAIL_DOMAIN en el archivo .env');
+  }
+  if (!email.toLowerCase().endsWith(`@${dominioPermitido}`)) {
+    throw new UnauthorizedException(
+      `Acceso denegado: Solo se permiten correos corporativos con el dominio @${dominioPermitido}.`,
+    );
+  }
+}
 @Injectable()
 export class AuthService {
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -20,18 +31,6 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private validarDominioCorporativo(email: string) {
-    const dominioPermitido = process.env.ALLOWED_EMAIL_DOMAIN;
-    if (!dominioPermitido) {
-      throw new Error('🛑 Falta configurar ALLOWED_EMAIL_DOMAIN en el archivo .env');
-    }
-    if (!email.toLowerCase().endsWith(`@${dominioPermitido}`)) {
-      throw new UnauthorizedException(
-        `Acceso denegado: Solo se permiten correos corporativos con el dominio @${dominioPermitido}.`,
-      );
-    }
-  }
-
   async verificarTokenGoogle(idToken: string) {
     try {
       const ticket = await this.googleClient.verifyIdToken({
@@ -43,7 +42,7 @@ export class AuthService {
         throw new UnauthorizedException('El token de Google no contiene un correo electrónico válido.');
       }
       const email = payload.email.toLowerCase();
-      this.validarDominioCorporativo(email);
+      validarDominioCorporativo(email);
       return { email, nombre: payload.name || email.split('@')[0] };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
@@ -85,7 +84,7 @@ export class AuthService {
 
           try {
             const email = emailCrudo.toLowerCase();
-            this.validarDominioCorporativo(email);
+            validarDominioCorporativo(email);
             resolve({ email, nombre: decoded.name || email.split('@')[0] });
           } catch (domainError) {
             reject(domainError);
