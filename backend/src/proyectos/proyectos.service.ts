@@ -76,7 +76,7 @@ export class ProyectosService {
           usuarios: { select: { id: true, nombre: true, email: true } },
         },
       });
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Error al registrar el proyecto en la base de datos.');
     }
   }
@@ -228,7 +228,8 @@ export class ProyectosService {
     });
 
     let proyectos = proyectosBD.map((p) => {
-      const procesosProyecto = p.procesos || [];
+      const { procesos, ...resto } = p;
+      const procesosProyecto = procesos || [];
       const actaCierreCerrada = procesosProyecto.find(
         (proc) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
       );
@@ -243,7 +244,6 @@ export class ProyectosService {
         estado = 'APLAZADO';
       }
 
-      const { procesos, ...resto } = p;
       return { ...resto, estado };
     });
 

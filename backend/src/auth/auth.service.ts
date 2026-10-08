@@ -55,7 +55,8 @@ export class AuthService {
   private obtenerLlaveFirmaMicrosoft(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
     this.microsoftJwksClient.getSigningKey(header.kid, (err, key) => {
       if (err || !key) {
-        return callback(err || new Error('No se pudo obtener la llave de firma de Microsoft'));
+        callback(err || new Error('No se pudo obtener la llave de firma de Microsoft'));
+        return;
       }
       callback(null, key.getPublicKey());
     });
@@ -72,12 +73,14 @@ export class AuthService {
         },
         (err, decoded) => {
           if (err || !decoded || typeof decoded === 'string') {
-            return reject(new UnauthorizedException('Token de autenticación de Microsoft inválido o expirado.'));
+            reject(new UnauthorizedException('Token de autenticación de Microsoft inválido o expirado.'));
+            return;
           }
 
           const emailCrudo = decoded.email || decoded.preferred_username;
           if (!emailCrudo) {
-            return reject(new UnauthorizedException('El token de Microsoft no contiene un correo electrónico válido.'));
+            reject(new UnauthorizedException('El token de Microsoft no contiene un correo electrónico válido.'));
+            return;
           }
 
           try {
@@ -92,7 +95,7 @@ export class AuthService {
     });
   }
 
-  async loginSSO(idToken: string, proveedor: string = 'GOOGLE') {
+  async loginSSO(idToken: string, proveedor = 'GOOGLE') {
     let emailSeguro: string;
     let nombreSeguro: string;
 
