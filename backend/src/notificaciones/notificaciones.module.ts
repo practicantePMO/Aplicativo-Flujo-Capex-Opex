@@ -26,4 +26,6 @@ import { NotificacionesService } from './notificaciones.service';
   providers: [NotificacionesService],
   exports: [NotificacionesService],
 })
+
+// skipcq: JS-0327 -- Los módulos de NestJS son clases vacías con @Module por diseño del framework.
 export class NotificacionesModule {}

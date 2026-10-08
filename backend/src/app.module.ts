@@ -52,4 +52,6 @@ import { BackupModule } from './backup/backup.module';
     },
   ],
 })
+
+// skipcq: JS-0327 -- Los módulos de NestJS son clases vacías con @Module por diseño del framework.
 export class AppModule {}

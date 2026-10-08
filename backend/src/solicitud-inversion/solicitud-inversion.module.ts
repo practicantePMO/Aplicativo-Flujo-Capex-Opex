@@ -13,4 +13,5 @@ import { NotificacionesModule } from '../notificaciones/notificaciones.module';
   providers: [SolicitudInversionService, SolicitudInversionConsultaService, SolicitudInversionHelpersService],
   exports: [SolicitudInversionConsultaService],
 })
+// skipcq: JS-0327 -- Los módulos de NestJS son clases vacías con @Module por diseño del framework.
 export class SolicitudInversionModule {}
