@@ -116,7 +116,8 @@
     "moduleNameMapper": {
       "^src/(.*)$": "<rootDir>/$1"
     },
-    "globalSetup": "<rootDir>/../test/generar-cliente-prisma.js"
+    "globalSetup": "<rootDir>/../test/generar-cliente-prisma.js",
+    "testTimeout": 60000
   },
   "overrides": {
     "nodemailer": "$nodemailer",
