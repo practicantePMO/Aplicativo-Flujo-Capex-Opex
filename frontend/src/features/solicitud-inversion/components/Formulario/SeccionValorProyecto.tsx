@@ -79,7 +79,7 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3 }}>
-          Estos valores se calculan automáticamente sumando la sección "Flujo de Caja Planeado" de abajo
+          Estos valores se calculan automáticamente sumando la sección &quot;Flujo de Caja Planeado&quot; de abajo
           (CAPEX = Activo; GCAPEX + OPEX = Gasto), separados por la moneda de cada fila. Para cambiarlos, edita el flujo de caja.
         </Alert>
 

@@ -39,9 +39,9 @@ interface Props {
 export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlCambioId, abrirOrdenInternaId, onVerControlCambio }: Props) {
   const { tieneRol } = useAuth();
   const { avisar } = useNotificaciones();
-  const [grupo, setGrupo] = useState<GrupoOrdenesInternas | null | undefined>(undefined); // undefined = cargando
-  const [mostrarFormulario, setMostrarFormulario] = useState(!!crearParaControlCambioId);
-  const [mostrarLista, setMostrarLista] = useState(!!abrirOrdenInternaId);
+  const [grupo, setGrupo] = useState<GrupoOrdenesInternas | null | undefined>(); // undefined = cargando
+  const [mostrarFormulario, setMostrarFormulario] = useState(Boolean(crearParaControlCambioId));
+  const [mostrarLista, setMostrarLista] = useState(Boolean(abrirOrdenInternaId));
   const [ordenExpandidaId, setOrdenExpandidaId] = useState<number | false>(abrirOrdenInternaId ?? false);
   const [ordenEnEdicionId, setOrdenEnEdicionId] = useState<number | null>(null);
 

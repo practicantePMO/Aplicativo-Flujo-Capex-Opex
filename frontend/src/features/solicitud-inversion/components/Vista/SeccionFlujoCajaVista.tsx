@@ -8,8 +8,8 @@ interface Props {
 }
 
 const obtenerMontoGrabado = (flujos: FlujoCaja[], anio: number, tipo: string, mesNum: number) => {
-  const f = flujos.find((x) => x.anio === anio && x.tipo === tipo && x.mes === mesNum);
-  return f && f.monto ? Number(f.monto) : 0;
+  const flujo = flujos.find((x) => x.anio === anio && x.tipo === tipo && x.mes === mesNum);
+  return flujo?.monto ? Number(flujo.monto) : 0;
 };
 
 const calcularTotalFilaGrabado = (flujos: FlujoCaja[], anio: number, tipo: string) => {

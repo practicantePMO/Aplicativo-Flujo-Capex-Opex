@@ -93,8 +93,8 @@ export function SeccionCategorizacion({
               <MenuItem value="" disabled>
                 <em>Seleccione un grupo...</em>
               </MenuItem>
-              {grupos.map((g) => (
-                <MenuItem key={g.id} value={g.id}>{g.nombre}</MenuItem>
+              {grupos.map((grupo) => (
+                <MenuItem key={grupo.id} value={grupo.id}>{grupo.nombre}</MenuItem>
               ))}
             </TextField>
 

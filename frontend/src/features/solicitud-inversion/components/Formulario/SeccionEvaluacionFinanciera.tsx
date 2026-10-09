@@ -34,7 +34,7 @@ export function SeccionEvaluacionFinanciera({
           control={
             <Switch
               checked={tieneEvaluacionFinanciera}
-              disabled={!!requiereObligatoria}
+              disabled={Boolean(requiereObligatoria)}
               onChange={(e) => setTieneEvaluacionFinanciera(e.target.checked)}
             />
           }

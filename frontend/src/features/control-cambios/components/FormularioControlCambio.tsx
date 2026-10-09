@@ -90,7 +90,7 @@ function CamposDescripcion({ form, actualizar }: CamposDescripcionProps) {
 
 export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onCancelar, onGuardado }: Props) {
   const [form, setForm] = useState<CrearControlCambioPayload>({ ...CAMPO_VACIO, proyecto_id: proyectoId });
-  const [cargando, setCargando] = useState(!!procesoId);
+  const [cargando, setCargando] = useState(Boolean(procesoId));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -121,7 +121,7 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
         const actuales = detalle.procesos.asignaciones_proceso
           .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
           .map((a) => a.usuarios)
-          .filter((u): u is NonNullable<typeof u> => !!u) as UsuarioActivo[];
+          .filter((u): u is NonNullable<typeof u> => Boolean(u)) as UsuarioActivo[];
         setPartesSeleccionadas(actuales);
       } catch {
         setError('No se pudo cargar el Control de Cambios.');

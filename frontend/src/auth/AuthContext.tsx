@@ -16,7 +16,7 @@ interface AuthContextType {
   esAdminGlobal: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 // Lee y valida el usuario guardado ANTES de que el componente termine de crearse,
 // para que nunca exista un instante donde otros componentes vean "usuario: null"

@@ -180,8 +180,14 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   };
 
   const confirmarAprobar = async () => {
-    if (!numeroOi.trim()) return avisar('El número de Orden Interna es obligatorio.');
-    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) return avisar('El grupo de órdenes internas es obligatorio.');
+    if (!numeroOi.trim()) {
+      avisar('El número de Orden Interna es obligatorio.');
+      return;
+    }
+    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) {
+      avisar('El grupo de órdenes internas es obligatorio.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarOrdenInterna(resumen.id, numeroOi.trim(), esPrimeraOiDelGrupo ? grupoTexto.trim() : undefined, observaciones.trim() || undefined);
@@ -197,7 +203,10 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return avisar('La observación del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) {
+      avisar('La observación del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarOrdenInterna(resumen.id, razonRechazo.trim());
@@ -411,7 +420,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
       {detalle.controles_cambio && onVerControlCambio && (
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-          <Button variant="contained" color="info" onClick={() => onVerControlCambio(detalle.controles_cambio!.proceso_id)}>
+          <Button variant="contained" color="info" onClick={() => detalle.controles_cambio && onVerControlCambio(detalle.controles_cambio.proceso_id)}>
             Ver Control de Cambios relacionado
           </Button>
         </Box>

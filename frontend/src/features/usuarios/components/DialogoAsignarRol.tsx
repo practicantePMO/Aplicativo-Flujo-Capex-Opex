@@ -50,7 +50,7 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
   };
 
   return (
-    <Dialog open={!!usuario} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={Boolean(usuario)} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Asignar rol a {usuario.nombre}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -70,7 +70,7 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
         </TextField>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          Si dejas "Global", este rol aplicará para todas las compañías. Elige una compañía puntual
+          Si dejas &quot;Global&quot;, este rol aplicará para todas las compañías. Elige una compañía puntual
           solo si quieres limitar este rol a esa compañía específicamente.
         </Typography>
       </DialogContent>

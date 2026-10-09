@@ -277,7 +277,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           const actuales = detalle.procesos.asignaciones_proceso
             .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
             .map((a) => a.usuarios)
-            .filter((u): u is NonNullable<typeof u> => !!u) as UsuarioActivo[];
+            .filter((u): u is NonNullable<typeof u> => Boolean(u)) as UsuarioActivo[];
           setPartesSeleccionadas(actuales);
         }
       } catch {

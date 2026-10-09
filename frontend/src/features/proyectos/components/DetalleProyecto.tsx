@@ -92,6 +92,8 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
           .catch(() => setOiIdParaAbrir(null))
           .finally(() => setVerOrdenesInternas(true));
         break;
+      default:
+        break;
     }
   }, [procesoIdInicial, procesoInicialAplicado, cargando, procesos, proyecto.id]);
 

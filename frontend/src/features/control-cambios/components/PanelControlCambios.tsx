@@ -31,9 +31,9 @@ interface Props {
 
 export function PanelControlCambios({ proyectoId, companiaId, creadoPor, procesoIdInicial, onCrearOi, onVerOrdenInterna }: Props) {
   const { usuario, tieneRol } = useAuth();
-  const [items, setItems] = useState<ControlCambioResumen[] | undefined>(undefined); // undefined = cargando
+  const [items, setItems] = useState<ControlCambioResumen[] | undefined>(); // undefined = cargando
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
-  const [mostrarLista, setMostrarLista] = useState(!!procesoIdInicial);
+  const [mostrarLista, setMostrarLista] = useState(Boolean(procesoIdInicial));
   const [expandidoId, setExpandidoId] = useState<number | false>(procesoIdInicial ?? false);
     const [enEdicionId, setEnEdicionId] = useState<number | null>(null);
   const [grupoOiCerrado, setGrupoOiCerrado] = useState(false);

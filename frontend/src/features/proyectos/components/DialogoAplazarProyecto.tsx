@@ -44,7 +44,7 @@ export function DialogoAplazarProyecto({ proyecto, onClose, onAplazado }: Props)
   };
 
   return (
-    <Dialog open={!!proyecto} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={Boolean(proyecto)} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Aplazar proyecto {proyecto.id}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}

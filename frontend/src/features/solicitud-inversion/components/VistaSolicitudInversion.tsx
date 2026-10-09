@@ -152,10 +152,10 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       const usuarios = await obtenerPartesInteresadas(companiaId);
       setUsuariosDisponibles(usuarios);
     }
-    const actuales = data!.asignaciones_proceso
+    const actuales = (data?.asignaciones_proceso ?? [])
       .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
       .map((a) => a.usuarios)
-      .filter((u): u is NonNullable<typeof u> => !!u)
+      .filter((u): u is NonNullable<typeof u> => Boolean(u))
       .map((u) => ({ id: u.id, nombre: u.nombre, email: u.email ?? '' }));
     setPartesSeleccionadas(actuales);
     setDialogoPartes(true);
@@ -197,8 +197,14 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarElegirGerente = async () => {
-    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return avisar('Debes elegir a qué gerente enviar el proceso.');
+    if (!razon.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!gerenteElegido) {
+      avisar('Debes elegir a qué gerente enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon, undefined, gerenteElegido.id);
@@ -209,7 +215,10 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarAprobar = async () => {
-    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!razon.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon);
@@ -220,7 +229,10 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!razon.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!razon.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarEtapa(procesoId, razon, enviarPresidencia === 'si');
@@ -231,7 +243,10 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarRechazo = async () => {
-    if (!razon.trim()) return avisar('La razón del rechazo es obligatoria.');
+    if (!razon.trim()) {
+      avisar('La razón del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarEtapa(procesoId, razon);
@@ -242,7 +257,10 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   };
 
   const confirmarCancelacion = async () => {
-    if (!razon.trim()) return avisar('La razón de cancelación es obligatoria.');
+    if (!razon.trim()) {
+      avisar('La razón de cancelación es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await cancelarDefinitivamente(procesoId, razon);
