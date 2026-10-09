@@ -33,6 +33,21 @@ export const getEstadoChip = (estado: string) => {
   return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 600 }} />;
 };
 
+function EncabezadoPendientes() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell>Proyecto</TableCell>
+        <TableCell>Tipo de Proceso</TableCell>
+        <TableCell>Compañía</TableCell>
+        <TableCell>Etapa Actual</TableCell>
+        <TableCell>Fecha Ingreso</TableCell>
+        <TableCell align="right">Acción</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
 export function VistaMisPendientes({ onAbrirProyecto }: Props) {
   const { usuario } = useAuth();
   const [pendientes, setPendientes] = useState<Pendiente[]>([]);
@@ -157,16 +172,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
       ) : (
         <TableContainer component={Paper} elevation={0} variant="outlined">
           <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Proyecto</TableCell>
-                <TableCell>Tipo de Proceso</TableCell>
-                <TableCell>Compañía</TableCell>
-                <TableCell>Etapa Actual</TableCell>
-                <TableCell>Fecha Ingreso</TableCell>
-                <TableCell align="right">Acción</TableCell>
-              </TableRow>
-            </TableHead>
+            <EncabezadoPendientes />
             <TableBody>
               {pendientesFiltrados.map((proceso) => (
                 <TableRow key={proceso.id} hover sx={{ '&:last-child td, &:last-child th': { border: 0 } }}>
