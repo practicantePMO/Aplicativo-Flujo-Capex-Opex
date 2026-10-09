@@ -335,7 +335,9 @@ Variables en el archivo `.env`, que **no** se sube al repositorio. La plantilla 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `VITE_API_URL` | En QA y producción | URL del backend. En local, por defecto `http://localhost:3000` |
-| `VITE_GOOGLE_CLIENT_ID` | Sí, para iniciar sesión con Google | Client ID de Google del aplicativo |
+| `VITE_GOOGLE_CLIENT_ID` | Solo si se usa Google | Client ID de Google del aplicativo. Si está vacío, no aparece el botón de Google |
+| `VITE_MICROSOFT_CLIENT_ID` | Sí, para iniciar sesión con Microsoft | Application (client) ID de la app registrada en Azure (Entra ID). Es el mismo `MICROSOFT_CLIENT_ID` del backend |
+| `VITE_MICROSOFT_TENANT_ID` | Sí, para iniciar sesión con Microsoft | Directory (tenant) ID de la empresa en Azure. Es el mismo `MICROSOFT_TENANT_ID` del backend |
 
 > Todo lo que empieza por `VITE_` queda **visible en el navegador**. Nunca se deben poner contraseñas ni secretos en estas variables.
 
@@ -345,13 +347,14 @@ Variables en el archivo `.env`, que **no** se sube al repositorio. La plantilla 
 |---|---|---|
 | Error de CORS en la consola del navegador | La URL del frontend no está en `CORS_ORIGIN` del backend | Agregar la URL en `CORS_ORIGIN` |
 | No aparece el botón de Google | Falta `VITE_GOOGLE_CLIENT_ID` | Definir la variable y reiniciar `npm run dev` |
+| No aparece el botón de Microsoft | Faltan `VITE_MICROSOFT_CLIENT_ID` o `VITE_MICROSOFT_TENANT_ID` | Definir las variables y volver a compilar |
+| El popup de Microsoft muestra un error de *redirect URI* | La URL `https://<dominio-del-frontend>/blank.html` no está registrada en Azure | En Azure, registrarla como **Single-page application (SPA)** |
 | Aparece "Sesión cerrada" | El token venció (8 horas) o el usuario fue desactivado | Volver a iniciar sesión |
 | Mensaje de "Conflicto de concurrencia" | Otro usuario modificó el mismo registro | Recargar la información e intentar de nuevo |
 | `npm install` falla con `ETIMEDOUT` o `ECONNRESET` | La red corporativa bloquea `registry.npmjs.org` | Solicitar a TI acceso o la configuración del repositorio interno de paquetes |
 
 **Limitaciones conocidas**
 - La navegación no usa URLs por pantalla: al recargar el navegador se vuelve a la pantalla inicial.
-- El inicio de sesión con Microsoft está soportado por el backend, pero aún no tiene botón en la interfaz.
 - No hay pruebas unitarias automatizadas (ver sección 9).
 
 ## 15. Autores

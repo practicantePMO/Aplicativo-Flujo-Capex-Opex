@@ -1,6 +1,7 @@
 import { Box, Card, Typography, Avatar } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
 import { GoogleLoginButton } from '../../../auth/GoogleLoginButton';
+import { MicrosoftLoginButton } from '../../../auth/MicrosoftLoginButton';
 import { useAuth } from '../../../auth/AuthContext';
 
 const styles = {
@@ -41,6 +42,7 @@ export function PantallaSesionCerrada() {
             ? 'Por seguridad, la sesión se cierra automáticamente después de un tiempo. Vuelve a iniciar sesión para continuar.'
             : 'Saliste del Sistema de Gestión de Proyectos correctamente.'}
         </Typography>
+        <MicrosoftLoginButton />
         <GoogleLoginButton />
       </Card>
     </Box>
