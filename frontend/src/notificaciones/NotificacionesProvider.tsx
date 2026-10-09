@@ -57,7 +57,7 @@ export function NotificacionesProvider({ children }: { children: ReactNode }) {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => cerrarConfirmacion(false)}>Cancelar</Button>
-          <Button variant="contained" onClick={() => cerrarConfirmacion(true)} autoFocus>
+          <Button variant="contained" onClick={() => cerrarConfirmacion(true)}>
             Aceptar
           </Button>
         </DialogActions>

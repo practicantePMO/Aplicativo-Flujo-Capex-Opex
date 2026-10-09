@@ -12,6 +12,7 @@ import type { UsuarioActivo } from '../../solicitud-inversion/types/solicitud.ty
 import { crearControlCambio, actualizarControlCambio, obtenerControlCambioDetalle, actualizarPartesInteresadasCc } from '../services/controlCambios.service';
 import { obtenerPartesInteresadas } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useClavesFilas } from '../../../hooks/useClavesFilas';
 
 interface Props {
   proyectoId: string;
@@ -134,7 +135,11 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
   const actualizar = (patch: Partial<CrearControlCambioPayload>) => setForm((prev) => ({ ...prev, ...patch }));
 
   const agregarAnexo = () => actualizar({ anexos: [...(form.anexos || []), { tipo: 'DOCUMENTO', url: '', descripcion: '' }] });
-  const quitarAnexo = (index: number) => actualizar({ anexos: (form.anexos || []).filter((_, i) => i !== index) });
+  const { claves: clavesAnexos, quitarClave } = useClavesFilas((form.anexos || []).length);
+  const quitarAnexo = (index: number) => {
+    quitarClave(index);
+    actualizar({ anexos: (form.anexos || []).filter((_, i) => i !== index) });
+  };
   const actualizarAnexo = (index: number, patch: Partial<AnexoControlCambio>) =>
     actualizar({ anexos: (form.anexos || []).map((a, i) => (i === index ? { ...a, ...patch } : a)) });
 
@@ -215,7 +220,7 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
 
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Anexos</Typography>
           {(form.anexos || []).map((anexo, i) => (
-            <Box key={i} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '200px 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
+            <Box key={clavesAnexos[i]} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '200px 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
               <TextField select size="small" label="Tipo" value={anexo.tipo} onChange={(e) => actualizarAnexo(i, { tipo: e.target.value })}>
                 {TIPOS_ANEXO.map((t) => <MenuItem key={t.value} value={t.value}>{t.label}</MenuItem>)}
               </TextField>

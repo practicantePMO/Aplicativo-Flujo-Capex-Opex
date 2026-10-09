@@ -68,7 +68,7 @@ export function DialogosAccionVista({
             onChange={(_, value) => setGerenteElegido(value)}
             renderInput={(params) => <TextField {...params} label="¿A qué gerente se envía el proceso?" sx={{ mt: 1, mb: 2 }} />}
           />
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} />
         </DialogContent>
         <DialogActions>
@@ -81,7 +81,7 @@ export function DialogosAccionVista({
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar etapa</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -94,7 +94,7 @@ export function DialogosAccionVista({
       <Dialog open={dialogoRechazo} onClose={() => setDialogoRechazo(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar solicitud</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -108,7 +108,7 @@ export function DialogosAccionVista({
         <DialogTitle>Cancelar definitivamente</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>Esta acción es irreversible: cierra el proyecto por completo.</Alert>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón de la cancelación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Razón de la cancelación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} />
         </DialogContent>
         <DialogActions>
@@ -121,7 +121,7 @@ export function DialogosAccionVista({
       <Dialog open={dialogoGerencia} onClose={() => setDialogoGerencia(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1, mb: 2 }} />
           <Typography sx={{ mb: 1 }}>¿Este proyecto requiere aprobación de Presidencia?</Typography>
           <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />

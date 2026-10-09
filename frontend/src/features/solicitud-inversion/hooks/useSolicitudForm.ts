@@ -109,7 +109,7 @@ export function useSolicitudForm(
     partesInteresadas: (solicitudExistente?.asignaciones_proceso || [])
       .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
       .map((a) => a.usuarios)
-      .filter((u): u is NonNullable<typeof u> => !!u),
+      .filter((u): u is NonNullable<typeof u> => Boolean(u)),
 
     linkActa: solicitudExistente?.solicitudes_inversion?.link_acta_aprobacion || '',
     linkPlan: solicitudExistente?.solicitudes_inversion?.link_plan_proyecto || '',
@@ -142,8 +142,8 @@ export function useSolicitudForm(
 
   useEffect(() => {
     if (form.grupoId && grupos.length > 0) {
-      const g = grupos.find((item) => item.id === Number(form.grupoId));
-      setProgramas(g?.programas || []);
+      const grupo = grupos.find((item) => item.id === Number(form.grupoId));
+      setProgramas(grupo?.programas || []);
     } else {
       setProgramas([]);
     }
@@ -151,8 +151,8 @@ export function useSolicitudForm(
 
   useEffect(() => {
     if (form.programaId && programas.length > 0) {
-      const p = programas.find((item) => item.id === Number(form.programaId));
-      setSubprogramas(p?.subprogramas || []);
+      const programa = programas.find((item) => item.id === Number(form.programaId));
+      setSubprogramas(programa?.subprogramas || []);
     } else {
       setSubprogramas([]);
     }
@@ -200,7 +200,7 @@ export function useSolicitudForm(
       }
 
       // --- Entregable planeado ---
-      if (!form.entregablePlaneado || !form.entregablePlaneado.trim()) {
+      if (!form.entregablePlaneado?.trim()) {
         throw new Error('Debes describir el entregable planeado.');
       }
 
@@ -209,7 +209,7 @@ export function useSolicitudForm(
         if (form.tir === '' || form.vpn === '' || form.payback === '') {
           throw new Error('Debes ingresar TIR, VPN y Payback si el proyecto tiene evaluación financiera.');
         }
-      } else if (!form.justificacion || !form.justificacion.trim()) {
+      } else if (!form.justificacion?.trim()) {
         throw new Error('Debes ingresar una justificación si el proyecto no tiene evaluación financiera.');
       }
 

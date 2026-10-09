@@ -61,8 +61,8 @@ function TablaValoresOi({ valores }: { valores: OiValor[] }) {
       <Table size="small">
         <EncabezadoValoresOi />
         <TableBody>
-          {valores.map((v, i) => (
-            <TableRow key={i}>
+          {valores.map((v) => (
+            <TableRow key={v.categoria}>
               <TableCell sx={{ fontWeight: 600 }}>{v.categoria === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
               <TableCell align="center">{fmtMoneda(v.usd, 'US$') || '—'}</TableCell>
               <TableCell align="center">{fmtMoneda(v.cop, '$', ' COP') || '—'}</TableCell>
@@ -448,7 +448,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Orden Interna</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth label="Número de Orden Interna *" value={numeroOi}
+          <TextField fullWidth label="Número de Orden Interna *" value={numeroOi}
             onChange={(e) => setNumeroOi(e.target.value)} sx={{ mt: 1, mb: 2 }} />
           {esPrimeraOiDelGrupo && (
             <TextField fullWidth label="Grupo de Órdenes Internas *" value={grupoTexto}
@@ -468,7 +468,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Orden Interna</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación del rechazo (obligatoria)" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Observación del rechazo (obligatoria)" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>

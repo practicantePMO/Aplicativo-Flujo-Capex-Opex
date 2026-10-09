@@ -19,6 +19,7 @@ import {
 import { obtenerProcesosPorProyecto } from '../../proyectos/services/proyectos.service';
 import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useClavesFilas } from '../../../hooks/useClavesFilas';
 import { EncabezadoTabla } from '../../../components/EncabezadoTabla';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
@@ -290,7 +291,11 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
 
   const agregarEntregable = () =>
     setEntregables((prev) => [...prev, { equipo_sistema: '', codigo_activo_produccion: '', codigo_activo_montaje: '', unidad_vida_util: '', vida_util: undefined, observaciones: '', anexo_url: '' }]);
-  const quitarEntregable = (index: number) => setEntregables((prev) => prev.filter((_, i) => i !== index));
+  const { claves: clavesEntregables, quitarClave } = useClavesFilas(entregables.length);
+  const quitarEntregable = (index: number) => {
+    quitarClave(index);
+    setEntregables((prev) => prev.filter((_, i) => i !== index));
+  };
   const actualizarEntregable = (index: number, patch: Partial<ActaCierreEntregablePayload>) =>
     setEntregables((prev) => prev.map((e, i) => (i === index ? { ...e, ...patch } : e)));
 
@@ -521,7 +526,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Entregable</Typography>
           {entregables.map((ent, i) => (
-            <Box key={i} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
+            <Box key={clavesEntregables[i]} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
               <TextField size="small" label="Equipo / Sistema *" value={ent.equipo_sistema} onChange={(e) => actualizarEntregable(i, { equipo_sistema: e.target.value })} />
               <TextField size="small" label="Código activo fijo en producción" value={ent.codigo_activo_produccion || ''} onChange={(e) => actualizarEntregable(i, { codigo_activo_produccion: e.target.value })} />
               <TextField size="small" label="Código activo fijo en montaje" value={ent.codigo_activo_montaje || ''} onChange={(e) => actualizarEntregable(i, { codigo_activo_montaje: e.target.value })} />

@@ -562,8 +562,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                               { titulo: 'Real', align: 'right' },
                             ]} />
                             <TableBody>
-                              {filas.map((f, i) => (
-                                <TableRow key={i}>
+                              {filas.map((f) => (
+                                <TableRow key={`${f.moneda}-${f.anio}-${f.mes}`}>
                                   <TableCell>{MESES[f.mes - 1]}</TableCell>
                                   <TableCell>{f.anio}</TableCell>
                                   <TableCell>{f.moneda}</TableCell>
@@ -644,7 +644,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Acta de Cierre</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
+          <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -712,7 +712,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Acta de Cierre</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
