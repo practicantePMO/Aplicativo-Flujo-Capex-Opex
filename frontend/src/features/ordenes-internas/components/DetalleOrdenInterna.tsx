@@ -5,7 +5,7 @@ import {
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import { useAuth } from '../../../auth/AuthContext';
-import type { OrdenInternaResumen, OrdenInternaDetalle, UsuarioResumen } from '../types/ordenInterna.types';
+import type { OrdenInternaResumen, OrdenInternaDetalle, UsuarioResumen, OiValor } from '../types/ordenInterna.types';
 import {
   obtenerOrdenInternaDetalle, enviarOrdenInterna, aprobarOrdenInterna, rechazarOrdenInterna, cerrarOrdenInterna,
   cancelarOrdenInternaBorrador,
@@ -15,6 +15,79 @@ import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
 import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
+const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
+  valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
+
+function EncabezadoCampos() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: '40%' }}>Campo</TableCell>
+        <TableCell>Valor</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function EncabezadoValoresOi() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
+        <TableCell align="center">Valor USD</TableCell>
+        <TableCell align="center">Valor COP</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function FilaTotalValoresOi({ valores }: { valores: OiValor[] }) {
+  return (
+    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700 }}>
+        {fmtMoneda(valores.reduce((s, v) => s + Number(v.usd || 0), 0), 'US$') || '—'}
+      </TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700 }}>
+        {fmtMoneda(valores.reduce((s, v) => s + Number(v.cop || 0), 0), '$', ' COP') || '—'}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function TablaValoresOi({ valores }: { valores: OiValor[] }) {
+  return (
+    <TableContainer component={Card} variant="outlined">
+      <Table size="small">
+        <EncabezadoValoresOi />
+        <TableBody>
+          {valores.map((v, i) => (
+            <TableRow key={i}>
+              <TableCell sx={{ fontWeight: 600 }}>{v.categoria === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+              <TableCell align="center">{fmtMoneda(v.usd, 'US$') || '—'}</TableCell>
+              <TableCell align="center">{fmtMoneda(v.cop, '$', ' COP') || '—'}</TableCell>
+            </TableRow>
+          ))}
+          <FilaTotalValoresOi valores={valores} />
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function EncabezadoHistorico() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+        <TableCell>Usuario</TableCell>
+        <TableCell>Acción</TableCell>
+        <TableCell>Observación</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -187,12 +260,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   const tablaCampos = (filas: [string, string | number | null | undefined][]) => (
     <TableContainer component={Card} variant="outlined">
       <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ width: '40%' }}>Campo</TableCell>
-            <TableCell>Valor</TableCell>
-          </TableRow>
-        </TableHead>
+        <EncabezadoCampos />
         <TableBody>
           {filas.map(([label, valor]) => (
             <TableRow key={label}>
@@ -210,9 +278,6 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <CardContent sx={{ p: 3 }}>{children}</CardContent>
     </Card>
   );
-
-  const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
-    valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
 
   const ETAPAS_OI = [
     { key: 'PENDIENTE', label: 'Control Gestión' },
@@ -299,35 +364,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           {tituloSeccion('Valor Total del Proyecto')}
           <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer component={Card} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
-                      <TableCell align="center">Valor USD</TableCell>
-                      <TableCell align="center">Valor COP</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detalle.oi_valores.map((v, i) => (
-                      <TableRow key={i}>
-                        <TableCell sx={{ fontWeight: 600 }}>{v.categoria === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                        <TableCell align="center">{fmtMoneda(v.usd, 'US$') || '—'}</TableCell>
-                        <TableCell align="center">{fmtMoneda(v.cop, '$', ' COP') || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>
-                        {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.usd || 0), 0), 'US$') || '—'}
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>
-                        {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.cop || 0), 0), '$', ' COP') || '—'}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaValoresOi valores={detalle.oi_valores} />
             </CardContent>
           </Card>
         </>
@@ -353,14 +390,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell>Usuario</TableCell>
-                    <TableCell>Acción</TableCell>
-                    <TableCell>Observación</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoHistorico />
                 <TableBody>
                   {detalle.procesos.historico_aprobaciones.map((h) => (
                     <TableRow key={h.id}>
