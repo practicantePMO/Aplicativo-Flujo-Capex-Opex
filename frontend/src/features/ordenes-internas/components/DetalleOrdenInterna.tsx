@@ -88,6 +88,53 @@ function EncabezadoHistorico() {
   );
 }
 
+const ETAPAS_OI = [
+  { key: 'PENDIENTE', label: 'Control Gestión' },
+  { key: 'APROBADA', label: 'Aprobada' },
+  { key: 'CERRADA', label: 'Cerrada' },
+];
+
+const TIPO_ACTIVO_LABELS: Record<string, string> = { EXPANSION: 'Inversión Expansión', REEMPLAZO: 'Inversión Reemplazo' };
+const ACTIVO_REAL_PRODUCTIVO_LABELS: Record<string, string> = { SI: 'Sí', NO: 'No' };
+
+type FilaCampo = [string, string | number | null | undefined];
+
+const nombreProcesoOi = (detalle: OrdenInternaDetalle) =>
+  `Orden Interna${detalle.numero_oi ? ` — ${detalle.numero_oi}` : ''}`;
+
+// Qué acciones puede hacer el usuario sobre la Orden Interna según su estado.
+function calcularPermisosOi(
+  detalle: OrdenInternaDetalle,
+  usuarioId: number | undefined,
+  esAdmin: boolean,
+  grupoEstado: 'ABIERTO' | 'SOLICITADO_CIERRE' | 'CERRADO',
+) {
+  const estado = detalle.procesos.estado_actual;
+  const esDueno = detalle.pm?.id === usuarioId;
+  const esCgAsignado = detalle.control_gestion?.id === usuarioId;
+  return {
+    puedeEditarYEnviar: estado === 'BORRADOR' && (esDueno || esAdmin),
+    puedeAprobarORechazar: estado === 'PENDIENTE' && (esCgAsignado || esAdmin),
+    puedeCerrar: estado === 'APROBADA' && grupoEstado === 'SOLICITADO_CIERRE' && (esCgAsignado || esAdmin),
+  };
+}
+
+// Filas de la segunda tabla de datos: campos del activo (si aplica) y presupuesto.
+function filasActivoYPresupuesto(detalle: OrdenInternaDetalle): FilaCampo[] {
+  const filasActivo: FilaCampo[] = detalle.tipo_orden === 'ACTIVO'
+    ? [
+        ['Activo Fijo en curso', detalle.activo_fijo_curso],
+        ['Tipo de activo', detalle.tipo_activo ? TIPO_ACTIVO_LABELS[detalle.tipo_activo] || detalle.tipo_activo : undefined],
+        ['%', detalle.porcentaje_2],
+        ['Activo Real Productivo', detalle.activo_real_productivo ? ACTIVO_REAL_PRODUCTIVO_LABELS[detalle.activo_real_productivo] || detalle.activo_real_productivo : undefined],
+      ]
+    : [];
+  const presupuesto = detalle.presupuesto
+    ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
+    : undefined;
+  return [...filasActivo, ['Presupuesto', presupuesto]];
+}
+
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -137,13 +184,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   if (error || !detalle) return <Alert severity="error">{error || 'No se encontró la Orden Interna.'}</Alert>;
 
   const estado = detalle.procesos.estado_actual;
-  const esDueno = detalle.pm?.id === usuario?.id;
-  const esCgAsignado = detalle.control_gestion?.id === usuario?.id;
-  const esAdmin = tieneRol('ADMIN');
-
-  const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
-  const puedeAprobarORechazar = estado === 'PENDIENTE' && (esCgAsignado || esAdmin);
-  const puedeCerrar = estado === 'APROBADA' && grupoEstado === 'SOLICITADO_CIERRE' && (esCgAsignado || esAdmin);
+  const { puedeEditarYEnviar, puedeAprobarORechazar, puedeCerrar } =
+    calcularPermisosOi(detalle, usuario?.id, tieneRol('ADMIN'), grupoEstado);
   const esPrimeraOiDelGrupo = !detalle.grupos_ordenes_internas.nombre;
 
   const abrirDialogoEnviar = async () => {
@@ -288,20 +330,11 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Card>
   );
 
-  const ETAPAS_OI = [
-    { key: 'PENDIENTE', label: 'Control Gestión' },
-    { key: 'APROBADA', label: 'Aprobada' },
-    { key: 'CERRADA', label: 'Cerrada' },
-  ];
-
-  const TIPO_ACTIVO_LABELS: Record<string, string> = { EXPANSION: 'Inversión Expansión', REEMPLAZO: 'Inversión Reemplazo' };
-  const ACTIVO_REAL_PRODUCTIVO_LABELS: Record<string, string> = { SI: 'Sí', NO: 'No' };
-
   return (
     <Box>
       <EncabezadoProceso
         nombreProyecto={detalle.proyecto_nombre || ''}
-        nombreProceso={`Orden Interna${detalle.numero_oi ? ` — ${detalle.numero_oi}` : ''}`}
+        nombreProceso={nombreProcesoOi(detalle)}
         estado={estado}
         chipLabel={detalle.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}
         chipColor="default"
@@ -343,22 +376,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       )}
 
       {tarjeta(
-        tablaCampos([
-          ...(detalle.tipo_orden === 'ACTIVO'
-            ? ([
-                ['Activo Fijo en curso', detalle.activo_fijo_curso],
-                ['Tipo de activo', detalle.tipo_activo ? TIPO_ACTIVO_LABELS[detalle.tipo_activo] || detalle.tipo_activo : undefined],
-                ['%', detalle.porcentaje_2],
-                ['Activo Real Productivo', detalle.activo_real_productivo ? ACTIVO_REAL_PRODUCTIVO_LABELS[detalle.activo_real_productivo] || detalle.activo_real_productivo : undefined],
-              ] as [string, string | number | null | undefined][])
-            : []),
-          [
-            'Presupuesto',
-            detalle.presupuesto
-              ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
-              : undefined,
-          ],
-        ])
+        tablaCampos(filasActivoYPresupuesto(detalle))
       )}
 
       {detalle.observaciones_pm && (
