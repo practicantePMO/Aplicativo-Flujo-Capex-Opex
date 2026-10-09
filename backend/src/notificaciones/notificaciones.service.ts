@@ -1,12 +1,11 @@
 import { Injectable, OnModuleInit, OnModuleDestroy, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as amqp from 'amqp-connection-manager';
-import { ChannelWrapper } from 'amqp-connection-manager';
+import { connect, AmqpConnectionManager, ChannelWrapper } from 'amqp-connection-manager';
 import { ConfirmChannel, ConsumeMessage } from 'amqplib';
-import * as fs from 'fs';
-import * as path from 'path';
-import * as handlebars from 'handlebars';
+import { existsSync, readFileSync } from 'fs';
+import { join } from 'path';
+import { compile } from 'handlebars';
 
 export interface EventoNotificacion {
   tipo:
@@ -26,12 +25,31 @@ export interface EventoNotificacion {
     | 'AC_RECHAZADO';
 
   destinatarios: string[];
-  datos: Record<string, any>;
+  datos: Record<string, string | number | null | undefined>;
 }
+
+function renderTemplate(templateName: string, datos: Record<string, string | number | null | undefined>): string {
+  // lista de rutas donde buscar la plantilla (dist y src directo)
+  const posiblesRutas = [
+    join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
+    join(__dirname, 'templates', `${templateName}.hbs`),
+    join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
+  ];
+
+  // Busca la primera ruta que exista físicamente en el disco
+  const templatePath = posiblesRutas.find((ruta) => existsSync(ruta));
+
+  if (!templatePath) {
+    throw new Error(`Plantilla no existe: ${templateName}.hbs`);
+  }
+
+  return compile(readFileSync(templatePath, 'utf8'))(datos);
+}
+
 @Injectable()
 export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(NotificacionesService.name);
-  private connection: amqp.AmqpConnectionManager;
+  private connection: AmqpConnectionManager;
   private channelWrapper: ChannelWrapper;
 
   private readonly queueName: string;
@@ -51,10 +69,10 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
     this.pausaMs = Number(this.configService.get<number>('NOTIF_PAUSA_MS', 5000));
   }
 
-  async onModuleInit() {
-    const rabbitUrl = this.configService.get<string>('RABBITMQ_URL', 'amqp://guest:guest@localhost:5672');
+  onModuleInit() {
+    const rabbitUrl = this.configService.getOrThrow<string>('RABBITMQ_URL');
 
-    this.connection = amqp.connect([rabbitUrl]);
+    this.connection = connect([rabbitUrl]);
     this.channelWrapper = this.connection.createChannel({
       json: true,
       setup: async (channel: ConfirmChannel) => {
@@ -83,24 +101,6 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
   async onModuleDestroy() {
     await this.channelWrapper.close();
     await this.connection.close();
-  }
-
-  private renderTemplate(templateName: string, datos: Record<string, any>): string {
-    // lista de rutas donde buscar la plantilla (dist y src directo)
-    const posiblesRutas = [
-      path.join(process.cwd(), 'src', 'notificaciones', 'templates', `${templateName}.hbs`), 
-      path.join(__dirname, 'templates', `${templateName}.hbs`),
-      path.join(process.cwd(), 'dist', 'src', 'notificaciones', 'templates', `${templateName}.hbs`),
-    ];
-
-    // Busca la primera ruta que exista físicamente en el disco
-    const templatePath = posiblesRutas.find((ruta) => fs.existsSync(ruta));
-
-    if (!templatePath) {
-      throw new Error(`Plantilla no existe: ${templateName}.hbs`);
-    }
-
-    return handlebars.compile(fs.readFileSync(templatePath, 'utf8'))(datos);
   }
 
   async encolarNotificacion(evento: EventoNotificacion) {
@@ -139,8 +139,8 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
         NUEVA_SOLICITUD: { template: 'nueva-solicitud', subject: `📌 Tarea Pendiente: ${contenido.datos.codigoProyecto}` },
         SOLICITUD_APROBADA: { template: 'solicitud-aprobada', subject: `✅ Aprobada: ${contenido.datos.codigoProyecto}` },
         SOLICITUD_RECHAZADA: { template: 'solicitud-rechazada', subject: `❌ Devuelta: ${contenido.datos.codigoProyecto}` },
-        USUARIO_NUEVO_PENDIENTE: { template: 'usuario-nuevo-pendiente', subject: `👤 Nuevo Usuario Pendiente` },
-        ROL_ASIGNADO: { template: 'rol-asignado', subject: `🔑 Se te asignó un rol en el Sistema de Proyectos` },
+        USUARIO_NUEVO_PENDIENTE: { template: 'usuario-nuevo-pendiente', subject: '👤 Nuevo Usuario Pendiente' },
+        ROL_ASIGNADO: { template: 'rol-asignado', subject: '🔑 Se te asignó un rol en el Sistema de Proyectos' },
         OI_PENDIENTE: { template: 'oi-pendiente', subject: `📋 Orden Interna pendiente: ${contenido.datos.numeroOi}` },
         OI_APROBADA: { template: 'oi-aprobada', subject: `✅ Orden Interna aprobada: ${contenido.datos.numeroOi}` },
         OI_RECHAZADA: { template: 'oi-rechazada', subject: `❌ Orden Interna devuelta: ${contenido.datos.numeroOi}` },
@@ -164,7 +164,7 @@ export class NotificacionesService implements OnModuleInit, OnModuleDestroy {
       await this.mailerService.sendMail({
         to: contenido.destinatarios,
         subject: config.subject,
-        html: this.renderTemplate(config.template, contenido.datos),
+        html: renderTemplate(config.template, contenido.datos),
       });
 
       this.logger.log(`Correo enviado a: ${contenido.destinatarios.join(', ')}`);

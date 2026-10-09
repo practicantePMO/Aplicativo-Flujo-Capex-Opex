@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AuthProvider, useAuth } from './auth/AuthContext';
 import { DevSwitcher } from './auth/DevSwitcher';
 import { AppLayout } from './layout/AppLayout';
+import { NotificacionesProvider } from './notificaciones/NotificacionesProvider';
 
 // Vistas de Proyectos
 import { TablaProyectos } from './features/proyectos/components/TablaProyectos';
@@ -47,7 +48,7 @@ function ContenidoPrincipal() {
     );
   }
 
-  const listaRoles = (usuario as any)?.roles || (usuario as any)?.usuario_roles_compania || [];
+  const listaRoles = usuario?.roles || [];
   const sinRoles = listaRoles.length === 0;
 
   if (sinRoles) {
@@ -129,7 +130,9 @@ function ContenidoPrincipal() {
 export default function App() {
   return (
     <AuthProvider>
-      <ContenidoPrincipal />
+      <NotificacionesProvider>
+        <ContenidoPrincipal />
+      </NotificacionesProvider>
     </AuthProvider>
   );
 }

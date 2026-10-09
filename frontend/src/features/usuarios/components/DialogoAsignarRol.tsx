@@ -3,6 +3,7 @@ import { Dialog, DialogTitle, DialogContent, DialogActions, Button, TextField, M
 import type { Usuario, RolDisponible, AsignarRolDto } from '../types/usuario.types';
 import type { Compania } from '../../proyectos/types/proyecto.types';
 import { asignarRol } from '../services/usuarios.service';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   usuario: Usuario | null;
@@ -41,15 +42,15 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
       setRolId('');
       setCompaniaId(GLOBAL);
       onAsignado();
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Error al asignar el rol.');
+    } catch (e) {
+      setError(mensajeDelBackend(e) || 'Error al asignar el rol.');
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <Dialog open={!!usuario} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={Boolean(usuario)} onClose={onClose} fullWidth maxWidth="sm">
       <DialogTitle>Asignar rol a {usuario.nombre}</DialogTitle>
       <DialogContent>
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
@@ -69,7 +70,7 @@ export function DialogoAsignarRol({ usuario, roles, companias, onClose, onAsigna
         </TextField>
 
         <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 1 }}>
-          Si dejas "Global", este rol aplicará para todas las compañías. Elige una compañía puntual
+          Si dejas &quot;Global&quot;, este rol aplicará para todas las compañías. Elige una compañía puntual
           solo si quieres limitar este rol a esa compañía específicamente.
         </Typography>
       </DialogContent>

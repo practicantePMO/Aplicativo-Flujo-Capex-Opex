@@ -21,6 +21,72 @@ interface Props {
   historico: ItemHistorico[];
 }
 
+function EncabezadoTablaHistorico() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+        <TableCell>Usuario / Responsable</TableCell>
+        <TableCell>Etapa Origen</TableCell>
+        <TableCell>Etapa Destino</TableCell>
+        <TableCell>Acción</TableCell>
+        <TableCell>Razón / Comentario</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function FilaHistorico({ h }: { h: ItemHistorico }) {
+  return (
+    <TableRow>
+      <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
+        {new Date(h.fecha_registro).toLocaleString()}
+      </TableCell>
+
+      {/* Muestra el Nombre y Área de la persona que actuó */}
+      <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>
+        {h.usuarios?.nombre || '—'}
+        {h.usuarios?.area && (
+          <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
+            {h.usuarios.area}
+          </Typography>
+        )}
+      </TableCell>
+
+      <TableCell sx={{ fontSize: '0.8rem', color: '#64748b' }}>
+        {h.etapa_origen.replace(/_/g, ' ')}
+      </TableCell>
+      <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
+        {h.etapa_destino.replace(/_/g, ' ')}
+      </TableCell>
+      <TableCell>
+        <Chip
+          size="small"
+          label={h.accion.replace(/_/g, ' ')}
+          color={h.accion === 'RECHAZADO' || h.accion === 'CANCELADO' ? 'error' : 'success'}
+          sx={{ fontWeight: 700, fontSize: '0.72rem' }}
+        />
+      </TableCell>
+      <TableCell sx={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>
+        {h.razon_rechazo || h.observaciones || '—'}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function TablaHistorico({ historico }: Props) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 800 }}>
+        <EncabezadoTablaHistorico />
+        <TableBody>
+          {historico.map((h) => <FilaHistorico key={h.id} h={h} />)}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
 export function SeccionHistoricoVista({ historico }: Props) {
   return (
     <Card>
@@ -29,57 +95,7 @@ export function SeccionHistoricoVista({ historico }: Props) {
           Histórico de Aprobaciones
         </Typography>
 
-        <TableContainer sx={{ overflowX: 'auto' }}>
-          <Table size="small" sx={{ minWidth: 800 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                <TableCell>Usuario / Responsable</TableCell>
-                <TableCell>Etapa Origen</TableCell>
-                <TableCell>Etapa Destino</TableCell>
-                <TableCell>Acción</TableCell>
-                <TableCell>Razón / Comentario</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {historico.map((h) => (
-                <TableRow key={h.id}>
-                  <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.8rem' }}>
-                    {new Date(h.fecha_registro).toLocaleString()}
-                  </TableCell>
-
-                  {/* Muestra el Nombre y Área de la persona que actuó */}
-                  <TableCell sx={{ whiteSpace: 'nowrap', fontSize: '0.82rem', fontWeight: 600 }}>
-                    {h.usuarios?.nombre || '—'}
-                    {h.usuarios?.area && (
-                      <Typography component="span" variant="caption" color="text.secondary" sx={{ display: 'block' }}>
-                        {h.usuarios.area}
-                      </Typography>
-                    )}
-                  </TableCell>
-
-                  <TableCell sx={{ fontSize: '0.8rem', color: '#64748b' }}>
-                    {h.etapa_origen.replace(/_/g, ' ')}
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem', fontWeight: 600 }}>
-                    {h.etapa_destino.replace(/_/g, ' ')}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      size="small"
-                      label={h.accion.replace(/_/g, ' ')}
-                      color={h.accion === 'RECHAZADO' || h.accion === 'CANCELADO' ? 'error' : 'success'}
-                      sx={{ fontWeight: 700, fontSize: '0.72rem' }}
-                    />
-                  </TableCell>
-                  <TableCell sx={{ fontSize: '0.8rem', wordBreak: 'break-word' }}>
-                    {h.razon_rechazo || h.observaciones || '—'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <TablaHistorico historico={historico} />
       </CardContent>
     </Card>
   );

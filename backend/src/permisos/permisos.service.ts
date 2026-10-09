@@ -10,7 +10,7 @@ export class PermisosService {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: { usuario_id: usuarioId, roles: { codigo: 'ADMIN' } },
     });
-    return !!asignacion;
+    return Boolean(asignacion);
   }
 
   // ¿Tiene el rol para esta compañía específica?
@@ -22,7 +22,7 @@ export class PermisosService {
         OR: [{ compania_id: null }, { compania_id: companiaId }],
       },
     });
-    return !!asignacion;
+    return Boolean(asignacion);
   }
 
   async exigirRolParaCompania(usuarioId: number, codigosRol: string[], companiaId: number): Promise<void> {
@@ -42,7 +42,7 @@ export class PermisosService {
         estado_asignacion: 'PENDIENTE',
       },
     });
-    return !!asignacion;
+    return Boolean(asignacion);
   }
 
   async exigirAsignacionAEtapa(usuarioId: number, procesoId: number, etapa: string): Promise<void> {
@@ -60,7 +60,7 @@ export class PermisosService {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: { usuario_id: usuarioId, roles: { codigo: { in: codigosRol } } },
     });
-    return !!asignacion;
+    return Boolean(asignacion);
   }
 
   // ¿Tiene este rol de forma GLOBAL? A diferencia de
@@ -69,7 +69,7 @@ export class PermisosService {
     const asignacion = await this.prisma.usuario_roles_compania.findFirst({
       where: { usuario_id: usuarioId, compania_id: null, roles: { codigo: { in: codigosRol } } },
     });
-    return !!asignacion;
+    return Boolean(asignacion);
   }
 
     // Valida que la lista de partes interesadas sea legítima:

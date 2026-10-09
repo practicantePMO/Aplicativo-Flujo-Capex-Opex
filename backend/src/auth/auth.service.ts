@@ -3,9 +3,30 @@ import { JwtService } from '@nestjs/jwt';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
-import * as jwt from 'jsonwebtoken';
+import { verify, type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
+// Dominios de correo corporativo permitidos. Se configuran en ALLOWED_EMAIL_DOMAIN,
+// separados por comas, por ejemplo: "empresa.com,filial.com.co,otraempresa.com".
+export function dominiosPermitidos(): string[] {
+  return (process.env.ALLOWED_EMAIL_DOMAIN || '')
+    .split(',')
+    .map((dominio) => dominio.trim().toLowerCase().replace(/^@/, ''))
+    .filter(Boolean);
+}
+
+export function validarDominioCorporativo(email: string) {
+  const dominios = dominiosPermitidos();
+  if (dominios.length === 0) {
+    throw new Error('🛑 Falta configurar ALLOWED_EMAIL_DOMAIN en el archivo .env');
+  }
+  const correo = email.toLowerCase();
+  if (!dominios.some((dominio) => correo.endsWith(`@${dominio}`))) {
+    throw new UnauthorizedException(
+      `Acceso denegado: Solo se permiten correos corporativos (${dominios.map((dominio) => `@${dominio}`).join(', ')}).`,
+    );
+  }
+}
 @Injectable()
 export class AuthService {
   private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -20,18 +41,6 @@ export class AuthService {
     private readonly prisma: PrismaService,
   ) {}
 
-  private validarDominioCorporativo(email: string) {
-    const dominioPermitido = process.env.ALLOWED_EMAIL_DOMAIN;
-    if (!dominioPermitido) {
-      throw new Error('🛑 Falta configurar ALLOWED_EMAIL_DOMAIN en el archivo .env');
-    }
-    if (!email.toLowerCase().endsWith(`@${dominioPermitido}`)) {
-      throw new UnauthorizedException(
-        `Acceso denegado: Solo se permiten correos corporativos con el dominio @${dominioPermitido}.`,
-      );
-    }
-  }
-
   async verificarTokenGoogle(idToken: string) {
     try {
       const ticket = await this.googleClient.verifyIdToken({
@@ -43,7 +52,7 @@ export class AuthService {
         throw new UnauthorizedException('El token de Google no contiene un correo electrónico válido.');
       }
       const email = payload.email.toLowerCase();
-      this.validarDominioCorporativo(email);
+      validarDominioCorporativo(email);
       return { email, nombre: payload.name || email.split('@')[0] };
     } catch (error) {
       if (error instanceof UnauthorizedException) throw error;
@@ -52,37 +61,40 @@ export class AuthService {
   }
 
   // Validamos que 'key' exista antes de llamar a getPublicKey()
-  private obtenerLlaveFirmaMicrosoft(header: jwt.JwtHeader, callback: jwt.SigningKeyCallback) {
+  private obtenerLlaveFirmaMicrosoft(header: JwtHeader, callback: SigningKeyCallback) {
     this.microsoftJwksClient.getSigningKey(header.kid, (err, key) => {
       if (err || !key) {
-        return callback(err || new Error('No se pudo obtener la llave de firma de Microsoft'));
+        callback(err || new Error('No se pudo obtener la llave de firma de Microsoft'));
+        return;
       }
       callback(null, key.getPublicKey());
     });
   }
 
-  async verificarTokenMicrosoft(idToken: string) {
+  verificarTokenMicrosoft(idToken: string) {
     return new Promise<{ email: string; nombre: string }>((resolve, reject) => {
-      jwt.verify(
+      verify(
         idToken,
         (header, callback) => this.obtenerLlaveFirmaMicrosoft(header, callback),
         {
           audience: process.env.MICROSOFT_CLIENT_ID,
           issuer: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/v2.0`,
         },
-        (err, decoded: any) => {
-          if (err || !decoded) {
-            return reject(new UnauthorizedException('Token de autenticación de Microsoft inválido o expirado.'));
+        (err, decoded) => {
+          if (err || !decoded || typeof decoded === 'string') {
+            reject(new UnauthorizedException('Token de autenticación de Microsoft inválido o expirado.'));
+            return;
           }
 
           const emailCrudo = decoded.email || decoded.preferred_username;
           if (!emailCrudo) {
-            return reject(new UnauthorizedException('El token de Microsoft no contiene un correo electrónico válido.'));
+            reject(new UnauthorizedException('El token de Microsoft no contiene un correo electrónico válido.'));
+            return;
           }
 
           try {
             const email = emailCrudo.toLowerCase();
-            this.validarDominioCorporativo(email);
+            validarDominioCorporativo(email);
             resolve({ email, nombre: decoded.name || email.split('@')[0] });
           } catch (domainError) {
             reject(domainError);
@@ -92,7 +104,7 @@ export class AuthService {
     });
   }
 
-  async loginSSO(idToken: string, proveedor: string = 'GOOGLE') {
+  async loginSSO(idToken: string, proveedor = 'GOOGLE') {
     let emailSeguro: string;
     let nombreSeguro: string;
 
@@ -111,7 +123,8 @@ export class AuthService {
     const usuario = await this.usuariosService.findOrCreateSSOUser({
       email: emailSeguro,
       nombre: nombreSeguro,
-      proveedor_auth: proveedor,
+      // En la base de datos el proveedor de Microsoft se guarda como 'AZURE_AD'.
+      proveedor_auth: proveedor === 'MICROSOFT' ? 'AZURE_AD' : proveedor,
     });
 
     // Le garantizamos a TypeScript que 'usuario' NO es nulo

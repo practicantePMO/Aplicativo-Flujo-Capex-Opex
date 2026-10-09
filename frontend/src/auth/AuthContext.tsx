@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import axiosClient, { EVENTO_SESION_INVALIDA } from '../api/axiosClient';
-import type { Usuario, AuthResponse } from './types';
+import type { Usuario, AuthResponse, AuthResponseSso } from './types';
+
 
 interface AuthContextType {
   usuario: Usuario | null;
@@ -15,7 +16,7 @@ interface AuthContextType {
   esAdminGlobal: () => boolean;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
 
 // Lee y valida el usuario guardado ANTES de que el componente termine de crearse,
 // para que nunca exista un instante donde otros componentes vean "usuario: null"
@@ -109,10 +110,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Login vía SSO — el backend ya valida el idToken y el dominio
   // corporativo; acá solo guardamos la sesión resultante.
   const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
-    const response = await axiosClient.post<AuthResponse>('/auth/login-sso', { idToken, proveedor });
+    const response = await axiosClient.post<AuthResponseSso>('/auth/login-sso', { idToken, proveedor });
     const { access_token, usuario } = response.data;
 
-    const rolesNormalizados = ((usuario as any).rolesCompania || []).map((rc: any) => ({
+    const rolesNormalizados = (usuario.rolesCompania || []).map((rc) => ({
       rol: { codigo: rc.rolCodigo, nombre: rc.rolNombre },
       compania: rc.companiaId ? { id: rc.companiaId, nombre: rc.companiaNombre } : null,
     }));
@@ -128,14 +129,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const tieneRol = (codigoRol: string): boolean => {
     if (!usuario) return false;
-    const listaRoles = usuario.roles || (usuario as any).usuario_roles_compania || [];
+    const listaRoles = usuario.roles || [];
     if (!Array.isArray(listaRoles) || listaRoles.length === 0) return false;
 
     const objetivo = codigoRol.trim().toUpperCase();
 
-    return listaRoles.some((item: any) => {
+    return listaRoles.some((item) => {
       if (!item) return false;
-      const codigo = (item.rol?.codigo || item.roles?.codigo || item.codigo || '').toUpperCase();
+      const codigo = (item.rol?.codigo || '').toUpperCase();
       return codigo === objetivo; 
     });
   };

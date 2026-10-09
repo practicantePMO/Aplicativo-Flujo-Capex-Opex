@@ -2,11 +2,17 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { PrismaService } from '../prisma/prisma.service';
+import type { JwtPayload, UsuarioAutenticado } from './interfaces/usuario-autenticado.interface';
 
-const jwtSecret = process.env.JWT_SECRET!;
-if (!jwtSecret) {
-  throw new Error('Falta configurar JWT_SECRET en el archivo .env');
+function obtenerJwtSecret(): string {
+  const secreto = process.env.JWT_SECRET;
+  if (!secreto) {
+    throw new Error('Falta configurar JWT_SECRET en el archivo .env');
+  }
+  return secreto;
 }
+
+const jwtSecret = obtenerJwtSecret();
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -18,7 +24,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     });
   }
 
-  async validate(payload: any) {
+  async validate(payload: JwtPayload): Promise<UsuarioAutenticado> {
     // Revalida en vivo que el usuario siga existiendo y activo, en TODAS
     // las rutas autenticadas.
     const usuarioBD = await this.prisma.usuarios.findUnique({

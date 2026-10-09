@@ -14,6 +14,7 @@ import type { Compania, CrearProyectoDto } from '../types/proyecto.types';
 import { obtenerCompanias } from '../services/proyectos.service';
 import { obtenerUsuarios } from '../../usuarios/services/usuarios.service';
 import { useAuth } from '../../../auth/AuthContext';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface ModalCrearProyectoProps {
   open: boolean;
@@ -28,6 +29,13 @@ interface PmDisponible {
   email: string;
 }
 
+const styles = {
+  dialogPaper: { borderRadius: 3, p: 1 },
+  title: { fontWeight: 700, color: '#0e381e', pb: 1 },
+  content: { pt: 1 },
+  actions: { px: 3, pb: 2 },
+};
+
 export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar }: ModalCrearProyectoProps) {
   const [nombre, setNombre] = useState('');
   const [companiaId, setCompaniaId] = useState<number | ''>('');
@@ -38,15 +46,7 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { usuario, tieneRol } = useAuth();
-
   const puedeAsignarAOtroPm = tieneRol('PMO') || tieneRol('ADMIN');
-
-  useEffect(() => {
-    if (open) {
-      cargarCompanias();
-      if (puedeAsignarAOtroPm) cargarPms();
-    }
-  }, [open]);
 
   const cargarCompanias = async () => {
     try {
@@ -71,6 +71,13 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
     }
   };
 
+  useEffect(() => {
+    if (open) {
+      cargarCompanias();
+      if (puedeAsignarAOtroPm) cargarPms();
+    }
+  }, [open]);
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!nombre.trim() || !companiaId || !fechaProyecto) {
@@ -91,8 +98,8 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
       setPmAsignadoId('');
       onProyectoCreado();
       onClose();
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Error al crear el proyecto. Intenta nuevamente.');
+    } catch (err) {
+      setError(mensajeDelBackend(err) || 'Error al crear el proyecto. Intenta nuevamente.');
     } finally {
       setCargando(false);
     }
@@ -182,9 +189,3 @@ export function ModalCrearProyecto({ open, onClose, onProyectoCreado, onGuardar 
   );
 }
 
-const styles = {
-  dialogPaper: { borderRadius: 3, p: 1 },
-  title: { fontWeight: 700, color: '#0e381e', pb: 1 },
-  content: { pt: 1 },
-  actions: { px: 3, pb: 2 },
-};

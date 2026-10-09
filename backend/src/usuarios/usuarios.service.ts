@@ -13,7 +13,7 @@ export class UsuariosService {
     private readonly notificaciones: NotificacionesService,
   ) {}
 
-  async findByEmail(email: string) {
+  findByEmail(email: string) {
     return this.prisma.usuarios.findUnique({
       where: { email },
       select: {
@@ -80,7 +80,7 @@ export class UsuariosService {
     return Array.from(new Set(usuarios.map((u) => u.email).filter((e): e is string => Boolean(e))));
   }
 
-  async findPendientes() {
+  findPendientes() {
     return this.prisma.usuarios.findMany({
       where: {
         activo: true,
@@ -166,7 +166,7 @@ export class UsuariosService {
     return asignacion;
   }
 
-  async findActivos() {
+  findActivos() {
     return this.prisma.usuarios.findMany({
       where: { activo: true, eliminado_el: null },
       select: { id: true, nombre: true, email: true, area: true },
@@ -174,7 +174,7 @@ export class UsuariosService {
     });
   }
 
-  async findPorRolYCompania(codigoRol: string, companiaId: number) {
+  findPorRolYCompania(codigoRol: string, companiaId: number) {
     return this.prisma.usuarios.findMany({
       where: {
         activo: true,
@@ -188,7 +188,7 @@ export class UsuariosService {
     });
   }
 
-  async findTodos() {
+  findTodos() {
     return this.prisma.usuarios.findMany({
       where: { eliminado_el: null },
       select: {
@@ -324,7 +324,7 @@ export class UsuariosService {
     }
   }
 
-  async findRolesDisponibles() {
+  findRolesDisponibles() {
     return this.prisma.roles.findMany({
       select: { id: true, codigo: true, nombre: true },
       orderBy: { nombre: 'asc' },

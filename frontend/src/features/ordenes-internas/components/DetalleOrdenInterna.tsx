@@ -5,7 +5,7 @@ import {
   TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import { useAuth } from '../../../auth/AuthContext';
-import type { OrdenInternaResumen, OrdenInternaDetalle, UsuarioResumen } from '../types/ordenInterna.types';
+import type { OrdenInternaResumen, OrdenInternaDetalle, UsuarioResumen, OiValor } from '../types/ordenInterna.types';
 import {
   obtenerOrdenInternaDetalle, enviarOrdenInterna, aprobarOrdenInterna, rechazarOrdenInterna, cerrarOrdenInterna,
   cancelarOrdenInternaBorrador,
@@ -13,6 +13,128 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
+const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
+  valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
+
+function EncabezadoCampos() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: '40%' }}>Campo</TableCell>
+        <TableCell>Valor</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function EncabezadoValoresOi() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
+        <TableCell align="center">Valor USD</TableCell>
+        <TableCell align="center">Valor COP</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function FilaTotalValoresOi({ valores }: { valores: OiValor[] }) {
+  return (
+    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
+      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700 }}>
+        {fmtMoneda(valores.reduce((s, v) => s + Number(v.usd || 0), 0), 'US$') || '—'}
+      </TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700 }}>
+        {fmtMoneda(valores.reduce((s, v) => s + Number(v.cop || 0), 0), '$', ' COP') || '—'}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+function TablaValoresOi({ valores }: { valores: OiValor[] }) {
+  return (
+    <TableContainer component={Card} variant="outlined">
+      <Table size="small">
+        <EncabezadoValoresOi />
+        <TableBody>
+          {valores.map((v) => (
+            <TableRow key={v.categoria}>
+              <TableCell sx={{ fontWeight: 600 }}>{v.categoria === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+              <TableCell align="center">{fmtMoneda(v.usd, 'US$') || '—'}</TableCell>
+              <TableCell align="center">{fmtMoneda(v.cop, '$', ' COP') || '—'}</TableCell>
+            </TableRow>
+          ))}
+          <FilaTotalValoresOi valores={valores} />
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function EncabezadoHistorico() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+        <TableCell>Usuario</TableCell>
+        <TableCell>Acción</TableCell>
+        <TableCell>Observación</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+const ETAPAS_OI = [
+  { key: 'PENDIENTE', label: 'Control Gestión' },
+  { key: 'APROBADA', label: 'Aprobada' },
+  { key: 'CERRADA', label: 'Cerrada' },
+];
+
+const TIPO_ACTIVO_LABELS: Record<string, string> = { EXPANSION: 'Inversión Expansión', REEMPLAZO: 'Inversión Reemplazo' };
+const ACTIVO_REAL_PRODUCTIVO_LABELS: Record<string, string> = { SI: 'Sí', NO: 'No' };
+
+type FilaCampo = [string, string | number | null | undefined];
+
+const nombreProcesoOi = (detalle: OrdenInternaDetalle) =>
+  `Orden Interna${detalle.numero_oi ? ` — ${detalle.numero_oi}` : ''}`;
+
+// Qué acciones puede hacer el usuario sobre la Orden Interna según su estado.
+function calcularPermisosOi(
+  detalle: OrdenInternaDetalle,
+  usuarioId: number | undefined,
+  esAdmin: boolean,
+  grupoEstado: 'ABIERTO' | 'SOLICITADO_CIERRE' | 'CERRADO',
+) {
+  const estado = detalle.procesos.estado_actual;
+  const esDueno = detalle.pm?.id === usuarioId;
+  const esCgAsignado = detalle.control_gestion?.id === usuarioId;
+  return {
+    puedeEditarYEnviar: estado === 'BORRADOR' && (esDueno || esAdmin),
+    puedeAprobarORechazar: estado === 'PENDIENTE' && (esCgAsignado || esAdmin),
+    puedeCerrar: estado === 'APROBADA' && grupoEstado === 'SOLICITADO_CIERRE' && (esCgAsignado || esAdmin),
+  };
+}
+
+// Filas de la segunda tabla de datos: campos del activo (si aplica) y presupuesto.
+function filasActivoYPresupuesto(detalle: OrdenInternaDetalle): FilaCampo[] {
+  const filasActivo: FilaCampo[] = detalle.tipo_orden === 'ACTIVO'
+    ? [
+        ['Activo Fijo en curso', detalle.activo_fijo_curso],
+        ['Tipo de activo', detalle.tipo_activo ? TIPO_ACTIVO_LABELS[detalle.tipo_activo] || detalle.tipo_activo : undefined],
+        ['%', detalle.porcentaje_2],
+        ['Activo Real Productivo', detalle.activo_real_productivo ? ACTIVO_REAL_PRODUCTIVO_LABELS[detalle.activo_real_productivo] || detalle.activo_real_productivo : undefined],
+      ]
+    : [];
+  const presupuesto = detalle.presupuesto
+    ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
+    : undefined;
+  return [...filasActivo, ['Presupuesto', presupuesto]];
+}
+
 interface Props {
   resumen: OrdenInternaResumen;
   companiaId: number;
@@ -25,6 +147,7 @@ interface Props {
 
 export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio, onEditar, onVerControlCambio }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar, confirmar } = useNotificaciones();
   const [detalle, setDetalle] = useState<OrdenInternaDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -61,13 +184,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   if (error || !detalle) return <Alert severity="error">{error || 'No se encontró la Orden Interna.'}</Alert>;
 
   const estado = detalle.procesos.estado_actual;
-  const esDueno = detalle.pm?.id === usuario?.id;
-  const esCgAsignado = detalle.control_gestion?.id === usuario?.id;
-  const esAdmin = tieneRol('ADMIN');
-
-  const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
-  const puedeAprobarORechazar = estado === 'PENDIENTE' && (esCgAsignado || esAdmin);
-  const puedeCerrar = estado === 'APROBADA' && grupoEstado === 'SOLICITADO_CIERRE' && (esCgAsignado || esAdmin);
+  const { puedeEditarYEnviar, puedeAprobarORechazar, puedeCerrar } =
+    calcularPermisosOi(detalle, usuario?.id, tieneRol('ADMIN'), grupoEstado);
   const esPrimeraOiDelGrupo = !detalle.grupos_ordenes_internas.nombre;
 
   const abrirDialogoEnviar = async () => {
@@ -76,14 +194,14 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
         const disponibles = await obtenerUsuariosPorRol('CONTROL_GESTION', companiaId);
         setCgDisponibles(disponibles);
         if (disponibles.length === 0) {
-          alert('No hay ningún usuario con el rol Control Gestión todavía. Pídele a un Admin que le asigne ese rol a alguien.');
+          avisar('No hay ningún usuario con el rol Control Gestión todavía. Pídele a un Admin que le asigne ese rol a alguien.');
           return;
         }
       }
       setCgElegido(null);
       setDialogoEnviar(true);
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'No se pudo cargar la lista de Control Gestión. Revisa la consola para más detalle.');
       console.error('Error en abrirDialogoEnviar:', e);
     }
   };
@@ -96,16 +214,22 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setDialogoEnviar(false);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al enviar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!numeroOi.trim()) return alert('El número de Orden Interna es obligatorio.');
-    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) return alert('El grupo de órdenes internas es obligatorio.');
+    if (!numeroOi.trim()) {
+      avisar('El número de Orden Interna es obligatorio.');
+      return;
+    }
+    if (esPrimeraOiDelGrupo && !grupoTexto.trim()) {
+      avisar('El grupo de órdenes internas es obligatorio.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarOrdenInterna(resumen.id, numeroOi.trim(), esPrimeraOiDelGrupo ? grupoTexto.trim() : undefined, observaciones.trim() || undefined);
@@ -113,15 +237,18 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setNumeroOi(''); setGrupoTexto(''); setObservaciones('');
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La observación del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) {
+      avisar('La observación del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarOrdenInterna(resumen.id, razonRechazo.trim());
@@ -129,8 +256,8 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       setRazonRechazo('');
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
@@ -142,21 +269,21 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       await cerrarOrdenInterna(resumen.id);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al cerrar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al cerrar.');
     } finally {
       setProcesando(false);
     }
   };
 
     const confirmarCancelarBorrador = async () => {
-    if (!window.confirm('¿Seguro que quieres cancelar esta Orden Interna en Borrador? Esta acción no se puede deshacer.')) return;
+    if (!(await confirmar('¿Seguro que quieres cancelar esta Orden Interna en Borrador? Esta acción no se puede deshacer.'))) return;
     setProcesando(true);
     try {
       await cancelarOrdenInternaBorrador(resumen.id);
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al cancelar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al cancelar.');
     } finally {
       setProcesando(false);
     }
@@ -184,12 +311,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
   const tablaCampos = (filas: [string, string | number | null | undefined][]) => (
     <TableContainer component={Card} variant="outlined">
       <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell sx={{ width: '40%' }}>Campo</TableCell>
-            <TableCell>Valor</TableCell>
-          </TableRow>
-        </TableHead>
+        <EncabezadoCampos />
         <TableBody>
           {filas.map(([label, valor]) => (
             <TableRow key={label}>
@@ -208,23 +330,11 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
     </Card>
   );
 
-  const fmtMoneda = (valor: number | undefined, simbolo: string, sufijo = '') =>
-    valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}${sufijo}` : null;
-
-  const ETAPAS_OI = [
-    { key: 'PENDIENTE', label: 'Control Gestión' },
-    { key: 'APROBADA', label: 'Aprobada' },
-    { key: 'CERRADA', label: 'Cerrada' },
-  ];
-
-  const TIPO_ACTIVO_LABELS: Record<string, string> = { EXPANSION: 'Inversión Expansión', REEMPLAZO: 'Inversión Reemplazo' };
-  const ACTIVO_REAL_PRODUCTIVO_LABELS: Record<string, string> = { SI: 'Sí', NO: 'No' };
-
   return (
     <Box>
       <EncabezadoProceso
         nombreProyecto={detalle.proyecto_nombre || ''}
-        nombreProceso={`Orden Interna${detalle.numero_oi ? ` — ${detalle.numero_oi}` : ''}`}
+        nombreProceso={nombreProcesoOi(detalle)}
         estado={estado}
         chipLabel={detalle.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}
         chipColor="default"
@@ -266,22 +376,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       )}
 
       {tarjeta(
-        tablaCampos([
-          ...(detalle.tipo_orden === 'ACTIVO'
-            ? ([
-                ['Activo Fijo en curso', detalle.activo_fijo_curso],
-                ['Tipo de activo', detalle.tipo_activo ? TIPO_ACTIVO_LABELS[detalle.tipo_activo] || detalle.tipo_activo : undefined],
-                ['%', detalle.porcentaje_2],
-                ['Activo Real Productivo', detalle.activo_real_productivo ? ACTIVO_REAL_PRODUCTIVO_LABELS[detalle.activo_real_productivo] || detalle.activo_real_productivo : undefined],
-              ] as [string, string | number | null | undefined][])
-            : []),
-          [
-            'Presupuesto',
-            detalle.presupuesto
-              ? `${detalle.presupuesto_moneda === 'USD' ? 'US$' : '$'}${Number(detalle.presupuesto).toLocaleString()}${detalle.presupuesto_moneda === 'COP' ? ' COP' : ''}`
-              : undefined,
-          ],
-        ])
+        tablaCampos(filasActivoYPresupuesto(detalle))
       )}
 
       {detalle.observaciones_pm && (
@@ -296,35 +391,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           {tituloSeccion('Valor Total del Proyecto')}
           <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer component={Card} variant="outlined">
-                <Table size="small">
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
-                      <TableCell align="center">Valor USD</TableCell>
-                      <TableCell align="center">Valor COP</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detalle.oi_valores.map((v, i) => (
-                      <TableRow key={i}>
-                        <TableCell sx={{ fontWeight: 600 }}>{v.categoria === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                        <TableCell align="center">{fmtMoneda(v.usd, 'US$') || '—'}</TableCell>
-                        <TableCell align="center">{fmtMoneda(v.cop, '$', ' COP') || '—'}</TableCell>
-                      </TableRow>
-                    ))}
-                    <TableRow sx={{ backgroundColor: '#f8fafc' }}>
-                      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>
-                        {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.usd || 0), 0), 'US$') || '—'}
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>
-                        {fmtMoneda(detalle.oi_valores.reduce((s, v) => s + Number(v.cop || 0), 0), '$', ' COP') || '—'}
-                      </TableCell>
-                    </TableRow>
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaValoresOi valores={detalle.oi_valores} />
             </CardContent>
           </Card>
         </>
@@ -350,14 +417,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell>Usuario</TableCell>
-                    <TableCell>Acción</TableCell>
-                    <TableCell>Observación</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoHistorico />
                 <TableBody>
                   {detalle.procesos.historico_aprobaciones.map((h) => (
                     <TableRow key={h.id}>
@@ -378,7 +438,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
 
       {detalle.controles_cambio && onVerControlCambio && (
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-          <Button variant="contained" color="info" onClick={() => onVerControlCambio(detalle.controles_cambio!.proceso_id)}>
+          <Button variant="contained" color="info" onClick={() => detalle.controles_cambio && onVerControlCambio(detalle.controles_cambio.proceso_id)}>
             Ver Control de Cambios relacionado
           </Button>
         </Box>
@@ -406,7 +466,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Orden Interna</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth label="Número de Orden Interna *" value={numeroOi}
+          <TextField fullWidth label="Número de Orden Interna *" value={numeroOi}
             onChange={(e) => setNumeroOi(e.target.value)} sx={{ mt: 1, mb: 2 }} />
           {esPrimeraOiDelGrupo && (
             <TextField fullWidth label="Grupo de Órdenes Internas *" value={grupoTexto}
@@ -426,7 +486,7 @@ export function DetalleOrdenInterna({ resumen, companiaId, grupoEstado, onCambio
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Orden Interna</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación del rechazo (obligatoria)" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Observación del rechazo (obligatoria)" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>

@@ -66,7 +66,7 @@ export class ControlCambiosHelpersService {
   async validarPermisoParaEtapa(usuarioId: number, procesoId: number, companiaId: number, etapa: string) {
     const regla = REGLA_POR_ETAPA[etapa];
     if (!regla) throw new BadRequestException(`No hay regla definida para la etapa "${etapa}".`);
-    if (regla.tipo === 'ROL_COMPANIA') await this.permisos.exigirRolParaCompania(usuarioId, regla.roles!, companiaId);
+    if (regla.tipo === 'ROL_COMPANIA') await this.permisos.exigirRolParaCompania(usuarioId, regla.roles ?? [], companiaId);
     else await this.permisos.exigirAsignacionAEtapa(usuarioId, procesoId, etapa);
   }
 }

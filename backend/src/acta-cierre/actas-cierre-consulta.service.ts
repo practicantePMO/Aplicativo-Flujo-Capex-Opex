@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { separarRolesUsuario } from '../common/roles-usuario';
 import { PermisosService } from '../permisos/permisos.service';
 
 @Injectable()
@@ -141,10 +143,7 @@ export class ActasCierreConsultaService {
       include: { roles: true },
     });
 
-    const codigosGlobales = rolesUsuario.filter((r) => r.compania_id === null && r.roles).map((r) => r.roles!.codigo);
-    const rolesPorCompania = rolesUsuario
-      .filter((r) => r.compania_id !== null && r.roles)
-      .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
+    const { codigosGlobales, rolesPorCompania } = separarRolesUsuario(rolesUsuario);
 
     const etapasRolesMap: Record<string, string[]> = {
       PENDIENTE_PMO: ['PMO', 'ADMIN'],
@@ -153,7 +152,7 @@ export class ActasCierreConsultaService {
       PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
     };
 
-    const condicionesEtapas: any[] = [];
+    const condicionesEtapas: Prisma.procesosWhereInput[] = [];
 
     Object.entries(etapasRolesMap).forEach(([etapa, rolesPermitidos]) => {
       const tieneGlobal = codigosGlobales.some((rol) => rolesPermitidos.includes(rol));

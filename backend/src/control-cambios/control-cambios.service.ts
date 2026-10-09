@@ -408,7 +408,7 @@ export class ControlCambiosService {
           });
         }
       } else if (REGLA_POR_ETAPA[nuevoEstado]?.roles) {
-        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles!, companiaId);
+        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles ?? [], companiaId);
         if (destinatariosSiguiente.length) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'CC_NUEVA_ETAPA',

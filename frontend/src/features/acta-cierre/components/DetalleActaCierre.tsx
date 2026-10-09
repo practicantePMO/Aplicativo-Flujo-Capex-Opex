@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Chip, Button, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Autocomplete, CircularProgress, Card, CardContent, Alert, RadioGroup,
-  FormControlLabel, Radio, Link, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  FormControlLabel, Radio, Link, TableContainer, Table, TableRow, TableCell, TableBody,
   Paper, Tabs, Tab,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
@@ -17,6 +17,10 @@ import {
 } from '../service/actasCierre.service';
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
+import { EncabezadoTabla } from '../../../components/EncabezadoTabla';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
+
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -37,8 +41,264 @@ interface Props {
   onEditar: () => void;
 }
 
+const fmt = (valor: number | null | undefined, simbolo: string) =>
+  valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}` : '—';
+
+const fmtPar = (usd: number | null | undefined, cop: number | null | undefined) => {
+  const partes = [
+    usd && usd > 0 ? `US$${Number(usd).toLocaleString()}` : null,
+    cop && cop > 0 ? `$${Number(cop).toLocaleString()} COP` : null,
+  ].filter(Boolean);
+  return partes.length ? partes.join(' / ') : '—';
+};
+
+function TablaMetasActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small">
+        <EncabezadoTabla columnas={[
+          { titulo: 'Compromiso P3' },
+          { titulo: 'Fecha inicio medición' },
+          { titulo: 'Indicador' },
+          { titulo: 'Resultados del escalamiento / Cierre' },
+        ]} />
+        <TableBody>
+          {detalle.acta_cierre_metas.map((m) => (
+            <TableRow key={m.id}>
+              <TableCell>{m.solicitud_metas.compromiso}</TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
+              <TableCell>{m.solicitud_metas.indicador}</TableCell>
+              <TableCell>{m.resultado_cierre || '—'}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function TablaValoresActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  const hayCc = detalle.comparacion.valores_cc.length > 0;
+
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 650 }}>
+        <EncabezadoTabla columnas={[
+          { titulo: 'Categoría' },
+          { titulo: 'Inicial (SI)', align: 'center' },
+          ...(hayCc ? [{ titulo: 'Inicial (Control de Cambios)', align: 'center' as const }] : []),
+          { titulo: 'Real', align: 'center' },
+        ]} />
+        <TableBody>
+          {(['ACTIVO', 'GASTO'] as const).map((cat) => {
+            const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
+            const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
+            const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
+            return (
+              <TableRow key={cat}>
+                <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+                <TableCell align="center">{fmtPar(si?.usd, si?.cop)}</TableCell>
+                {hayCc && <TableCell align="center">{fmtPar(cc?.usd, cc?.cop)}</TableCell>}
+                <TableCell align="center">{fmtPar(real?.real_usd, real?.real_cop)}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function TablaOiActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small">
+        <EncabezadoTabla columnas={[
+          { titulo: 'N° OI' },
+          { titulo: 'Nombre descriptivo' },
+          { titulo: 'Activo/Gasto' },
+          { titulo: 'PPT OI', align: 'right' },
+          { titulo: 'Valor Real', align: 'right' },
+        ]} />
+        <TableBody>
+          {detalle.acta_cierre_oi_valores_reales.map((o) => (
+            <TableRow key={o.id}>
+              <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
+              <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
+              <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+              <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+              <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
+      <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
+    </RadioGroup>
+  );
+}
+
+const tituloSeccion = (texto: string) => (
+  <Typography variant="h6" sx={{ mb: 2 }}>
+    {texto}
+  </Typography>
+);
+
+const campo = (label: string, valor?: string | number | null) => (
+  <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
+      {label}
+    </Typography>
+    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
+      {valor === undefined || valor === null || valor === '' ? '—' : valor}
+    </Typography>
+  </Box>
+);
+
+const tarjeta = (children: React.ReactNode) => (
+  <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+    <CardContent sx={{ p: 3 }}>{children}</CardContent>
+  </Card>
+);
+
+function TabInformacionActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
+
+  return (
+    <Box>
+      {tituloSeccion('Información General')}
+      {tarjeta(
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+          {campo('Control Gestión asignado', detalle.control_gestion?.nombre)}
+          {detalle.presentacion_p5_link
+            ? (
+              <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
+                  Presentación de Puertas 5
+                </Typography>
+                <Link href={detalle.presentacion_p5_link} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{detalle.presentacion_p5_link}</Link>
+              </Box>
+            )
+            : campo('Presentación de Puertas 5', null)}
+        </Box>
+      )}
+
+      {tituloSeccion('Entregable Planeado')}
+      {tarjeta(
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+          {campo('Entregable Inicial (SI)', detalle.comparacion.entregable_inicial)}
+          {campo('Entregable Real', detalle.entregable_real)}
+        </Box>
+      )}
+
+      {detalle.acta_cierre_metas.length > 0 && (
+        <>
+          {tituloSeccion('Metas')}
+          <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+            <CardContent sx={{ p: 3 }}>
+              <TablaMetasActa detalle={detalle} />
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {(detalle.acta_cierre_entregables.length > 0 || detalle.otros_entregables) && (
+        <>
+          {tituloSeccion('Entregable')}
+          <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
+            <CardContent sx={{ p: 3 }}>
+              {detalle.acta_cierre_entregables.length > 0 && (
+                <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
+                  <Table size="small" sx={{ minWidth: 750 }}>
+                    <EncabezadoTabla columnas={[
+                      { titulo: 'Equipo / Sistema' },
+                      { titulo: 'Cód. activo en producción' },
+                      { titulo: 'Cód. activo en montaje' },
+                      { titulo: 'Unidad vida útil' },
+                      { titulo: 'Vida útil' },
+                      { titulo: 'Observaciones' },
+                      { titulo: 'Anexo' },
+                    ]} />
+                    <TableBody>
+                      {detalle.acta_cierre_entregables.map((e) => (
+                        <TableRow key={e.id}>
+                          <TableCell sx={{ fontWeight: 600 }}>{e.equipo_sistema}</TableCell>
+                          <TableCell>{e.codigo_activo_produccion || '—'}</TableCell>
+                          <TableCell>{e.codigo_activo_montaje || '—'}</TableCell>
+                          <TableCell>{e.unidad_vida_util || '—'}</TableCell>
+                          <TableCell>{e.vida_util ?? '—'}</TableCell>
+                          <TableCell>{e.observaciones || '—'}</TableCell>
+                          <TableCell>{e.anexo_url ? <Link href={e.anexo_url} target="_blank" rel="noopener noreferrer">Ver</Link> : '—'}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+              {detalle.otros_entregables && campo('Otros entregables', detalle.otros_entregables)}
+            </CardContent>
+          </Card>
+        </>
+      )}
+
+      {tituloSeccion('Partes Interesadas')}
+      {tarjeta(
+        partesActuales.length === 0 ? (
+          <Typography variant="body2" color="text.secondary">Sin partes interesadas asignadas.</Typography>
+        ) : (
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+            {partesActuales.map((a) => (
+              <Chip
+                key={a.id}
+                label={a.usuarios?.nombre || 'Usuario'}
+                size="small"
+                color={a.estado_asignacion === 'RESUELTA' ? 'success' : 'default'}
+                variant={a.estado_asignacion === 'PENDIENTE' ? 'outlined' : 'filled'}
+              />
+            ))}
+          </Box>
+        )
+      )}
+    </Box>
+  );
+}
+
+// ¿El usuario tiene una asignación PENDIENTE en esa etapa, estando el acta en ella?
+const estaAsignadoPendiente = (detalle: ActaCierreDetalle, etapa: string, usuarioId?: number) =>
+  detalle.procesos.estado_actual === etapa &&
+  detalle.procesos.asignaciones_proceso.some(
+    (a) => a.etapa === etapa && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuarioId),
+  );
+
+// Etapas en las que aprueba una persona asignada puntualmente (no un rol).
+const ETAPAS_CON_ASIGNADO = ['CONTROL_GESTION', 'ACTIVOS_FIJOS', 'VERIFICACION_PARTES_INTERESADAS', 'GERENCIA'];
+
+// Qué acciones puede hacer el usuario sobre el Acta según su estado y sus roles.
+function calcularPermisosActa(detalle: ActaCierreDetalle, usuarioId: number | undefined, tieneRol: (codigoRol: string) => boolean) {
+  const estado = detalle.procesos.estado_actual;
+  const esDueno = detalle.pm?.id === usuarioId;
+  const esAdmin = tieneRol('ADMIN');
+
+  const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
+  const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
+  const estaAsignado = ETAPAS_CON_ASIGNADO.some((etapa) => estaAsignadoPendiente(detalle, etapa, usuarioId));
+
+  return {
+    puedeEditarYEnviar: estado === 'BORRADOR' && (esDueno || esAdmin),
+    puedeAprobarORechazar: tieneRolDeEtapa || estaAsignado,
+  };
+}
+
 export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [detalle, setDetalle] = useState<ActaCierreDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -79,36 +339,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   if (error || !detalle) return <Alert severity="error">{error || 'No se encontró el Acta de Cierre.'}</Alert>;
 
   const estado = detalle.procesos.estado_actual;
-  const esDueno = detalle.pm?.id === usuario?.id;
-  const esAdmin = tieneRol('ADMIN');
-
-  const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
-  const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
-
-  const estaAsignadoComoControlGestion =
-    estado === 'CONTROL_GESTION' &&
-    detalle.procesos.asignaciones_proceso.some(
-      (a) => a.etapa === 'CONTROL_GESTION' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-  const estaAsignadoComoActivosFijos =
-    estado === 'ACTIVOS_FIJOS' &&
-    detalle.procesos.asignaciones_proceso.some(
-      (a) => a.etapa === 'ACTIVOS_FIJOS' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-  const estaAsignadoComoParteInteresada =
-    estado === 'VERIFICACION_PARTES_INTERESADAS' &&
-    detalle.procesos.asignaciones_proceso.some(
-      (a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-  const estaAsignadoComoGerente =
-    estado === 'GERENCIA' &&
-    detalle.procesos.asignaciones_proceso.some(
-      (a) => a.etapa === 'GERENCIA' && a.estado_asignacion === 'PENDIENTE' && Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-
-  const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
-  const puedeAprobarORechazar =
-    tieneRolDeEtapa || estaAsignadoComoControlGestion || estaAsignadoComoActivosFijos || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
+  const { puedeEditarYEnviar, puedeAprobarORechazar } = calcularPermisosActa(detalle, usuario?.id, tieneRol);
 
   const manejarEnviar = async () => {
     setProcesando(true);
@@ -116,8 +347,8 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       await enviarActaCierre(procesoId);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar a revisión.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -147,113 +378,98 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarElegirActivosFijos = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!activosFijosElegido) return alert('Debes elegir a quién de Activos Fijos enviar el proceso.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!activosFijosElegido) {
+      avisar('Debes elegir a quién de Activos Fijos enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, undefined, activosFijosElegido.id);
       setDialogoElegirActivosFijos(false); setComentarios(''); setActivosFijosElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarElegirGerente = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!gerenteElegido) {
+      avisar('Debes elegir a qué gerente enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La razón del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) {
+      avisar('La razón del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarActaCierre(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
   };
 
-  const tituloSeccion = (texto: string) => (
-    <Typography variant="h6" sx={{ mb: 2 }}>
-      {texto}
-    </Typography>
-  );
-
-  const campo = (label: string, valor?: string | number | null) => (
-    <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
-      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
-        {label}
-      </Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', wordBreak: 'break-word', whiteSpace: 'pre-wrap' }}>
-        {valor === undefined || valor === null || valor === '' ? '—' : valor}
-      </Typography>
-    </Box>
-  );
-
-  const tarjeta = (children: React.ReactNode) => (
-    <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
-      <CardContent sx={{ p: 3 }}>{children}</CardContent>
-    </Card>
-  );
-
-  const fmt = (valor: number | null | undefined, simbolo: string) =>
-    valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}` : '—';
-
-  const fmtPar = (usd: number | null | undefined, cop: number | null | undefined) => {
-    const partes = [
-      usd && usd > 0 ? `US$${Number(usd).toLocaleString()}` : null,
-      cop && cop > 0 ? `$${Number(cop).toLocaleString()} COP` : null,
-    ].filter(Boolean);
-    return partes.length ? partes.join(' / ') : '—';
-  };
-
-  const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
-  const hayCc = detalle.comparacion.valores_cc.length > 0;
 
   const filasFlujo = detalle.comparacion.flujo_caja_planeado.map((p) => {
     const real = detalle.acta_cierre_flujo_caja.find(
@@ -313,159 +529,14 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         </Tabs>
       </Paper>
 
-      {tabActual === 0 && (
-        <Box>
-          {tituloSeccion('Información General')}
-          {tarjeta(
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              {campo('Control Gestión asignado', detalle.control_gestion?.nombre)}
-              {detalle.presentacion_p5_link
-                ? (
-                  <Box sx={{ p: 1.5, bgcolor: '#f8fafc', border: '1px solid #eef2f6' }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.5px', mb: 0.5, display: 'block' }}>
-                      Presentación de Puertas 5
-                    </Typography>
-                    <Link href={detalle.presentacion_p5_link} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{detalle.presentacion_p5_link}</Link>
-                  </Box>
-                )
-                : campo('Presentación de Puertas 5', null)}
-            </Box>
-          )}
-
-          {tituloSeccion('Entregable Planeado')}
-          {tarjeta(
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-              {campo('Entregable Inicial (SI)', detalle.comparacion.entregable_inicial)}
-              {campo('Entregable Real', detalle.entregable_real)}
-            </Box>
-          )}
-
-          {detalle.acta_cierre_metas.length > 0 && (
-            <>
-              {tituloSeccion('Metas')}
-              <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 3 }}>
-                  <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Compromiso P3</TableCell>
-                          <TableCell>Fecha inicio medición</TableCell>
-                          <TableCell>Indicador</TableCell>
-                          <TableCell>Resultados del escalamiento / Cierre</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {detalle.acta_cierre_metas.map((m) => (
-                          <TableRow key={m.id}>
-                            <TableCell>{m.solicitud_metas.compromiso}</TableCell>
-                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
-                            <TableCell>{m.solicitud_metas.indicador}</TableCell>
-                            <TableCell>{m.resultado_cierre || '—'}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {(detalle.acta_cierre_entregables.length > 0 || detalle.otros_entregables) && (
-            <>
-              {tituloSeccion('Entregable')}
-              <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
-                <CardContent sx={{ p: 3 }}>
-                  {detalle.acta_cierre_entregables.length > 0 && (
-                    <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
-                      <Table size="small" sx={{ minWidth: 750 }}>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Equipo / Sistema</TableCell>
-                            <TableCell>Cód. activo en producción</TableCell>
-                            <TableCell>Cód. activo en montaje</TableCell>
-                            <TableCell>Unidad vida útil</TableCell>
-                            <TableCell>Vida útil</TableCell>
-                            <TableCell>Observaciones</TableCell>
-                            <TableCell>Anexo</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {detalle.acta_cierre_entregables.map((e) => (
-                            <TableRow key={e.id}>
-                              <TableCell sx={{ fontWeight: 600 }}>{e.equipo_sistema}</TableCell>
-                              <TableCell>{e.codigo_activo_produccion || '—'}</TableCell>
-                              <TableCell>{e.codigo_activo_montaje || '—'}</TableCell>
-                              <TableCell>{e.unidad_vida_util || '—'}</TableCell>
-                              <TableCell>{e.vida_util ?? '—'}</TableCell>
-                              <TableCell>{e.observaciones || '—'}</TableCell>
-                              <TableCell>{e.anexo_url ? <Link href={e.anexo_url} target="_blank" rel="noopener noreferrer">Ver</Link> : '—'}</TableCell>
-                            </TableRow>
-                          ))}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  )}
-                  {detalle.otros_entregables && campo('Otros entregables', detalle.otros_entregables)}
-                </CardContent>
-              </Card>
-            </>
-          )}
-
-          {tituloSeccion('Partes Interesadas')}
-          {tarjeta(
-            partesActuales.length === 0 ? (
-              <Typography variant="body2" color="text.secondary">Sin partes interesadas asignadas.</Typography>
-            ) : (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                {partesActuales.map((a) => (
-                  <Chip
-                    key={a.id}
-                    label={a.usuarios?.nombre || 'Usuario'}
-                    size="small"
-                    color={a.estado_asignacion === 'RESUELTA' ? 'success' : 'default'}
-                    variant={a.estado_asignacion === 'PENDIENTE' ? 'outlined' : 'filled'}
-                  />
-                ))}
-              </Box>
-            )
-          )}
-        </Box>
-      )}
+      {tabActual === 0 && <TabInformacionActa detalle={detalle} />}
 
       {tabActual === 1 && (
         <Box>
           {tituloSeccion('Valor Total del Proyecto')}
           <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 650 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Categoría</TableCell>
-                      <TableCell align="center">Inicial (SI)</TableCell>
-                      {hayCc && <TableCell align="center">Inicial (Control de Cambios)</TableCell>}
-                      <TableCell align="center">Real</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(['ACTIVO', 'GASTO'] as const).map((cat) => {
-                      const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
-                      const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
-                      const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
-                      return (
-                        <TableRow key={cat}>
-                          <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                          <TableCell align="center">{fmtPar(si?.usd, si?.cop)}</TableCell>
-                          {hayCc && <TableCell align="center">{fmtPar(cc?.usd, cc?.cop)}</TableCell>}
-                          <TableCell align="center">{fmtPar(real?.real_usd, real?.real_cop)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaValoresActa detalle={detalle} />
               {detalle.explicacion_ejecucion && (
                 <Box sx={{ mt: 2 }}>{campo('Explicación de sobre/sub-ejecución', detalle.explicacion_ejecucion)}</Box>
               )}
@@ -485,18 +556,16 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>{tipo}</Typography>
                         <TableContainer sx={{ overflowX: 'auto' }}>
                           <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Mes</TableCell>
-                                <TableCell>Año</TableCell>
-                                <TableCell>Moneda</TableCell>
-                                <TableCell align="right">Planeado</TableCell>
-                                <TableCell align="right">Real</TableCell>
-                              </TableRow>
-                            </TableHead>
+                            <EncabezadoTabla columnas={[
+                              { titulo: 'Mes' },
+                              { titulo: 'Año' },
+                              { titulo: 'Moneda' },
+                              { titulo: 'Planeado', align: 'right' },
+                              { titulo: 'Real', align: 'right' },
+                            ]} />
                             <TableBody>
-                              {filas.map((f, i) => (
-                                <TableRow key={i}>
+                              {filas.map((f) => (
+                                <TableRow key={`${f.moneda}-${f.anio}-${f.mes}`}>
                                   <TableCell>{MESES[f.mes - 1]}</TableCell>
                                   <TableCell>{f.anio}</TableCell>
                                   <TableCell>{f.moneda}</TableCell>
@@ -520,30 +589,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
               {tituloSeccion('Órdenes Internas y de Mantenimiento')}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
-                  <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>N° OI</TableCell>
-                          <TableCell>Nombre descriptivo</TableCell>
-                          <TableCell>Activo/Gasto</TableCell>
-                          <TableCell align="right">PPT OI</TableCell>
-                          <TableCell align="right">Valor Real</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {detalle.acta_cierre_oi_valores_reales.map((o) => (
-                          <TableRow key={o.id}>
-                            <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
-                            <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
-                            <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                            <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
-                            <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                  <TablaOiActa detalle={detalle} />
                 </CardContent>
               </Card>
             </>
@@ -559,14 +605,12 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
             ) : (
               <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 650 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                      <TableCell>Usuario</TableCell>
-                      <TableCell>Acción</TableCell>
-                      <TableCell>Observación</TableCell>
-                    </TableRow>
-                  </TableHead>
+                  <EncabezadoTabla columnas={[
+                    { titulo: 'Fecha', sx: { whiteSpace: 'nowrap' } },
+                    { titulo: 'Usuario' },
+                    { titulo: 'Acción' },
+                    { titulo: 'Observación' },
+                  ]} />
                   <TableBody>
                     {detalle.procesos.historico_aprobaciones.map((h) => (
                       <TableRow key={h.id}>
@@ -602,7 +646,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Acta de Cierre</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
+          <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -656,10 +700,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>¿El proceso continúa a Presidencia, o finaliza aquí?</Typography>
-          <RadioGroup row value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
-            <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
           <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} />
         </DialogContent>
@@ -673,7 +714,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Acta de Cierre</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>

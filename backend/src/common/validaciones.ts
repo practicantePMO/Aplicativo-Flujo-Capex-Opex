@@ -24,7 +24,7 @@ export function EsLinkSeguro(opciones?: ValidationOptions): PropertyDecorator {
         validate: (valor: unknown) => {
           if (typeof valor !== 'string') return true;
           // eslint-disable-next-line no-control-regex
-          const sinEspacios = valor.replace(/[\u0000-\u0020\u007f-\u009f]/g, '');
+          const sinEspacios = valor.replace(/[\u0000-\u0020\u007f-\u009f]/gu, '');
           return !ESQUEMA_PELIGROSO.test(sinEspacios);
         },
         defaultMessage: () => 'Ese link no es válido.',

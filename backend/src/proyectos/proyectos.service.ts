@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException, InternalServerErrorException, BadRequestException, ForbiddenException } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { separarRolesUsuario } from '../common/roles-usuario';
 import { PermisosService } from '../permisos/permisos.service';
 import { CrearProyectoDto } from './dto/crear-proyecto.dto';
 import { FiltrarProyectosDto } from './dto/filtrar-proyectos.dto';
@@ -74,7 +76,7 @@ export class ProyectosService {
           usuarios: { select: { id: true, nombre: true, email: true } },
         },
       });
-    } catch (error) {
+    } catch {
       throw new InternalServerErrorException('Error al registrar el proyecto en la base de datos.');
     }
   }
@@ -86,10 +88,7 @@ export class ProyectosService {
       include: { roles: true },
     });
 
-    const codigosGlobales = rolesUsuario.filter((r) => r.compania_id === null && r.roles).map((r) => r.roles!.codigo);
-    const rolesPorCompania = rolesUsuario
-      .filter((r) => r.compania_id !== null && r.roles)
-      .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
+    const { codigosGlobales, rolesPorCompania } = separarRolesUsuario(rolesUsuario);
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];
@@ -116,21 +115,15 @@ export class ProyectosService {
       },
     };
 
-    const condicionesFiltro: any = { eliminado_el: null };
+    const condicionesFiltro: Prisma.proyectosWhereInput = { eliminado_el: null };
     if (filtros.id) condicionesFiltro.id = { contains: filtros.id };
     if (filtros.anio) condicionesFiltro.anio_asignado = filtros.anio;
     if (filtros.companiaId) condicionesFiltro.compania_id = filtros.companiaId;
 
-    let proyectos: any[];
+    let where: Prisma.proyectosWhereInput = condicionesFiltro;
 
-    if (tieneAccesoTotal) {
-      proyectos = await this.prisma.proyectos.findMany({
-        where: condicionesFiltro,
-        select: selectCampos,
-        orderBy: { fecha_creacion: 'desc' },
-      });
-    } else {
-      const condicionesOR: any[] = [];
+    if (!tieneAccesoTotal) {
+      const condicionesOR: Prisma.proyectosWhereInput[] = [];
 
       if (codigosRoles.includes('PM')) {
         condicionesOR.push({ creado_por: usuarioId });
@@ -225,19 +218,22 @@ export class ProyectosService {
         );
       }
 
-      proyectos = await this.prisma.proyectos.findMany({
-        where: { ...condicionesFiltro, OR: condicionesOR },
-        select: selectCampos,
-        orderBy: { fecha_creacion: 'desc' },
-      });
+      where = { ...condicionesFiltro, OR: condicionesOR };
     }
 
-    proyectos = proyectos.map((p) => {
-      const procesosProyecto = p.procesos || [];
+    const proyectosBD = await this.prisma.proyectos.findMany({
+      where,
+      select: selectCampos,
+      orderBy: { fecha_creacion: 'desc' },
+    });
+
+    let proyectos = proyectosBD.map((p) => {
+      const { procesos, ...resto } = p;
+      const procesosProyecto = procesos || [];
       const actaCierreCerrada = procesosProyecto.find(
-        (proc: any) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
+        (proc) => proc.tipo_proceso === 'ACTA_CIERRE' && proc.estado_actual === 'CERRADO',
       );
-      const tieneProcesoCancelado = procesosProyecto.some((proc: any) => proc.estado_actual === 'CANCELADO');
+      const tieneProcesoCancelado = procesosProyecto.some((proc) => proc.estado_actual === 'CANCELADO');
 
       let estado: 'ACTIVO' | 'APLAZADO' | 'CANCELADO' | 'FINALIZADO' | 'EN_PROCESO_DE_CANCELACION' | 'SUSPENDIDO' = 'ACTIVO';
       if (actaCierreCerrada) {
@@ -248,7 +244,6 @@ export class ProyectosService {
         estado = 'APLAZADO';
       }
 
-      const { procesos, ...resto } = p;
       return { ...resto, estado };
     });
 
@@ -385,10 +380,7 @@ export class ProyectosService {
       where: { usuario_id: usuarioId },
       include: { roles: true },
     });
-    const codigosGlobales = rolesUsuario.filter((r) => r.compania_id === null && r.roles).map((r) => r.roles!.codigo);
-    const rolesPorCompania = rolesUsuario
-      .filter((r) => r.compania_id !== null && r.roles)
-      .map((r) => ({ rol: r.roles!.codigo, companiaId: r.compania_id as number }));
+    const { codigosGlobales, rolesPorCompania } = separarRolesUsuario(rolesUsuario);
     const codigosRoles = [...codigosGlobales, ...rolesPorCompania.map((r) => r.rol)];
 
     const rolesAccesoTotal = ['PMO', 'DIRECTOR_PMO', 'ADMIN'];

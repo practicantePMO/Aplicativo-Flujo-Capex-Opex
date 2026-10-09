@@ -12,6 +12,10 @@ const axiosClient = axios.create({
 // token vencido, token inválido o usuario desactivado.
 export const EVENTO_SESION_INVALIDA = 'sesion-invalida';
 
+// Evento que escucha NotificacionesProvider para mostrar un aviso en pantalla
+// desde código que no es un componente de React. El detalle es { mensaje, tipo }.
+export const EVENTO_AVISO = 'aviso-global';
+
 // Adjunta el JWT automáticamente
 axiosClient.interceptors.request.use(
   (config) => {
@@ -39,7 +43,11 @@ axiosClient.interceptors.response.use(
     }
 
     if (status === 409) {
-      alert('Conflicto de concurrencia: Este registro fue modificado por otro usuario. Se reintentará la carga.');
+      window.dispatchEvent(
+        new CustomEvent(EVENTO_AVISO, {
+          detail: { mensaje: 'Conflicto de concurrencia: Este registro fue modificado por otro usuario. Se reintentará la carga.', tipo: 'warning' },
+        }),
+      );
     }
     return Promise.reject(error);
   }

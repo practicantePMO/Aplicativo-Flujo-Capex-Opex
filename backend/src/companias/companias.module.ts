@@ -8,4 +8,6 @@ import { PrismaService } from 'src/prisma/prisma.service';
   controllers: [CompaniasController],
   providers: [PrismaService],
 })
+
+// skipcq: JS-0327 -- Los módulos de NestJS son clases vacías con @Module por diseño del framework.
 export class CompaniasModule {}

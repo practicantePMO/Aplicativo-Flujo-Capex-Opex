@@ -39,6 +39,149 @@ interface Props {
   setFlujos: React.Dispatch<React.SetStateAction<FlujoCaja[]>>;
 }
 
+// Devuelve una copia del objeto sin las claves que cumplan la condición.
+function sinClaves<O extends object>(obj: O, quitar: (clave: string) => boolean): O {
+  return Object.fromEntries(Object.entries(obj).filter(([clave]) => !quitar(clave))) as O;
+}
+
+interface SelectorTiposProps {
+  tieneCapex: boolean;
+  tieneGcapex: boolean;
+  tieneOpex: boolean;
+  onToggleCapex: (checked: boolean) => void;
+  onToggleGcapex: (checked: boolean) => void;
+  onToggleOpex: (checked: boolean) => void;
+}
+
+function SelectorTipos({ tieneCapex, tieneGcapex, tieneOpex, onToggleCapex, onToggleGcapex, onToggleOpex }: SelectorTiposProps) {
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
+        Tipo de flujo (CAPEX y OPEX son excluyentes)
+      </Typography>
+      <FormGroup row sx={{ gap: 1.5, alignItems: 'center' }}>
+        <FormControlLabel
+          control={<Checkbox size="small" checked={tieneCapex} onChange={(e) => onToggleCapex(e.target.checked)} />}
+          label={<Typography variant="body2" sx={{ fontWeight: 700 }}>CAPEX</Typography>}
+        />
+        {tieneCapex && (
+          <FormControlLabel
+            control={<Checkbox size="small" color="secondary" checked={tieneGcapex} onChange={(e) => onToggleGcapex(e.target.checked)} />}
+            label={<Typography variant="body2" sx={{ color: '#475569' }}>+ GCAPEX</Typography>}
+          />
+        )}
+        <FormControlLabel
+          control={<Checkbox size="small" checked={tieneOpex} onChange={(e) => onToggleOpex(e.target.checked)} />}
+          label={<Typography variant="body2" sx={{ fontWeight: 700 }}>OPEX</Typography>}
+        />
+      </FormGroup>
+    </Box>
+  );
+}
+
+interface SelectorMesesProps {
+  anio: number;
+  mesesListados: number[];
+  onCambiar: (valores: number[]) => void;
+}
+
+function SelectorMeses({ anio, mesesListados, onCambiar }: SelectorMesesProps) {
+  return (
+    <Box>
+      <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
+        Meses a usar en {anio}
+      </Typography>
+      <Select
+        multiple size="small" fullWidth displayEmpty
+        value={mesesListados}
+        onChange={(e) => onCambiar((typeof e.target.value === 'string' ? [] : e.target.value) as number[])}
+        input={<OutlinedInput />}
+        renderValue={(seleccionados) =>
+          (seleccionados as number[]).length === 0
+            ? <Typography variant="body2" sx={{ color: '#94a3b8' }}>Selecciona meses...</Typography>
+            : (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {[...(seleccionados as number[])].sort((a, b) => a - b).map((m) => (
+                  <Chip key={m} label={NOMBRE_CORTO[m]} size="small" />
+                ))}
+              </Box>
+            )
+        }
+      >
+        {TODOS_LOS_MESES.map((m) => (
+          <MenuItem key={m.num} value={m.num}>
+            <Checkbox size="small" checked={mesesListados.includes(m.num)} />
+            {m.nombre}
+          </MenuItem>
+        ))}
+      </Select>
+    </Box>
+  );
+}
+
+interface EncabezadoTablaFlujoProps {
+  tipos: Tipo[];
+  monedaDe: (tipo: Tipo) => Moneda;
+  onCambiarMoneda: (tipo: Tipo, moneda: Moneda) => void;
+}
+
+function EncabezadoTablaFlujo({ tipos, monedaDe, onCambiarMoneda }: EncabezadoTablaFlujoProps) {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ minWidth: 70, width: 70 }}>Mes</TableCell>
+        {tipos.map((tipo) => (
+          <TableCell key={tipo} align="center" sx={{ minWidth: 210 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
+              <span>{tipo}</span>
+              <ToggleButtonGroup
+                size="small" exclusive value={monedaDe(tipo)}
+                onChange={(_, val) => val && onCambiarMoneda(tipo, val)}
+                sx={{ '& .MuiToggleButton-root': { py: 0, px: 1, fontSize: '0.7rem' } }}
+              >
+                <ToggleButton value="COP">COP</ToggleButton>
+                <ToggleButton value="USD">USD</ToggleButton>
+              </ToggleButtonGroup>
+            </Box>
+          </TableCell>
+        ))}
+        <TableCell align="center" sx={{ width: 40 }} />
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function BotonQuitarMes({ onQuitar }: { onQuitar: () => void }) {
+  return (
+    <Tooltip title="Quitar mes">
+      <IconButton size="small" color="error" onClick={onQuitar}>
+        <DeleteIcon fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  );
+}
+
+interface FilaTotalFlujoProps {
+  tipos: Tipo[];
+  monedaDe: (tipo: Tipo) => Moneda;
+  totalDe: (tipo: Tipo) => number;
+}
+
+function FilaTotalFlujo({ tipos, monedaDe, totalDe }: FilaTotalFlujoProps) {
+  return (
+    <TableRow sx={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
+      <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
+      {tipos.map((tipo) => (
+        <TableCell key={tipo} align="center" sx={{ fontWeight: 700 }}>
+          {monedaDe(tipo) === 'USD' ? 'US$' : '$'}{totalDe(tipo).toLocaleString()}
+          {monedaDe(tipo) === 'COP' ? ' COP' : ''}
+        </TableCell>
+      ))}
+      <TableCell />
+    </TableRow>
+  );
+}
+
 export function SeccionFlujoCaja({
   aniosFlujo = [],
   setAniosFlujo,
@@ -85,24 +228,14 @@ export function SeccionFlujoCaja({
     if (safeAniosFlujo.length <= 1) return;
     setAniosFlujo(safeAniosFlujo.filter((a) => Number(a) !== Number(anioEliminar)));
     setFlujos((prev) => (Array.isArray(prev) ? prev.filter((f) => Number(f.anio) !== Number(anioEliminar)) : []));
-    setMesesSeleccionados((prev) => {
-      const nuevo = { ...(prev || {}) };
-      delete nuevo[anioEliminar];
-      return nuevo;
-    });
-    setTiposPorMes((prev) => {
-      const nuevo = { ...(prev || {}) };
-      Object.keys(nuevo).forEach((clave) => {
-        if (clave.startsWith(`${anioEliminar}_`)) delete nuevo[clave];
-      });
-      return nuevo;
-    });
+    setMesesSeleccionados((prev) => sinClaves(prev || {}, (clave) => clave === String(anioEliminar)));
+    setTiposPorMes((prev) => sinClaves(prev || {}, (clave) => clave.startsWith(`${anioEliminar}_`)));
   };
 
   const quitarFlujosDeTipo = (anio: number, tipos: Tipo[]) => {
     setFlujos((prev) =>
       (Array.isArray(prev) ? prev : []).filter(
-        (f) => !(Number(f.anio) === Number(anio) && tipos.includes((f as any).tipo)),
+        (f) => !(Number(f.anio) === Number(anio) && tipos.includes(f.tipo)),
       ),
     );
     setTiposPorMes((prev) => {
@@ -126,7 +259,7 @@ export function SeccionFlujoCaja({
     if (!checked) {
       setFlujos((prev) =>
         (Array.isArray(prev) ? prev : []).filter(
-          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo),
+          (f) => !(Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && f.tipo === tipo),
         ),
       );
     }
@@ -183,11 +316,8 @@ export function SeccionFlujoCaja({
           (f) => !(Number(f.anio) === Number(anio) && quitados.includes(Number(f.mes))),
         ),
       );
-      setTiposPorMes((prev) => {
-        const nuevo = { ...(prev || {}) };
-        quitados.forEach((m) => delete nuevo[claveMes(anio, m)]);
-        return nuevo;
-      });
+      const clavesQuitadas = quitados.map((m) => claveMes(anio, m));
+      setTiposPorMes((prev) => sinClaves(prev || {}, (clave) => clavesQuitadas.includes(clave)));
     }
   };
 
@@ -195,14 +325,14 @@ export function SeccionFlujoCaja({
     setMonedaPorColumna((prev) => ({ ...(prev || {}), [claveColumna(anio, tipo)]: moneda }));
     setFlujos((prev) =>
       (Array.isArray(prev) ? prev : []).map((f) =>
-        Number(f.anio) === Number(anio) && (f as any).tipo === tipo ? { ...f, moneda } : f,
+        Number(f.anio) === Number(anio) && f.tipo === tipo ? { ...f, moneda } : f,
       ),
     );
   };
 
   const obtenerMonto = (anio: number, tipo: string, mesNum: number): string => {
     const registro = safeFlujos.find(
-      (f) => f && Number(f.anio) === Number(anio) && (f as any).tipo === tipo && Number(f.mes) === Number(mesNum),
+      (f) => f && Number(f.anio) === Number(anio) && f.tipo === tipo && Number(f.mes) === Number(mesNum),
     );
     if (!registro || registro.monto === null || registro.monto === undefined) return '';
     return registro.monto.toString();
@@ -216,7 +346,7 @@ export function SeccionFlujoCaja({
     setFlujos((prev) => {
       const listaActual = Array.isArray(prev) ? prev : [];
       const sinActual = listaActual.filter(
-        (f) => !(Number(f.anio) === Number(anio) && (f as any).tipo === tipo && Number(f.mes) === Number(mesNum)),
+        (f) => !(Number(f.anio) === Number(anio) && f.tipo === tipo && Number(f.mes) === Number(mesNum)),
       );
       if (valorLimpio === '' || monto === 0) return sinActual;
       return [...sinActual, { anio: Number(anio), tipo, moneda, mes: Number(mesNum), monto } as FlujoCaja];
@@ -225,7 +355,7 @@ export function SeccionFlujoCaja({
 
   const calcularTotalColumna = (anio: number, tipo: string) =>
     safeFlujos
-      .filter((f) => f && Number(f.anio) === Number(anio) && (f as any).tipo === tipo)
+      .filter((f) => f && Number(f.anio) === Number(anio) && f.tipo === tipo)
       .reduce((sum, f) => sum + (Number(f.monto) || 0), 0);
 
   return (
@@ -251,7 +381,7 @@ export function SeccionFlujoCaja({
             if (tiposDeEsteMes.length === 0) return true;
             return tiposDeEsteMes.some((tipo) => {
               const monto = safeFlujos.find(
-                (f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo,
+                (f) => f && Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && f.tipo === tipo,
               )?.monto;
               return !monto || Number(monto) <= 0;
             });
@@ -303,57 +433,20 @@ export function SeccionFlujoCaja({
                     width: '100%',
                   }}
                 >
-                  <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
-                      Tipo de flujo (CAPEX y OPEX son excluyentes)
-                    </Typography>
-                    <FormGroup row sx={{ gap: 1.5, alignItems: 'center' }}>
-                      <FormControlLabel
-                        control={<Checkbox size="small" checked={tieneCapex} onChange={(e) => handleToggleCapex(anio, e.target.checked)} />}
-                        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>CAPEX</Typography>}
-                      />
-                      {tieneCapex && (
-                        <FormControlLabel
-                          control={<Checkbox size="small" color="secondary" checked={tieneGcapex} onChange={(e) => handleToggleGcapex(anio, e.target.checked)} />}
-                          label={<Typography variant="body2" sx={{ color: '#475569' }}>+ GCAPEX</Typography>}
-                        />
-                      )}
-                      <FormControlLabel
-                        control={<Checkbox size="small" checked={tieneOpex} onChange={(e) => handleToggleOpex(anio, e.target.checked)} />}
-                        label={<Typography variant="body2" sx={{ fontWeight: 700 }}>OPEX</Typography>}
-                      />
-                    </FormGroup>
-                  </Box>
+                  <SelectorTipos
+                    tieneCapex={tieneCapex}
+                    tieneGcapex={tieneGcapex}
+                    tieneOpex={tieneOpex}
+                    onToggleCapex={(checked) => handleToggleCapex(anio, checked)}
+                    onToggleGcapex={(checked) => handleToggleGcapex(anio, checked)}
+                    onToggleOpex={(checked) => handleToggleOpex(anio, checked)}
+                  />
 
-                  <Box>
-                    <Typography variant="caption" sx={{ fontWeight: 700, color: '#64748b', display: 'block', mb: 0.5 }}>
-                      Meses a usar en {anio}
-                    </Typography>
-                    <Select
-                      multiple size="small" fullWidth displayEmpty
-                      value={mesesListados}
-                      onChange={(e) => handleCambiarMeses(anio, (typeof e.target.value === 'string' ? [] : e.target.value) as number[])}
-                      input={<OutlinedInput />}
-                      renderValue={(seleccionados) =>
-                        (seleccionados as number[]).length === 0
-                          ? <Typography variant="body2" sx={{ color: '#94a3b8' }}>Selecciona meses...</Typography>
-                          : (
-                            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                              {[...(seleccionados as number[])].sort((a, b) => a - b).map((m) => (
-                                <Chip key={m} label={NOMBRE_CORTO[m]} size="small" />
-                              ))}
-                            </Box>
-                          )
-                      }
-                    >
-                      {TODOS_LOS_MESES.map((m) => (
-                        <MenuItem key={m.num} value={m.num}>
-                          <Checkbox size="small" checked={mesesListados.includes(m.num)} />
-                          {m.nombre}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </Box>
+                  <SelectorMeses
+                    anio={anio}
+                    mesesListados={mesesListados}
+                    onCambiar={(valores) => handleCambiarMeses(anio, valores)}
+                  />
                 </Box>
 
                 {tiposColumnasActivos.length === 0 ? (
@@ -363,27 +456,11 @@ export function SeccionFlujoCaja({
                 ) : (
                   <TableContainer sx={{ overflowX: 'auto', width: '100%', border: '1px solid #e2e8f0' }}>
                     <Table size="small" sx={{ width: '100%', '& .MuiTableCell-root': { py: 0.5 } }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ minWidth: 70, width: 70 }}>Mes</TableCell>
-                          {tiposColumnasActivos.map((tipo) => (
-                            <TableCell key={tipo} align="center" sx={{ minWidth: 210 }}>
-                              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1 }}>
-                                <span>{tipo}</span>
-                                <ToggleButtonGroup
-                                  size="small" exclusive value={monedaDeColumna(anio, tipo)}
-                                  onChange={(_, val) => val && cambiarMonedaColumna(anio, tipo, val)}
-                                  sx={{ '& .MuiToggleButton-root': { py: 0, px: 1, fontSize: '0.7rem' } }}
-                                >
-                                  <ToggleButton value="COP">COP</ToggleButton>
-                                  <ToggleButton value="USD">USD</ToggleButton>
-                                </ToggleButtonGroup>
-                              </Box>
-                            </TableCell>
-                          ))}
-                          <TableCell align="center" sx={{ width: 40 }} />
-                        </TableRow>
-                      </TableHead>
+                      <EncabezadoTablaFlujo
+                        tipos={tiposColumnasActivos}
+                        monedaDe={(tipo) => monedaDeColumna(anio, tipo)}
+                        onCambiarMoneda={(tipo, moneda) => cambiarMonedaColumna(anio, tipo, moneda)}
+                      />
                       <TableBody>
                         {mesesListados.map((mesNum) => {
                           const tiposDeEsteMes = tiposDelMes(anio, mesNum, tiposColumnasActivos);
@@ -418,26 +495,17 @@ export function SeccionFlujoCaja({
                                 );
                               })}
                               <TableCell align="center">
-                                <Tooltip title="Quitar mes">
-                                  <IconButton size="small" color="error" onClick={() => handleCambiarMeses(anio, mesesListados.filter((m) => m !== mesNum))}>
-                                    <DeleteIcon fontSize="small" />
-                                  </IconButton>
-                                </Tooltip>
+                                <BotonQuitarMes onQuitar={() => handleCambiarMeses(anio, mesesListados.filter((m) => m !== mesNum))} />
                               </TableCell>
                             </TableRow>
                           );
                         })}
 
-                        <TableRow sx={{ backgroundColor: '#f8fafc', borderTop: '2px solid #cbd5e1' }}>
-                          <TableCell sx={{ fontWeight: 700 }}>Total</TableCell>
-                          {tiposColumnasActivos.map((tipo) => (
-                            <TableCell key={tipo} align="center" sx={{ fontWeight: 700 }}>
-                              {monedaDeColumna(anio, tipo) === 'USD' ? 'US$' : '$'}{calcularTotalColumna(anio, tipo).toLocaleString()}
-                              {monedaDeColumna(anio, tipo) === 'COP' ? ' COP' : ''}
-                            </TableCell>
-                          ))}
-                          <TableCell />
-                        </TableRow>
+                        <FilaTotalFlujo
+                          tipos={tiposColumnasActivos}
+                          monedaDe={(tipo) => monedaDeColumna(anio, tipo)}
+                          totalDe={(tipo) => calcularTotalColumna(anio, tipo)}
+                        />
                       </TableBody>
                     </Table>
                   </TableContainer>

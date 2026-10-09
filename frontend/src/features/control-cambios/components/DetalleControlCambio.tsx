@@ -13,6 +13,8 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
+import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -29,6 +31,64 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
   PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
 };
 
+function EncabezadoHistorico() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+        <TableCell>Usuario</TableCell>
+        <TableCell>Acción</TableCell>
+        <TableCell>Observación</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function EncabezadoOrdenesRelacionadas() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell>N° OI</TableCell>
+        <TableCell>Nombre</TableCell>
+        <TableCell>Estado</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function TablaOrdenesRelacionadas({ ordenes }: { ordenes: OrdenInternaRelacionadaCc[] }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 500 }}>
+        <EncabezadoOrdenesRelacionadas />
+        <TableBody>
+          {ordenes.map((oi) => {
+            const cfg = ESTADO_OI_CONFIG[oi.procesos.estado_actual] || { label: oi.procesos.estado_actual, color: 'default' as const };
+            return (
+              <TableRow key={oi.id}>
+                <TableCell sx={{ fontWeight: 600 }}>{oi.numero_oi}</TableCell>
+                <TableCell>{oi.nombre_descriptivo}</TableCell>
+                <TableCell>
+                  <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
+      <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
+    </RadioGroup>
+  );
+}
+
 interface Props {
   procesoId: number;
   companiaId: number;
@@ -40,6 +100,7 @@ interface Props {
 
 export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar, onCrearOi, onVerOrdenInterna }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [detalle, setDetalle] = useState<ControlCambioDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -103,8 +164,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await enviarControlCambio(procesoId);
       await cargar();
       onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al enviar a revisión.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -125,57 +186,72 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   };
 
   const confirmarElegirGerente = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!gerenteElegido) {
+      avisar('Debes elegir a qué gerente enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al aprobar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La razón del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) {
+      avisar('La razón del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarControlCambio(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al rechazar.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
@@ -217,7 +293,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   return (
     <Box>
       <EncabezadoProceso
-        nombreProyecto={(detalle as any).proyecto_nombre || ''}
+        nombreProyecto={detalle.proyecto_nombre || ''} 
         nombreProceso="Control de Cambios"
         estado={estado}
       />
@@ -257,8 +333,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           {tituloSeccion('Anexos')}
           {tarjeta(
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {detalle.control_cambio_anexos.map((a, i) => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {detalle.control_cambio_anexos.map((a) => (
+                <Box key={a.id ?? `${a.tipo}-${a.url}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Chip label={a.tipo} size="small" />
                   <Link href={a.url} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{a.url}</Link>
                   {a.descripcion && <Typography variant="caption" color="text.secondary">— {a.descripcion}</Typography>}
@@ -296,14 +372,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell>Usuario</TableCell>
-                    <TableCell>Acción</TableCell>
-                    <TableCell>Observación</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoHistorico />
                 <TableBody>
                   {detalle.procesos.historico_aprobaciones.map((h) => (
                     <TableRow key={h.id}>
@@ -327,31 +396,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           {tituloSeccion('Órdenes Internas Relacionadas')}
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 500 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>N° OI</TableCell>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Estado</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detalle.ordenes_internas.map((oi) => {
-                      const cfg = ESTADO_OI_CONFIG[oi.procesos.estado_actual] || { label: oi.procesos.estado_actual, color: 'default' as const };
-                      return (
-                        <TableRow key={oi.id}>
-                          <TableCell sx={{ fontWeight: 600 }}>{oi.numero_oi}</TableCell>
-                          <TableCell>{oi.nombre_descriptivo}</TableCell>
-                          <TableCell>
-                            <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaOrdenesRelacionadas ordenes={detalle.ordenes_internas} />
 
               {onVerOrdenInterna && (
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -391,7 +436,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Control de Cambios</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
+          <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -425,10 +470,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>¿El proceso continúa a Presidencia, o finaliza aquí?</Typography>
-          <RadioGroup row value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
-            <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
           <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} />
         </DialogContent>
@@ -442,7 +484,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Control de Cambios</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>

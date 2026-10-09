@@ -21,7 +21,7 @@ export class PendientesService {
       this.actasCierreConsulta.obtenerMisPendientes(usuarioId),
     ]);
 
-    const pendientesOiNormalizados = pendientesOi.map((oi: any) => ({
+    const pendientesOiNormalizados = pendientesOi.map((oi) => ({
       id: oi.proceso_id,
       tipo_proceso: 'ORDEN_INTERNA',
       estado_actual: oi.procesos.estado_actual,
@@ -33,10 +33,10 @@ export class PendientesService {
       nombre_descriptivo: oi.nombre_descriptivo,
     }));
 
-    return [...pendientesSi, ...pendientesOiNormalizados, ...pendientesCc, ...pendientesAc].sort((a: any, b: any) => {
+    return [...pendientesSi, ...pendientesOiNormalizados, ...pendientesCc, ...pendientesAc].sort((a, b) => {
       const fechaA = a.historico_aprobaciones?.[0]?.fecha_registro || a.fecha_creacion;
       const fechaB = b.historico_aprobaciones?.[0]?.fecha_registro || b.fecha_creacion;
-      return new Date(fechaB).getTime() - new Date(fechaA).getTime();
+      return new Date(fechaB ?? 0).getTime() - new Date(fechaA ?? 0).getTime();
     });
   }
 }

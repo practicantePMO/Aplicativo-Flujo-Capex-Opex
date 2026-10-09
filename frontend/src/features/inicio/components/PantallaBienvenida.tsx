@@ -14,6 +14,24 @@ interface Props {
   onIrAProyectos: () => void;
 }
 
+const styles = {
+  cardsRow: { display: 'flex', gap: 2, flexWrap: 'wrap' as const },
+  statCard: {
+    flex: '1 1 240px',
+    p: 2.5,
+    display: 'flex',
+    alignItems: 'center',
+    gap: 2,
+    cursor: 'pointer',
+    transition: 'border-color 0.15s ease, background-color 0.15s ease',
+    '&:hover': { borderColor: '#94a3b8', backgroundColor: '#f8fafc' },
+  },
+  iconBox: {
+    width: 40, height: 40,
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+  },
+};
+
 export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
   const { usuario, tieneRol } = useAuth();
   const [totalPendientes, setTotalPendientes] = useState<number | null>(null);
@@ -22,7 +40,7 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
 
   useEffect(() => {
     obtenerMisPendientes()
-      .then((data: any[]) => setTotalPendientes(data.length))
+      .then((data) => setTotalPendientes(data.length))
       .catch(() => setTotalPendientes(null));
 
     obtenerProyectos()
@@ -33,10 +51,10 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
       .catch(() => { setTotalProyectos(null); setProyectosActivos(null); });
   }, [usuario?.id]);
 
-  const listaRoles = (usuario as any)?.roles || (usuario as any)?.usuario_roles_compania || [];
+  const listaRoles = usuario?.roles || [];
   const primerRol = listaRoles[0];
-  const nombreRol = primerRol?.rol?.nombre || primerRol?.roles?.nombre;
-  const nombreCompania = primerRol?.compania?.nombre || primerRol?.companias?.nombre || 'Global';
+  const nombreRol = primerRol?.rol?.nombre;
+  const nombreCompania = primerRol?.compania?.nombre || 'Global';
 
   const stat = (
     icon: React.ReactNode,
@@ -88,20 +106,3 @@ export function PantallaBienvenida({ onIrAPendientes, onIrAProyectos }: Props) {
   );
 }
 
-const styles = {
-  cardsRow: { display: 'flex', gap: 2, flexWrap: 'wrap' as const },
-  statCard: {
-    flex: '1 1 240px',
-    p: 2.5,
-    display: 'flex',
-    alignItems: 'center',
-    gap: 2,
-    cursor: 'pointer',
-    transition: 'border-color 0.15s ease, background-color 0.15s ease',
-    '&:hover': { borderColor: '#94a3b8', backgroundColor: '#f8fafc' },
-  },
-  iconBox: {
-    width: 40, height: 40,
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-  },
-};

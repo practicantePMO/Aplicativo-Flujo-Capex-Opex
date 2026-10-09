@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { useAuth } from './AuthContext';
+import { mensajeDelBackend } from '../utils/errores';
 
 declare global {
   interface Window {
@@ -47,7 +48,7 @@ export function GoogleLoginButton() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   useEffect(() => {
-    if (!clientId || !contenedorRef.current) return;
+    if (!clientId || !contenedorRef.current) return undefined;
 
     let cancelado = false;
 
@@ -60,9 +61,9 @@ export function GoogleLoginButton() {
           callback: async (response) => {
             try {
               await loginSSO(response.credential, 'GOOGLE');
-            } catch (err: any) {
+            } catch (err) {
               const mensaje =
-                err?.response?.data?.message || 'No se pudo iniciar sesión con Google. Verifica el dominio permitido.';
+                mensajeDelBackend(err) || 'No se pudo iniciar sesión con Google. Verifica el dominio permitido.';
               setError(mensaje);
             }
           },
