@@ -3,6 +3,7 @@ import {
   Box, Typography, Button, TextField, MenuItem, RadioGroup, FormControlLabel, Radio,
   Alert, CircularProgress, Divider, Card, CardContent, IconButton, FormLabel, Autocomplete,
 } from '@mui/material';
+import type { SxProps, Theme } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutlineOutlined';
@@ -44,6 +45,48 @@ const CAMPO_VACIO: CrearControlCambioPayload = {
   tipo_control_cambio: 'GENERAL',
   anio_nuevo_propuesto: undefined,
 };
+
+const OPCIONES_TIPO_CC = [
+  { value: 'GENERAL', label: 'General' },
+  { value: 'APLAZAMIENTO', label: 'Aplazamiento de año del proyecto' },
+];
+
+const OPCIONES_SI_NO = [
+  { value: 'no', label: 'No' },
+  { value: 'si', label: 'Sí' },
+];
+
+interface GrupoRadiosProps {
+  valor: string;
+  onCambiar: (valor: string) => void;
+  opciones: { value: string; label: string }[];
+  sx?: SxProps<Theme>;
+}
+
+function GrupoRadios({ valor, onCambiar, opciones, sx }: GrupoRadiosProps) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value)} sx={sx}>
+      {opciones.map((o) => <FormControlLabel key={o.value} value={o.value} control={<Radio />} label={o.label} />)}
+    </RadioGroup>
+  );
+}
+
+interface CamposDescripcionProps {
+  form: CrearControlCambioPayload;
+  actualizar: (patch: Partial<CrearControlCambioPayload>) => void;
+}
+
+function CamposDescripcion({ form, actualizar }: CamposDescripcionProps) {
+  return (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <TextField label="Descripción del cambio" multiline minRows={2} value={form.descripcion_cambio} onChange={(e) => actualizar({ descripcion_cambio: e.target.value })} />
+      <TextField label="Antecedentes" multiline minRows={2} value={form.antecedentes} onChange={(e) => actualizar({ antecedentes: e.target.value })} />
+      <TextField label="Justificación" multiline minRows={2} value={form.justificacion} onChange={(e) => actualizar({ justificacion: e.target.value })} />
+      <TextField label="Impacto en el alcance" multiline minRows={2} value={form.impacto_alcance} onChange={(e) => actualizar({ impacto_alcance: e.target.value })} />
+      <TextField label="Impacto en el tiempo" multiline minRows={2} value={form.impacto_tiempo} onChange={(e) => actualizar({ impacto_tiempo: e.target.value })} />
+    </Box>
+  );
+}
 
 export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onCancelar, onGuardado }: Props) {
   const [form, setForm] = useState<CrearControlCambioPayload>({ ...CAMPO_VACIO, proyecto_id: proyectoId });
@@ -144,15 +187,12 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
           <Typography variant="h6" sx={{ mb: 2 }}>Información General</Typography>
 
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>Tipo de Control de Cambios</FormLabel>
-          <RadioGroup
-            row
-            value={form.tipo_control_cambio || 'GENERAL'}
-            onChange={(e) => actualizar({ tipo_control_cambio: e.target.value as 'GENERAL' | 'APLAZAMIENTO' })}
+          <GrupoRadios
+            valor={form.tipo_control_cambio || 'GENERAL'}
+            onCambiar={(valor) => actualizar({ tipo_control_cambio: valor as 'GENERAL' | 'APLAZAMIENTO' })}
+            opciones={OPCIONES_TIPO_CC}
             sx={{ mb: form.tipo_control_cambio === 'APLAZAMIENTO' ? 1 : 2 }}
-          >
-            <FormControlLabel value="GENERAL" control={<Radio />} label="General" />
-            <FormControlLabel value="APLAZAMIENTO" control={<Radio />} label="Aplazamiento de año del proyecto" />
-          </RadioGroup>
+          />
 
             {form.tipo_control_cambio === 'APLAZAMIENTO' && (
             <TextField
@@ -166,15 +206,12 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
           )}
 
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>¿Requiere Orden Interna?</FormLabel>
-          <RadioGroup
-            row
-            value={form.requiere_orden_interna ? 'si' : 'no'}
-            onChange={(e) => actualizar({ requiere_orden_interna: e.target.value === 'si' })}
+          <GrupoRadios
+            valor={form.requiere_orden_interna ? 'si' : 'no'}
+            onCambiar={(valor) => actualizar({ requiere_orden_interna: valor === 'si' })}
+            opciones={OPCIONES_SI_NO}
             sx={{ mb: 2 }}
-          >
-            <FormControlLabel value="no" control={<Radio />} label="No" />
-            <FormControlLabel value="si" control={<Radio />} label="Sí" />
-          </RadioGroup>
+          />
 
           <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>Anexos</Typography>
           {(form.anexos || []).map((anexo, i) => (
@@ -194,13 +231,7 @@ export function FormularioControlCambio({ proyectoId, companiaId, procesoId, onC
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Descripción del Cambio</Typography>
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <TextField label="Descripción del cambio" multiline minRows={2} value={form.descripcion_cambio} onChange={(e) => actualizar({ descripcion_cambio: e.target.value })} />
-            <TextField label="Antecedentes" multiline minRows={2} value={form.antecedentes} onChange={(e) => actualizar({ antecedentes: e.target.value })} />
-            <TextField label="Justificación" multiline minRows={2} value={form.justificacion} onChange={(e) => actualizar({ justificacion: e.target.value })} />
-            <TextField label="Impacto en el alcance" multiline minRows={2} value={form.impacto_alcance} onChange={(e) => actualizar({ impacto_alcance: e.target.value })} />
-            <TextField label="Impacto en el tiempo" multiline minRows={2} value={form.impacto_tiempo} onChange={(e) => actualizar({ impacto_tiempo: e.target.value })} />
-          </Box>
+          <CamposDescripcion form={form} actualizar={actualizar} />
         </CardContent>
       </Card>
 

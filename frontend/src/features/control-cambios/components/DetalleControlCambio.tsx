@@ -31,6 +31,64 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
   PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
 };
 
+function EncabezadoHistorico() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
+        <TableCell>Usuario</TableCell>
+        <TableCell>Acción</TableCell>
+        <TableCell>Observación</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function EncabezadoOrdenesRelacionadas() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell>N° OI</TableCell>
+        <TableCell>Nombre</TableCell>
+        <TableCell>Estado</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function TablaOrdenesRelacionadas({ ordenes }: { ordenes: OrdenInternaRelacionadaCc[] }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 500 }}>
+        <EncabezadoOrdenesRelacionadas />
+        <TableBody>
+          {ordenes.map((oi) => {
+            const cfg = ESTADO_OI_CONFIG[oi.procesos.estado_actual] || { label: oi.procesos.estado_actual, color: 'default' as const };
+            return (
+              <TableRow key={oi.id}>
+                <TableCell sx={{ fontWeight: 600 }}>{oi.numero_oi}</TableCell>
+                <TableCell>{oi.nombre_descriptivo}</TableCell>
+                <TableCell>
+                  <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
+      <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
+    </RadioGroup>
+  );
+}
+
 interface Props {
   procesoId: number;
   companiaId: number;
@@ -299,14 +357,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small" sx={{ minWidth: 650 }}>
-                <TableHead>
-                  <TableRow>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                    <TableCell>Usuario</TableCell>
-                    <TableCell>Acción</TableCell>
-                    <TableCell>Observación</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoHistorico />
                 <TableBody>
                   {detalle.procesos.historico_aprobaciones.map((h) => (
                     <TableRow key={h.id}>
@@ -330,31 +381,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           {tituloSeccion('Órdenes Internas Relacionadas')}
           <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 500 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>N° OI</TableCell>
-                      <TableCell>Nombre</TableCell>
-                      <TableCell>Estado</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {detalle.ordenes_internas.map((oi) => {
-                      const cfg = ESTADO_OI_CONFIG[oi.procesos.estado_actual] || { label: oi.procesos.estado_actual, color: 'default' as const };
-                      return (
-                        <TableRow key={oi.id}>
-                          <TableCell sx={{ fontWeight: 600 }}>{oi.numero_oi}</TableCell>
-                          <TableCell>{oi.nombre_descriptivo}</TableCell>
-                          <TableCell>
-                            <Chip size="small" label={cfg.label} color={cfg.color} sx={{ fontWeight: 700, fontSize: '0.72rem' }} />
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaOrdenesRelacionadas ordenes={detalle.ordenes_internas} />
 
               {onVerOrdenInterna && (
                 <Box sx={{ mt: 2, display: 'flex', alignItems: 'center', gap: 2, flexWrap: 'wrap' }}>
@@ -428,10 +455,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>¿El proceso continúa a Presidencia, o finaliza aquí?</Typography>
-          <RadioGroup row value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
-            <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
           <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} />
         </DialogContent>
