@@ -424,7 +424,7 @@ Todas las variables se definen en un archivo `.env`, que **nunca** se sube al re
 | `NODE_ENV` | Sí | `development` o `production` |
 | `DATABASE_URL` | Sí | Cadena de conexión a PostgreSQL |
 | `JWT_SECRET` | Sí | Secreto para firmar los tokens. El servidor no arranca sin él |
-| `ALLOWED_EMAIL_DOMAIN` | Sí | Dominio de correo corporativo permitido |
+| `ALLOWED_EMAIL_DOMAIN` | Sí | Dominios de correo corporativo permitidos, separados por comas (ej. `empresa.com,filial.com.co`) |
 | `CORS_ORIGIN` | Sí | URL del frontend (varias separadas por coma) |
 | `RABBITMQ_URL` | Sí | Conexión a RabbitMQ. El servidor no arranca sin ella |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Sí | Servidor de correo |

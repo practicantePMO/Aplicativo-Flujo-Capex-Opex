@@ -6,14 +6,24 @@ import { PrismaService } from '../prisma/prisma.service';
 import { verify, type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
 
+// Dominios de correo corporativo permitidos. Se configuran en ALLOWED_EMAIL_DOMAIN,
+// separados por comas, por ejemplo: "empresa.com,filial.com.co,otraempresa.com".
+export function dominiosPermitidos(): string[] {
+  return (process.env.ALLOWED_EMAIL_DOMAIN || '')
+    .split(',')
+    .map((dominio) => dominio.trim().toLowerCase().replace(/^@/, ''))
+    .filter(Boolean);
+}
+
 export function validarDominioCorporativo(email: string) {
-  const dominioPermitido = process.env.ALLOWED_EMAIL_DOMAIN;
-  if (!dominioPermitido) {
+  const dominios = dominiosPermitidos();
+  if (dominios.length === 0) {
     throw new Error('🛑 Falta configurar ALLOWED_EMAIL_DOMAIN en el archivo .env');
   }
-  if (!email.toLowerCase().endsWith(`@${dominioPermitido}`)) {
+  const correo = email.toLowerCase();
+  if (!dominios.some((dominio) => correo.endsWith(`@${dominio}`))) {
     throw new UnauthorizedException(
-      `Acceso denegado: Solo se permiten correos corporativos con el dominio @${dominioPermitido}.`,
+      `Acceso denegado: Solo se permiten correos corporativos (${dominios.map((dominio) => `@${dominio}`).join(', ')}).`,
     );
   }
 }
@@ -113,7 +123,8 @@ export class AuthService {
     const usuario = await this.usuariosService.findOrCreateSSOUser({
       email: emailSeguro,
       nombre: nombreSeguro,
-      proveedor_auth: proveedor,
+      // En la base de datos el proveedor de Microsoft se guarda como 'AZURE_AD'.
+      proveedor_auth: proveedor === 'MICROSOFT' ? 'AZURE_AD' : proveedor,
     });
 
     // Le garantizamos a TypeScript que 'usuario' NO es nulo
