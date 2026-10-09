@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Typography, TextField, InputAdornment, Chip, IconButton, Tooltip,
@@ -31,6 +32,106 @@ const styles = {
   rolChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.7rem' },
 };
 
+interface FilaFiltrosProps {
+  areasDisponibles: string[];
+  filtroArea: string;
+  setFiltroArea: (val: string) => void;
+  filtroEstado: string;
+  setFiltroEstado: (val: string) => void;
+  filtroSoloPendientes: boolean;
+  setFiltroSoloPendientes: Dispatch<SetStateAction<boolean>>;
+}
+
+function FilaFiltros({
+  areasDisponibles, filtroArea, setFiltroArea, filtroEstado, setFiltroEstado,
+  filtroSoloPendientes, setFiltroSoloPendientes,
+}: FilaFiltrosProps) {
+  return (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
+      <TextField
+        select size="small" label="Área" value={filtroArea}
+        onChange={(e) => setFiltroArea(e.target.value)} sx={{ minWidth: 180 }}
+      >
+        <MenuItem value="">Todas las áreas</MenuItem>
+        {areasDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+      </TextField>
+
+      <TextField
+        select size="small" label="Estado" value={filtroEstado}
+        onChange={(e) => setFiltroEstado(e.target.value)} sx={{ minWidth: 160 }}
+      >
+        <MenuItem value="">Todos</MenuItem>
+        <MenuItem value="activo">Activos</MenuItem>
+        <MenuItem value="inactivo">Inactivos</MenuItem>
+      </TextField>
+
+      <Button
+        size="small"
+        variant={filtroSoloPendientes ? 'contained' : 'outlined'}
+        color="warning"
+        onClick={() => setFiltroSoloPendientes((v) => !v)}
+        sx={{ borderRadius: '10px', textTransform: 'none' }}
+      >
+        {filtroSoloPendientes ? '✓ ' : ''}Solo en espera de rol
+      </Button>
+
+      {(filtroArea || filtroEstado || filtroSoloPendientes) && (
+        <Button
+          size="small" color="inherit"
+          onClick={() => { setFiltroArea(''); setFiltroEstado(''); setFiltroSoloPendientes(false); }}
+          sx={{ color: '#64748b', textTransform: 'none' }}
+        >
+          Limpiar filtros
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+function EncabezadoTablaUsuarios() {
+  return (
+    <TableHead>
+      <TableRow sx={styles.tableHeaderRow}>
+        <TableCell sx={styles.tableHeaderCell}>USUARIO</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ÁREA</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>EMPRESA</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ROLES</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
+        <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+interface CeldaEstadoProps {
+  activo: boolean;
+  esUnoMismo: boolean;
+  puedeModificar: boolean;
+  onCambiar: () => void;
+}
+
+function CeldaEstado({ activo, esUnoMismo, puedeModificar, onCambiar }: CeldaEstadoProps) {
+  return (
+    <TableCell>
+      <Tooltip title={esUnoMismo ? 'No puedes modificar tu propia cuenta' : (!puedeModificar ? 'No tienes permiso para modificar a un Administrador' : '')}>
+        <span>
+          <Switch
+            checked={activo}
+            disabled={esUnoMismo || !puedeModificar}
+            onChange={onCambiar}
+            color="secondary"
+          />
+        </span>
+      </Tooltip>
+      <Chip
+        size="small"
+        label={activo ? 'Activo' : 'Inactivo'}
+        color={activo ? 'success' : 'default'}
+        sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+      />
+    </TableCell>
+  );
+}
 
 export function TablaUsuarios() {
   const { usuario: usuarioActual, tieneRol } = useAuth();
@@ -199,44 +300,15 @@ export function TablaUsuarios() {
           </Typography>
         </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
-          <TextField
-            select size="small" label="Área" value={filtroArea}
-            onChange={(e) => setFiltroArea(e.target.value)} sx={{ minWidth: 180 }}
-          >
-            <MenuItem value="">Todas las áreas</MenuItem>
-            {areasDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-          </TextField>
-
-          <TextField
-            select size="small" label="Estado" value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)} sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            <MenuItem value="activo">Activos</MenuItem>
-            <MenuItem value="inactivo">Inactivos</MenuItem>
-          </TextField>
-
-          <Button
-            size="small"
-            variant={filtroSoloPendientes ? 'contained' : 'outlined'}
-            color="warning"
-            onClick={() => setFiltroSoloPendientes((v) => !v)}
-            sx={{ borderRadius: '10px', textTransform: 'none' }}
-          >
-            {filtroSoloPendientes ? '✓ ' : ''}Solo en espera de rol
-          </Button>
-
-          {(filtroArea || filtroEstado || filtroSoloPendientes) && (
-            <Button
-              size="small" color="inherit"
-              onClick={() => { setFiltroArea(''); setFiltroEstado(''); setFiltroSoloPendientes(false); }}
-              sx={{ color: '#64748b', textTransform: 'none' }}
-            >
-              Limpiar filtros
-            </Button>
-          )}
-        </Stack>
+        <FilaFiltros
+          areasDisponibles={areasDisponibles}
+          filtroArea={filtroArea}
+          setFiltroArea={setFiltroArea}
+          filtroEstado={filtroEstado}
+          setFiltroEstado={setFiltroEstado}
+          filtroSoloPendientes={filtroSoloPendientes}
+          setFiltroSoloPendientes={setFiltroSoloPendientes}
+        />
       </Card>
 
       <Card sx={styles.tableCard}>
@@ -245,16 +317,7 @@ export function TablaUsuarios() {
         ) : (
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow sx={styles.tableHeaderRow}>
-                  <TableCell sx={styles.tableHeaderCell}>USUARIO</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ÁREA</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>EMPRESA</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ROLES</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
-                  <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
-                </TableRow>
-              </TableHead>
+              <EncabezadoTablaUsuarios />
               <TableBody>
                 {usuariosFiltrados.length === 0 ? (
                   <TableRow>
@@ -320,24 +383,12 @@ export function TablaUsuarios() {
                             </Stack>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Tooltip title={esUnoMismo ? 'No puedes modificar tu propia cuenta' : (!puedeModificar ? 'No tienes permiso para modificar a un Administrador' : '')}>
-                            <span>
-                              <Switch
-                                checked={u.activo}
-                                disabled={esUnoMismo || !puedeModificar}
-                                onChange={() => manejarCambiarActivo(u)}
-                                color="secondary"
-                              />
-                            </span>
-                          </Tooltip>
-                          <Chip
-                            size="small"
-                            label={u.activo ? 'Activo' : 'Inactivo'}
-                            color={u.activo ? 'success' : 'default'}
-                            sx={{ fontWeight: 700, fontSize: '0.65rem' }}
-                          />
-                        </TableCell>
+                        <CeldaEstado
+                          activo={u.activo}
+                          esUnoMismo={esUnoMismo}
+                          puedeModificar={puedeModificar}
+                          onCambiar={() => manejarCambiarActivo(u)}
+                        />
                         <TableCell align="right">
                           {puedeModificar && (
                             <Tooltip title="Asignar rol">
