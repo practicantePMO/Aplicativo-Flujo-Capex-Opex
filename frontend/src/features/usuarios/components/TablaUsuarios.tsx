@@ -17,6 +17,7 @@ import { obtenerCompanias, obtenerEmpresas } from '../../proyectos/services/proy
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 const styles = {
   headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
@@ -33,6 +34,7 @@ const styles = {
 
 export function TablaUsuarios() {
   const { usuario: usuarioActual, tieneRol } = useAuth();
+  const { avisar, confirmar } = useNotificaciones();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<RolDisponible[]>([]);
   const [companias, setCompanias] = useState<Compania[]>([]);
@@ -94,12 +96,12 @@ export function TablaUsuarios() {
   });
 
   const manejarQuitarRol = async (asignacionId: number) => {
-    if (!window.confirm('¿Quitar este rol al usuario?')) return;
+    if (!(await confirmar('¿Quitar este rol al usuario?'))) return;
     try {
       await quitarRol(asignacionId);
       await cargarUsuarios();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al quitar el rol.');
+      avisar(mensajeDelBackend(e) || 'Error al quitar el rol.');
     }
   };
 
@@ -112,7 +114,7 @@ export function TablaUsuarios() {
       await cambiarActivoUsuario(u.id, true);
       await cargarUsuarios();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al activar al usuario.');
+      avisar(mensajeDelBackend(e) || 'Error al activar al usuario.');
     }
   };
 
@@ -123,7 +125,7 @@ export function TablaUsuarios() {
       setUsuarioParaDesactivar(null);
       await cargarUsuarios();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al desactivar al usuario.');
+      avisar(mensajeDelBackend(e) || 'Error al desactivar al usuario.');
     }
   };
 
@@ -140,7 +142,7 @@ export function TablaUsuarios() {
       setUsuarioParaEditarArea(null);
       await cargarUsuarios();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al actualizar el área.');
+      avisar(mensajeDelBackend(e) || 'Error al actualizar el área.');
     } finally {
       setGuardandoArea(false);
     }
@@ -160,7 +162,7 @@ export function TablaUsuarios() {
       setUsuarioParaEditarEmpresa(null);
       await cargarUsuarios();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al actualizar la empresa.');
+      avisar(mensajeDelBackend(e) || 'Error al actualizar la empresa.');
     } finally {
       setGuardandoEmpresa(false);
     }

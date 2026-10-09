@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { Box, Button, Paper, Typography, Menu, MenuItem, Chip } from '@mui/material';
 import SwapHorizIcon from '@mui/icons-material/SwapHoriz';
+import { useNotificaciones } from '../notificaciones/useNotificaciones';
 
 const USUARIOS_PRUEBA = [
   { id: 1, nombre: 'Ana (Admin)', rol: 'ADMIN', compania: 'Global' },
@@ -27,6 +28,7 @@ const USUARIOS_PRUEBA = [
 
 export function DevSwitcher() {
   const { usuario, loginDev } = useAuth();
+  const { avisar } = useNotificaciones();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
   if (!import.meta.env.DEV) return null;
@@ -45,7 +47,7 @@ export function DevSwitcher() {
       await loginDev(usuarioId);
     } catch (error) {
       console.error('Error al cambiar de usuario:', error);
-      alert('Error al autenticar usuario de prueba. ¿El backend está encendido?');
+      avisar('Error al autenticar usuario de prueba. ¿El backend está encendido?');
     }
   };
 

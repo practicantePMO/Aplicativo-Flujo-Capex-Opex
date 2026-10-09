@@ -14,6 +14,7 @@ import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solici
 import { EncabezadoProceso } from '../../../components/EncabezadoProceso';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 const ESTADO_OI_CONFIG: Record<string, { label: string; color: 'default' | 'warning' | 'success' | 'info' }> = {
   BORRADOR: { label: 'Borrador', color: 'default' },
@@ -41,6 +42,7 @@ interface Props {
 
 export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar, onCrearOi, onVerOrdenInterna }: Props) {
   const { usuario, tieneRol } = useAuth();
+  const { avisar } = useNotificaciones();
   const [detalle, setDetalle] = useState<ControlCambioDetalle | null>(null);
   const [cargando, setCargando] = useState(true);
   const [procesando, setProcesando] = useState(false);
@@ -105,7 +107,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       await cargar();
       onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al enviar a revisión.');
+      avisar(mensajeDelBackend(e) || 'Error al enviar a revisión.');
     } finally {
       setProcesando(false);
     }
@@ -126,57 +128,57 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
   };
 
   const confirmarElegirGerente = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return alert('Debes elegir a qué gerente enviar el proceso.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!gerenteElegido) return avisar('Debes elegir a qué gerente enviar el proceso.');
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios, undefined, gerenteElegido.id);
       setDialogoElegirGerente(false); setComentarios(''); setGerenteElegido(null);
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobar = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios);
       setDialogoAprobar(false); setComentarios('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!comentarios.trim()) return alert('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
     setProcesando(true);
     try {
       await aprobarControlCambio(procesoId, comentarios, enviarPresidencia === 'si');
       setDialogoGerencia(false); setComentarios('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al aprobar.');
+      avisar(mensajeDelBackend(e) || 'Error al aprobar.');
     } finally {
       setProcesando(false);
     }
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return alert('La razón del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) return avisar('La razón del rechazo es obligatoria.');
     setProcesando(true);
     try {
       await rechazarControlCambio(procesoId, razonRechazo);
       setDialogoRechazar(false); setRazonRechazo('');
       await cargar(); onCambio();
     } catch (e) {
-      alert(mensajeDelBackend(e) || 'Error al rechazar.');
+      avisar(mensajeDelBackend(e) || 'Error al rechazar.');
     } finally {
       setProcesando(false);
     }
