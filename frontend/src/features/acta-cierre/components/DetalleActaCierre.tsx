@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   Box, Typography, Chip, Button, TextField, Dialog, DialogTitle, DialogContent,
   DialogActions, Autocomplete, CircularProgress, Card, CardContent, Alert, RadioGroup,
-  FormControlLabel, Radio, Link, TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  FormControlLabel, Radio, Link, TableContainer, Table, TableRow, TableCell, TableBody,
   Paper, Tabs, Tab,
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
@@ -18,6 +18,7 @@ import {
 import { obtenerUsuariosPorRol } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { StepperProceso } from '../../../components/StepperProceso';
 import { mensajeDelBackend } from '../../../utils/errores';
+import { EncabezadoTabla } from '../../../components/EncabezadoTabla';
 import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
 
 
@@ -38,6 +39,110 @@ interface Props {
   companiaId: number;
   onCambio: () => void;
   onEditar: () => void;
+}
+
+const fmt = (valor: number | null | undefined, simbolo: string) =>
+  valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}` : '—';
+
+const fmtPar = (usd: number | null | undefined, cop: number | null | undefined) => {
+  const partes = [
+    usd && usd > 0 ? `US$${Number(usd).toLocaleString()}` : null,
+    cop && cop > 0 ? `$${Number(cop).toLocaleString()} COP` : null,
+  ].filter(Boolean);
+  return partes.length ? partes.join(' / ') : '—';
+};
+
+function TablaMetasActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small">
+        <EncabezadoTabla columnas={[
+          { titulo: 'Compromiso P3' },
+          { titulo: 'Fecha inicio medición' },
+          { titulo: 'Indicador' },
+          { titulo: 'Resultados del escalamiento / Cierre' },
+        ]} />
+        <TableBody>
+          {detalle.acta_cierre_metas.map((m) => (
+            <TableRow key={m.id}>
+              <TableCell>{m.solicitud_metas.compromiso}</TableCell>
+              <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
+              <TableCell>{m.solicitud_metas.indicador}</TableCell>
+              <TableCell>{m.resultado_cierre || '—'}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function TablaValoresActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  const hayCc = detalle.comparacion.valores_cc.length > 0;
+
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small" sx={{ minWidth: 650 }}>
+        <EncabezadoTabla columnas={[
+          { titulo: 'Categoría' },
+          { titulo: 'Inicial (SI)', align: 'center' },
+          ...(hayCc ? [{ titulo: 'Inicial (Control de Cambios)', align: 'center' as const }] : []),
+          { titulo: 'Real', align: 'center' },
+        ]} />
+        <TableBody>
+          {(['ACTIVO', 'GASTO'] as const).map((cat) => {
+            const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
+            const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
+            const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
+            return (
+              <TableRow key={cat}>
+                <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+                <TableCell align="center">{fmtPar(si?.usd, si?.cop)}</TableCell>
+                {hayCc && <TableCell align="center">{fmtPar(cc?.usd, cc?.cop)}</TableCell>}
+                <TableCell align="center">{fmtPar(real?.real_usd, real?.real_cop)}</TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function TablaOiActa({ detalle }: { detalle: ActaCierreDetalle }) {
+  return (
+    <TableContainer sx={{ overflowX: 'auto' }}>
+      <Table size="small">
+        <EncabezadoTabla columnas={[
+          { titulo: 'N° OI' },
+          { titulo: 'Nombre descriptivo' },
+          { titulo: 'Activo/Gasto' },
+          { titulo: 'PPT OI', align: 'right' },
+          { titulo: 'Valor Real', align: 'right' },
+        ]} />
+        <TableBody>
+          {detalle.acta_cierre_oi_valores_reales.map((o) => (
+            <TableRow key={o.id}>
+              <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
+              <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
+              <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
+              <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+              <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
+      <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
+    </RadioGroup>
+  );
 }
 
 export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }: Props) {
@@ -245,19 +350,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
     </Card>
   );
 
-  const fmt = (valor: number | null | undefined, simbolo: string) =>
-    valor && valor > 0 ? `${simbolo}${Number(valor).toLocaleString()}` : '—';
-
-  const fmtPar = (usd: number | null | undefined, cop: number | null | undefined) => {
-    const partes = [
-      usd && usd > 0 ? `US$${Number(usd).toLocaleString()}` : null,
-      cop && cop > 0 ? `$${Number(cop).toLocaleString()} COP` : null,
-    ].filter(Boolean);
-    return partes.length ? partes.join(' / ') : '—';
-  };
-
   const partesActuales = detalle.procesos.asignaciones_proceso.filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS');
-  const hayCc = detalle.comparacion.valores_cc.length > 0;
 
   const filasFlujo = detalle.comparacion.flujo_caja_planeado.map((p) => {
     const real = detalle.acta_cierre_flujo_caja.find(
@@ -349,28 +442,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
               {tituloSeccion('Metas')}
               <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
-                  <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Compromiso P3</TableCell>
-                          <TableCell>Fecha inicio medición</TableCell>
-                          <TableCell>Indicador</TableCell>
-                          <TableCell>Resultados del escalamiento / Cierre</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {detalle.acta_cierre_metas.map((m) => (
-                          <TableRow key={m.id}>
-                            <TableCell>{m.solicitud_metas.compromiso}</TableCell>
-                            <TableCell sx={{ whiteSpace: 'nowrap' }}>{new Date(m.solicitud_metas.fecha_inicio).toLocaleDateString()}</TableCell>
-                            <TableCell>{m.solicitud_metas.indicador}</TableCell>
-                            <TableCell>{m.resultado_cierre || '—'}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                  <TablaMetasActa detalle={detalle} />
                 </CardContent>
               </Card>
             </>
@@ -384,17 +456,15 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                   {detalle.acta_cierre_entregables.length > 0 && (
                     <TableContainer sx={{ overflowX: 'auto', mb: detalle.otros_entregables ? 2 : 0 }}>
                       <Table size="small" sx={{ minWidth: 750 }}>
-                        <TableHead>
-                          <TableRow>
-                            <TableCell>Equipo / Sistema</TableCell>
-                            <TableCell>Cód. activo en producción</TableCell>
-                            <TableCell>Cód. activo en montaje</TableCell>
-                            <TableCell>Unidad vida útil</TableCell>
-                            <TableCell>Vida útil</TableCell>
-                            <TableCell>Observaciones</TableCell>
-                            <TableCell>Anexo</TableCell>
-                          </TableRow>
-                        </TableHead>
+                        <EncabezadoTabla columnas={[
+                          { titulo: 'Equipo / Sistema' },
+                          { titulo: 'Cód. activo en producción' },
+                          { titulo: 'Cód. activo en montaje' },
+                          { titulo: 'Unidad vida útil' },
+                          { titulo: 'Vida útil' },
+                          { titulo: 'Observaciones' },
+                          { titulo: 'Anexo' },
+                        ]} />
                         <TableBody>
                           {detalle.acta_cierre_entregables.map((e) => (
                             <TableRow key={e.id}>
@@ -443,33 +513,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
           {tituloSeccion('Valor Total del Proyecto')}
           <Card elevation={0} sx={{ mb: 4, border: '1px solid', borderColor: 'divider' }}>
             <CardContent sx={{ p: 3 }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 650 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Categoría</TableCell>
-                      <TableCell align="center">Inicial (SI)</TableCell>
-                      {hayCc && <TableCell align="center">Inicial (Control de Cambios)</TableCell>}
-                      <TableCell align="center">Real</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(['ACTIVO', 'GASTO'] as const).map((cat) => {
-                      const si = detalle.comparacion.valores_si.find((v) => v.categoria === cat);
-                      const cc = detalle.comparacion.valores_cc.find((v) => v.categoria === cat);
-                      const real = detalle.acta_cierre_valores.find((v) => v.categoria === cat);
-                      return (
-                        <TableRow key={cat}>
-                          <TableCell sx={{ fontWeight: 700 }}>{cat === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                          <TableCell align="center">{fmtPar(si?.usd, si?.cop)}</TableCell>
-                          {hayCc && <TableCell align="center">{fmtPar(cc?.usd, cc?.cop)}</TableCell>}
-                          <TableCell align="center">{fmtPar(real?.real_usd, real?.real_cop)}</TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+              <TablaValoresActa detalle={detalle} />
               {detalle.explicacion_ejecucion && (
                 <Box sx={{ mt: 2 }}>{campo('Explicación de sobre/sub-ejecución', detalle.explicacion_ejecucion)}</Box>
               )}
@@ -489,15 +533,13 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
                         <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>{tipo}</Typography>
                         <TableContainer sx={{ overflowX: 'auto' }}>
                           <Table size="small">
-                            <TableHead>
-                              <TableRow>
-                                <TableCell>Mes</TableCell>
-                                <TableCell>Año</TableCell>
-                                <TableCell>Moneda</TableCell>
-                                <TableCell align="right">Planeado</TableCell>
-                                <TableCell align="right">Real</TableCell>
-                              </TableRow>
-                            </TableHead>
+                            <EncabezadoTabla columnas={[
+                              { titulo: 'Mes' },
+                              { titulo: 'Año' },
+                              { titulo: 'Moneda' },
+                              { titulo: 'Planeado', align: 'right' },
+                              { titulo: 'Real', align: 'right' },
+                            ]} />
                             <TableBody>
                               {filas.map((f, i) => (
                                 <TableRow key={i}>
@@ -524,30 +566,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
               {tituloSeccion('Órdenes Internas y de Mantenimiento')}
               <Card elevation={0} sx={{ border: '1px solid', borderColor: 'divider' }}>
                 <CardContent sx={{ p: 3 }}>
-                  <TableContainer sx={{ overflowX: 'auto' }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>N° OI</TableCell>
-                          <TableCell>Nombre descriptivo</TableCell>
-                          <TableCell>Activo/Gasto</TableCell>
-                          <TableCell align="right">PPT OI</TableCell>
-                          <TableCell align="right">Valor Real</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {detalle.acta_cierre_oi_valores_reales.map((o) => (
-                          <TableRow key={o.id}>
-                            <TableCell sx={{ fontWeight: 600 }}>{o.ordenes_internas.numero_oi}</TableCell>
-                            <TableCell>{o.ordenes_internas.nombre_descriptivo}</TableCell>
-                            <TableCell>{o.ordenes_internas.tipo_orden === 'ACTIVO' ? 'Activo' : 'Gasto'}</TableCell>
-                            <TableCell align="right">{fmt(o.ordenes_internas.presupuesto, o.ordenes_internas.presupuesto_moneda === 'USD' ? 'US$' : '$')}</TableCell>
-                            <TableCell align="right">{fmt(o.valor_real, o.valor_real_moneda === 'USD' ? 'US$' : '$')}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
+                  <TablaOiActa detalle={detalle} />
                 </CardContent>
               </Card>
             </>
@@ -563,14 +582,12 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
             ) : (
               <TableContainer sx={{ overflowX: 'auto' }}>
                 <Table size="small" sx={{ minWidth: 650 }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>Fecha</TableCell>
-                      <TableCell>Usuario</TableCell>
-                      <TableCell>Acción</TableCell>
-                      <TableCell>Observación</TableCell>
-                    </TableRow>
-                  </TableHead>
+                  <EncabezadoTabla columnas={[
+                    { titulo: 'Fecha', sx: { whiteSpace: 'nowrap' } },
+                    { titulo: 'Usuario' },
+                    { titulo: 'Acción' },
+                    { titulo: 'Observación' },
+                  ]} />
                   <TableBody>
                     {detalle.procesos.historico_aprobaciones.map((h) => (
                       <TableRow key={h.id}>
@@ -660,10 +677,7 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
           <Typography variant="body2" sx={{ mb: 1 }}>¿El proceso continúa a Presidencia, o finaliza aquí?</Typography>
-          <RadioGroup row value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')} sx={{ mb: 2 }}>
-            <FormControlLabel value="si" control={<Radio />} label="Continúa a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="Finaliza aquí" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
           <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} />
         </DialogContent>
