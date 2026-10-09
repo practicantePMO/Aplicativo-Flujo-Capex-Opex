@@ -41,6 +41,120 @@ const ROLES_POR_ETAPA: Record<string, string[]> = {
   PRESIDENCIA: ['PRESIDENCIA', 'ADMIN'],
 };
 
+const ETAPAS_SI = [
+  { key: 'PENDIENTE_PMO', label: 'PMO' },
+  { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
+  { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
+  { key: 'GERENCIA', label: 'Gerencia' },
+  { key: 'PRESIDENCIA', label: 'Presidencia' },
+];
+
+type SolicitudDatos = SolicitudInversionDetalle['solicitudes_inversion'];
+
+const companiaIdDe = (data: SolicitudInversionDetalle | null) =>
+  data?.proyectos?.companias?.id || data?.proyectos?.compania_id || 1;
+
+// ¿El usuario tiene una asignación PENDIENTE en esa etapa, estando el proceso en ella?
+const estaAsignadoPendiente = (data: SolicitudInversionDetalle, etapa: string, usuarioId?: number) =>
+  data.estado_actual === etapa &&
+  data.asignaciones_proceso.some(
+    (a) =>
+      a.etapa === etapa &&
+      a.estado_asignacion === 'PENDIENTE' &&
+      Number(a.usuarios?.id) === Number(usuarioId),
+  );
+
+// Qué acciones puede hacer el usuario según el estado de la solicitud y sus roles.
+function calcularPermisos(data: SolicitudInversionDetalle, usuarioId: number | undefined, tieneRol: (codigoRol: string) => boolean) {
+  const estado = data.estado_actual;
+  const esPmResponsable = Number(data.solicitudes_inversion?.usuarios?.id) === Number(usuarioId);
+
+  const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
+  const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
+
+  const estaAsignadoComoParteInteresada = estaAsignadoPendiente(data, 'VERIFICACION_PARTES_INTERESADAS', usuarioId);
+
+  // 🎯 GERENCIA ya no es por rol de compañía: solo el gerente puntual que
+  // Dirección PMO eligió (asignación individual) puede aprobar/rechazar aquí.
+  const estaAsignadoComoGerente = estaAsignadoPendiente(data, 'GERENCIA', usuarioId);
+
+  const esPmOAdmin = esPmResponsable || tieneRol('ADMIN');
+  const esGestorPmo = tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN');
+
+  return {
+    puedeEditarBorrador: estado === 'BORRADOR' && esPmOAdmin,
+    puedeEnviarARevision: estado === 'BORRADOR' && esPmOAdmin,
+    puedeAprobarORechazar: tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente,
+    puedeCancelar: !['BORRADOR', 'APROBADO_FINAL', 'CANCELADO'].includes(estado) && esGestorPmo,
+    puedeEditarPartesInteresadas: ['BORRADOR', 'PENDIENTE_PMO'].includes(estado) && (esPmResponsable || esGestorPmo),
+  };
+}
+
+// Textos de la clasificación (Tradicional y/o Nueva) que se muestran en la vista.
+function calcularCategorias(solicitud: SolicitudDatos) {
+  const tipoClasif = solicitud?.tipo_clasificacion;
+  const textoTradicional = solicitud?.subprogramas
+    ? `${solicitud.subprogramas.programas?.grupos?.nombre || '—'} / ${solicitud.subprogramas.programas?.nombre || '—'} / ${solicitud.subprogramas.nombre || '—'}`
+    : undefined;
+  const textoNueva = solicitud?.categorias?.nombre || undefined;
+  return {
+    categoriaTradicional: (tipoClasif === 'TRADICIONAL' || tipoClasif === 'AMBAS') ? textoTradicional : undefined,
+    categoriaNueva: (tipoClasif === 'NUEVA' || tipoClasif === 'AMBAS') ? textoNueva : undefined,
+  };
+}
+
+interface TabInformacionGeneralProps {
+  data: SolicitudInversionDetalle;
+  puedeEditarPartes: boolean;
+  onEditarPartes: () => void;
+}
+
+function TabInformacionGeneral({ data, puedeEditarPartes, onEditarPartes }: TabInformacionGeneralProps) {
+  const solicitud = data.solicitudes_inversion;
+  const { categoriaTradicional, categoriaNueva } = calcularCategorias(solicitud);
+  return (
+    <Box>
+      <SeccionInformacionGeneralVista
+        nombrePm={solicitud?.usuarios?.nombre || data?.proyectos?.usuarios?.nombre}
+        categoriaTradicional={categoriaTradicional}
+        categoriaNueva={categoriaNueva}
+        entregablePlaneado={solicitud?.entregable_planeado || undefined}
+      />
+      <SeccionDocumentosLinksVista
+        linkActa={solicitud?.link_acta_aprobacion}
+        linkPlan={solicitud?.link_plan_proyecto}
+        linkPresentacion={solicitud?.link_presentacion_puertas_3}
+      />
+      <SeccionPartesInteresadasVista
+        asignaciones={data.asignaciones_proceso || []}
+        puedeEditar={puedeEditarPartes}
+        onEditar={onEditarPartes}
+      />
+    </Box>
+  );
+}
+
+function TabEvaluacionYFlujo({ solicitud }: { solicitud: SolicitudDatos }) {
+  return (
+    <Box>
+      <SeccionEvaluacionFinancieraVista
+        tieneEvaluacion={solicitud?.tiene_evaluacion_financiera}
+        tir={solicitud?.solicitud_evaluacion_financiera?.tir}
+        vpn={solicitud?.solicitud_evaluacion_financiera?.vpn}
+        payback={solicitud?.solicitud_evaluacion_financiera?.payback}
+        justificacion={solicitud?.justificacion_sin_evaluacion}
+      />
+      <SeccionMetasYValoresVista
+        metas={solicitud?.solicitud_metas || []}
+        valores={solicitud?.solicitud_valores || []}
+      />
+      <SeccionFlujoCajaVista
+        flujosGrabados={(solicitud?.solicitud_flujo_caja || []) as FlujoCaja[]}
+      />
+    </Box>
+  );
+}
+
 export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props) {
   const { usuario, tieneRol } = useAuth();
   const { avisar } = useNotificaciones();
@@ -100,44 +214,9 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
 
   const solicitud = data.solicitudes_inversion;
   const estado = data.estado_actual;
-  const esPmResponsable = Number(solicitud?.usuarios?.id) === Number(usuario?.id);
-
-  const nombrePmExtraido =
-    solicitud?.usuarios?.nombre ||
-    data?.proyectos?.usuarios?.nombre;
-
-  const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
-  const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
-
-  const estaAsignadoComoParteInteresada =
-    estado === 'VERIFICACION_PARTES_INTERESADAS' &&
-    data.asignaciones_proceso.some(
-      (a) =>
-        a.etapa === 'VERIFICACION_PARTES_INTERESADAS' &&
-        a.estado_asignacion === 'PENDIENTE' &&
-        Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-
-  // 🎯 GERENCIA ya no es por rol de compañía: solo el gerente puntual que
-  // Dirección PMO eligió (asignación individual) puede aprobar/rechazar aquí.
-  const estaAsignadoComoGerente =
-    estado === 'GERENCIA' &&
-    data.asignaciones_proceso.some(
-      (a) =>
-        a.etapa === 'GERENCIA' &&
-        a.estado_asignacion === 'PENDIENTE' &&
-        Number(a.usuarios?.id) === Number(usuario?.id),
-    );
-
-  const puedeEditarBorrador = estado === 'BORRADOR' && (esPmResponsable || tieneRol('ADMIN'));
-  const puedeEnviarARevision = estado === 'BORRADOR' && (esPmResponsable || tieneRol('ADMIN'));
-  const puedeAprobarORechazar = tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
-  const puedeCancelar = !['BORRADOR', 'APROBADO_FINAL', 'CANCELADO'].includes(estado) &&
-    (tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN'));
-
-  const puedeEditarPartesInteresadas =
-    ['BORRADOR', 'PENDIENTE_PMO'].includes(estado) &&
-    (esPmResponsable || tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN'));
+  const {
+    puedeEditarBorrador, puedeEnviarARevision, puedeAprobarORechazar, puedeCancelar, puedeEditarPartesInteresadas,
+  } = calcularPermisos(data, usuario?.id, tieneRol);
 
   const manejarClickEditar = () => {
     setModoEdicion(true);
@@ -148,8 +227,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
 
   const abrirDialogoPartes = async () => {
     if (usuariosDisponibles.length === 0) {
-      const companiaId = data?.proyectos?.companias?.id || data?.proyectos?.compania_id || 1;
-      const usuarios = await obtenerPartesInteresadas(companiaId);
+      const usuarios = await obtenerPartesInteresadas(companiaIdDe(data));
       setUsuariosDisponibles(usuarios);
     }
     const actuales = (data?.asignaciones_proceso ?? [])
@@ -184,8 +262,7 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
   const manejarAprobar = async () => {
     if (estado === 'DIRECCION_PMO') {
       if (gerentesDisponibles.length === 0) {
-        const companiaId = data?.proyectos?.companias?.id || data?.proyectos?.compania_id || 1;
-        const gerentes = await obtenerUsuariosPorRol('GERENCIA', companiaId);
+        const gerentes = await obtenerUsuariosPorRol('GERENCIA', companiaIdDe(data));
         setGerentesDisponibles(gerentes);
       }
       setGerenteElegido(null);
@@ -270,21 +347,6 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
     finally { setProcesando(false); }
   };
 
-  const tipoClasif = solicitud?.tipo_clasificacion;
-  const textoTradicional = solicitud?.subprogramas
-    ? `${solicitud.subprogramas.programas?.grupos?.nombre || '—'} / ${solicitud.subprogramas.programas?.nombre || '—'} / ${solicitud.subprogramas.nombre || '—'}`
-    : undefined;
-  const textoNueva = solicitud?.categorias?.nombre || undefined;
-  const categoriaTradicional = (tipoClasif === 'TRADICIONAL' || tipoClasif === 'AMBAS') ? textoTradicional : undefined;
-  const categoriaNueva = (tipoClasif === 'NUEVA' || tipoClasif === 'AMBAS') ? textoNueva : undefined;
-    const ETAPAS_SI = [
-    { key: 'PENDIENTE_PMO', label: 'PMO' },
-    { key: 'VERIFICACION_PARTES_INTERESADAS', label: 'Partes Interesadas' },
-    { key: 'DIRECCION_PMO', label: 'Dirección PMO' },
-    { key: 'GERENCIA', label: 'Gerencia' },
-    { key: 'PRESIDENCIA', label: 'Presidencia' },
-  ];
-
   return (
     <Box sx={{ maxWidth: '100%' }}>
       <Button startIcon={<ArrowBackIcon />} onClick={onVolver} sx={{ mb: 2, color: '#64748b' }}>
@@ -314,44 +376,14 @@ export function VistaSolicitudInversion({ procesoId, onVolver, onEditar }: Props
       </Paper>
 
       {tabActual === 0 && (
-        <Box>
-          <SeccionInformacionGeneralVista
-            nombrePm={nombrePmExtraido}
-            categoriaTradicional={categoriaTradicional}
-            categoriaNueva={categoriaNueva}
-            entregablePlaneado={solicitud?.entregable_planeado || undefined}
-          />
-          <SeccionDocumentosLinksVista
-            linkActa={solicitud?.link_acta_aprobacion}
-            linkPlan={solicitud?.link_plan_proyecto}
-            linkPresentacion={solicitud?.link_presentacion_puertas_3}
-          />
-          <SeccionPartesInteresadasVista
-            asignaciones={data.asignaciones_proceso || []}
-            puedeEditar={puedeEditarPartesInteresadas}
-            onEditar={abrirDialogoPartes}
-          />
-        </Box>
+        <TabInformacionGeneral
+          data={data}
+          puedeEditarPartes={puedeEditarPartesInteresadas}
+          onEditarPartes={abrirDialogoPartes}
+        />
       )}
 
-      {tabActual === 1 && (
-        <Box>
-          <SeccionEvaluacionFinancieraVista
-            tieneEvaluacion={solicitud?.tiene_evaluacion_financiera}
-            tir={solicitud?.solicitud_evaluacion_financiera?.tir}
-            vpn={solicitud?.solicitud_evaluacion_financiera?.vpn}
-            payback={solicitud?.solicitud_evaluacion_financiera?.payback}
-            justificacion={solicitud?.justificacion_sin_evaluacion}
-          />
-          <SeccionMetasYValoresVista
-            metas={solicitud?.solicitud_metas || []}
-            valores={solicitud?.solicitud_valores || []}
-          />
-          <SeccionFlujoCajaVista
-            flujosGrabados={(solicitud?.solicitud_flujo_caja || []) as FlujoCaja[]}
-          />
-        </Box>
-      )}
+      {tabActual === 1 && <TabEvaluacionYFlujo solicitud={solicitud} />}
 
       {tabActual === 2 && (
         <Box>

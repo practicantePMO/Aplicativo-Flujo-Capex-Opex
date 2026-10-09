@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import type { Proyecto } from '../../proyectos/types/proyecto.types';
-import type { SolicitudInversionDetalle, FlujoCaja, Meta, Grupo, Programa, Subprograma, UsuarioActivo, CrearSolicitudPayload } from '../types/solicitud.types';
+import type { SolicitudInversionDetalle, FlujoCaja, Meta, Grupo, Programa, Subprograma, UsuarioActivo } from '../types/solicitud.types';
 import { mensajeDelBackend } from '../../../utils/errores';
 import {
   obtenerJerarquia,
@@ -9,6 +9,7 @@ import {
   crearSolicitudInversion,
   actualizarSolicitudInversion,
 } from '../services/solicitudInversion.service';
+import { validarYConstruirPayload } from './validarSolicitud';
 
 type Tipo = 'CAPEX' | 'GCAPEX' | 'OPEX';
 type Moneda = 'USD' | 'COP';
@@ -188,112 +189,7 @@ export function useSolicitudForm(
       setGuardando(true);
       setError(null);
 
-      // --- Categorización: al menos una de las dos, y completa la que se marque ---
-      if (!form.incluyeTradicional && !form.incluyeNueva) {
-        throw new Error('Debes marcar al menos una clasificación: Tradicional, Nueva, o ambas.');
-      }
-      if (form.incluyeTradicional && !form.subprogramaId) {
-        throw new Error('Debes seleccionar el Grupo, Programa y Subprograma (clasificación Tradicional).');
-      }
-      if (form.incluyeNueva && !form.categoriaId) {
-        throw new Error('Debes seleccionar una Categoría (clasificación Nueva).');
-      }
-
-      // --- Entregable planeado ---
-      if (!form.entregablePlaneado?.trim()) {
-        throw new Error('Debes describir el entregable planeado.');
-      }
-
-      // --- Evaluación financiera / justificación ---
-      if (form.tieneEvaluacionFinanciera) {
-        if (form.tir === '' || form.vpn === '' || form.payback === '') {
-          throw new Error('Debes ingresar TIR, VPN y Payback si el proyecto tiene evaluación financiera.');
-        }
-      } else if (!form.justificacion?.trim()) {
-        throw new Error('Debes ingresar una justificación si el proyecto no tiene evaluación financiera.');
-      }
-
-      // --- Metas: al menos una, completa ---
-      const metasCompletas = (form.metas || [])
-        .filter((m) => m.compromiso?.trim() && m.fecha_inicio && m.indicador?.trim())
-        .map((m) => ({ compromiso: m.compromiso.trim(), fecha_inicio: m.fecha_inicio, indicador: m.indicador.trim() }));
-      if (metasCompletas.length === 0) {
-        throw new Error('Debes registrar al menos una meta completa (compromiso, fecha e indicador).');
-      }
-
-      if (!form.trm || form.trm.trim() === '') {
-        throw new Error('Debes ingresar la TRM.');
-      }
-
-       // --- Flujo de caja: cada mes que el PM marcó debe tener valor > 0 SOLO
-      // en los tipos que él mismo dijo que aplican ese mes puntual ---
-      for (const anio of form.aniosFlujo || []) {
-        const tiposAnio = form.tiposSeleccionados[anio] || [];
-        const mesesAnio = form.mesesSeleccionados[anio] || [];
-        if (tiposAnio.length > 0 && mesesAnio.length === 0) {
-          throw new Error(`Marca al menos un mes para el año ${anio} en el Flujo de Caja.`);
-        }
-        for (const mesNum of mesesAnio) {
-          const claveMes = `${anio}_${mesNum}`;
-          // Si el mes no tiene selección puntual, por defecto aplican todos los del año.
-          const tiposDeEsteMes = form.tiposPorMes[claveMes] || tiposAnio;
-          if (tiposDeEsteMes.length === 0) {
-            throw new Error(`Elige al menos un tipo (CAPEX/GCAPEX/OPEX) para el mes seleccionado (año ${anio}).`);
-          }
-          for (const tipo of tiposDeEsteMes) {
-            const monto = (form.flujos || [])
-              .find((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum)&& f.tipo === tipo)
-              ?.monto;
-            if (!monto || Number(monto) <= 0) {
-              throw new Error(`Falta ingresar el valor de ${tipo} para el mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
-            }
-          }
-        }
-      }
-
-      const flujosLimpios = (form.flujos || [])
-        .filter((f) => Number(f.monto) > 0)
-        .map((f) => ({
-          anio: Number(f.anio),
-          mes: Number(f.mes),
-          tipo: f.tipo,
-          moneda: f.moneda || 'COP',
-          monto: Number(f.monto),
-        }));
-      if (flujosLimpios.length === 0) {
-        throw new Error('Debes registrar al menos un monto en la tabla de Flujo de Caja.');
-      }
-
-      // --- Partes interesadas: al menos una ---
-      if (!form.partesInteresadas || form.partesInteresadas.length === 0) {
-        throw new Error('Debes asignar al menos una parte interesada para la etapa de verificación.');
-      }
-
-      // --- Documentos: los 3 links son obligatorios ---
-      if (!form.linkActa?.trim() || !form.linkPlan?.trim() || !form.linkPresentacion?.trim()) {
-        throw new Error('Debes adjuntar los 3 links de documentos (Acta, Plan de proyecto y Presentación).');
-      }
-
-      const dtoPayload: CrearSolicitudPayload = {
-        proyecto_id: proyecto.id,
-        incluye_tradicional: form.incluyeTradicional,
-        incluye_nueva: form.incluyeNueva,
-        subprograma_id: form.incluyeTradicional && form.subprogramaId ? Number(form.subprogramaId) : undefined,
-        categoria_id: form.incluyeNueva && form.categoriaId ? Number(form.categoriaId) : undefined,
-        entregable_planeado: form.entregablePlaneado || undefined,
-        tiene_evaluacion_financiera: Boolean(form.tieneEvaluacionFinanciera),
-        trm: Number(form.trm),
-        justificacion_sin_evaluacion: !form.tieneEvaluacionFinanciera ? form.justificacion.trim() : undefined,
-        evaluacion_financiera: form.tieneEvaluacionFinanciera
-          ? { tir: Number(form.tir) || 0, vpn: Number(form.vpn) || 0, payback: Number(form.payback) || 0 }
-          : undefined,
-        metas: metasCompletas,
-        flujos_caja: flujosLimpios,
-        partes_interesadas_ids: (form.partesInteresadas || []).map((u) => u.id),
-        link_acta_aprobacion: form.linkActa || undefined,
-        link_plan_proyecto: form.linkPlan || undefined,
-        link_presentacion_puertas_3: form.linkPresentacion || undefined,
-      };
+      const dtoPayload = validarYConstruirPayload(form, proyecto.id);
 
       let resProcesoId: number;
       if (solicitudExistente) {

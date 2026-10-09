@@ -28,6 +28,51 @@ const ESTADO_GRUPO_CONFIG: Record<string, { label: string; color: 'success' | 'w
   CERRADO: { label: 'Cerrado', color: 'default' },
 };
 
+interface EncabezadoGrupoOiProps {
+  grupo: GrupoOrdenesInternas;
+  mostrarSolicitarCierre: boolean;
+  onSolicitarCierre: () => void;
+}
+
+function EncabezadoGrupoOi({ grupo, mostrarSolicitarCierre, onSolicitarCierre }: EncabezadoGrupoOiProps) {
+  return (
+    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
+      <Typography variant="h6">
+        Órdenes Internas {grupo.nombre ? `— ${grupo.nombre}` : ''}
+      </Typography>
+      <Chip label={ESTADO_GRUPO_CONFIG[grupo.estado]?.label || grupo.estado} color={ESTADO_GRUPO_CONFIG[grupo.estado]?.color || 'default'} size="small" />
+      <Box sx={{ flexGrow: 1 }} />
+      {mostrarSolicitarCierre && grupo.estado === 'ABIERTO' && (
+        <Button size="small" variant="outlined" color="warning" startIcon={<LockClockIcon />} onClick={onSolicitarCierre}>
+          Solicitar cierre de Órdenes Internas
+        </Button>
+      )}
+    </Box>
+  );
+}
+
+function HistoricoCierreGrupo({ historico }: { historico: GrupoOrdenesInternas['grupo_oi_historico_cierre'] }) {
+  return (
+    <Accordion disableGutters sx={{ mt: 2, borderRadius: 2, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}>
+      <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+        <Typography sx={{ fontWeight: 700, color: '#64748b' }}>Histórico de cierre del grupo</Typography>
+      </AccordionSummary>
+      <AccordionDetails>
+        {historico.map((h) => (
+          <Box key={h.id} sx={{ py: 1, borderBottom: '1px solid #f1f5f9' }}>
+            <Typography variant="body2">
+              <strong>{h.accion === 'SOLICITADO' ? 'Cierre solicitado' : 'Grupo cerrado'}</strong> — {h.usuarios?.nombre || 'Sistema'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              {new Date(h.fecha_registro).toLocaleString()}{h.observaciones ? ` — "${h.observaciones}"` : ''}
+            </Typography>
+          </Box>
+        ))}
+      </AccordionDetails>
+    </Accordion>
+  );
+}
+
 interface Props {
   proyectoId: string;
   companiaId: number;
@@ -115,18 +160,11 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
 
   return (
         <Box sx={{ mt: 4, p: 3, border: '1px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3, flexWrap: 'wrap' }}>
-        <Typography variant="h6">
-          Órdenes Internas {grupo.nombre ? `— ${grupo.nombre}` : ''}
-        </Typography>
-        <Chip label={ESTADO_GRUPO_CONFIG[grupo.estado]?.label || grupo.estado} color={ESTADO_GRUPO_CONFIG[grupo.estado]?.color || 'default'} size="small" />
-        <Box sx={{ flexGrow: 1 }} />
-        {puedeSolicitarCierre && hayOrdenes && grupo.estado === 'ABIERTO' && (
-          <Button size="small" variant="outlined" color="warning" startIcon={<LockClockIcon />} onClick={() => setDialogoSolicitarCierre(true)}>
-            Solicitar cierre de Órdenes Internas
-          </Button>
-        )}
-      </Box>
+      <EncabezadoGrupoOi
+        grupo={grupo}
+        mostrarSolicitarCierre={puedeSolicitarCierre && hayOrdenes}
+        onSolicitarCierre={() => setDialogoSolicitarCierre(true)}
+      />
 
       {!hayOrdenes ? (
         <Box>
@@ -186,25 +224,7 @@ export function PanelOrdenesInternas({ proyectoId, companiaId, crearParaControlC
             </Accordion>
           ))}
 
-          {historicoCierre.length > 0 && (
-            <Accordion disableGutters sx={{ mt: 2, borderRadius: 2, border: '1px solid #e2e8f0', '&:before': { display: 'none' } }}>
-              <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                <Typography sx={{ fontWeight: 700, color: '#64748b' }}>Histórico de cierre del grupo</Typography>
-              </AccordionSummary>
-              <AccordionDetails>
-                {historicoCierre.map((h) => (
-                  <Box key={h.id} sx={{ py: 1, borderBottom: '1px solid #f1f5f9' }}>
-                    <Typography variant="body2">
-                      <strong>{h.accion === 'SOLICITADO' ? 'Cierre solicitado' : 'Grupo cerrado'}</strong> — {h.usuarios?.nombre || 'Sistema'}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {new Date(h.fecha_registro).toLocaleString()}{h.observaciones ? ` — "${h.observaciones}"` : ''}
-                    </Typography>
-                  </Box>
-                ))}
-              </AccordionDetails>
-            </Accordion>
-          )}
+          {historicoCierre.length > 0 && <HistoricoCierreGrupo historico={historicoCierre} />}
         </Box>
       )}
 
