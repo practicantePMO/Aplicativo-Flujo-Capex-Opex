@@ -40,7 +40,21 @@ Los colaboradores entran con su cuenta corporativa de Microsoft. Para esto, la a
 
 ## 3. Dominios de correo permitidos
 
-Solo pueden crear cuenta las personas con correo de los dominios corporativos autorizados. Estos dominios se definen en la variable `ALLOWED_EMAIL_DOMAIN` del backend, separados por comas:
+| Dominio               | Compañia          |
+| --------------------- | ----------------- |
+| @noel.com.co          | Noel              |
+| @abimarfoods.com      | Abimar            |
+| @gcfoods.com.co       | GCFoods           |
+| @gcfoods.com          | GCFoods           |
+| @molinosantamarta.com | Molinos           |
+| @naturela.com         | Naturela          |
+| @pozuelo.cr           | Pozuelo           |
+| @tmluc.com            | Tmuluc            |
+| @serviciosnutresa.com | Servicios Nutresa |
+| @alimentosdoria.com   | Doria             |
+| @pastascomarrico.com  | Pastas            |
+| @yupi.com.co          | Yupi              |
+| @yupi.com             | Yupi              |
 
 ```
 ALLOWED_EMAIL_DOMAIN=empresa.com,filial.com.co,otraempresa.com
