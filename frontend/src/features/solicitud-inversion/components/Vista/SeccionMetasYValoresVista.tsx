@@ -79,7 +79,7 @@ function TarjetaMetas({ metas }: { metas: Meta[] }) {
         </Typography>
 
         {metas.length ? (
-          metas.map((m, i) => <TarjetaMeta key={i} meta={m} />)
+          metas.map((m) => <TarjetaMeta key={`${m.compromiso}-${m.fecha_inicio}-${m.indicador}`} meta={m} />)
         ) : (
           <SinRegistros texto="Sin metas registradas." />
         )}
@@ -125,7 +125,7 @@ function TablaValores({ valores }: { valores: Valor[] }) {
         <EncabezadoTablaValores />
 
         <TableBody>
-          {valores.map((v, i) => <FilaValor key={i} valor={v} />)}
+          {valores.map((v) => <FilaValor key={v.categoria} valor={v} />)}
         </TableBody>
       </Table>
     </TableContainer>

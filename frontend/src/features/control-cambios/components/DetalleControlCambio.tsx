@@ -333,8 +333,8 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
           {tituloSeccion('Anexos')}
           {tarjeta(
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-              {detalle.control_cambio_anexos.map((a, i) => (
-                <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+              {detalle.control_cambio_anexos.map((a) => (
+                <Box key={a.id ?? `${a.tipo}-${a.url}`} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                   <Chip label={a.tipo} size="small" />
                   <Link href={a.url} target="_blank" rel="noopener noreferrer" sx={{ wordBreak: 'break-all' }}>{a.url}</Link>
                   {a.descripcion && <Typography variant="caption" color="text.secondary">— {a.descripcion}</Typography>}
@@ -436,7 +436,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar Control de Cambios</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
+          <TextField fullWidth multiline minRows={2} label="Observación (obligatoria) *" value={comentarios}
             onChange={(e) => setComentarios(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -484,7 +484,7 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
       <Dialog open={dialogoRechazar} onClose={() => setDialogoRechazar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar Control de Cambios</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria) *" value={razonRechazo}
             onChange={(e) => setRazonRechazo(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>

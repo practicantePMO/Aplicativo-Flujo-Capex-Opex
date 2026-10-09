@@ -2,6 +2,7 @@ import { Card, CardContent, Box, Typography, Button, Grid, TextField, IconButton
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import type { Meta } from '../../types/solicitud.types';
+import { useClavesFilas } from '../../../../hooks/useClavesFilas';
 
 interface Props {
   metas: Meta[];
@@ -9,6 +10,7 @@ interface Props {
 }
 
 export function SeccionMetas({ metas, setMetas }: Props) {
+  const { claves, quitarClave } = useClavesFilas(metas.length);
   const agregarMeta = () => setMetas([...metas, { compromiso: '', fecha_inicio: '', indicador: '' }]);
 
   return (
@@ -19,7 +21,7 @@ export function SeccionMetas({ metas, setMetas }: Props) {
           <Button size="small" startIcon={<AddIcon />} onClick={agregarMeta}>Agregar meta</Button>
         </Box>
         {metas.map((m, i) => (
-          <Grid container spacing={2} key={i} sx={{ mb: 1.5, alignItems: 'center' }}>
+          <Grid container spacing={2} key={claves[i]} sx={{ mb: 1.5, alignItems: 'center' }}>
             <Grid size={{ xs: 12, md: 5 }}>
               <TextField label="Compromiso" fullWidth value={m.compromiso}
                 onChange={(e) => setMetas(metas.map((x, idx) => idx === i ? { ...x, compromiso: e.target.value } : x))} />
@@ -36,7 +38,7 @@ export function SeccionMetas({ metas, setMetas }: Props) {
                 onChange={(e) => setMetas(metas.map((x, idx) => idx === i ? { ...x, indicador: e.target.value } : x))} />
             </Grid>
             <Grid size={{ xs: 1 }}>
-              <IconButton color="error" onClick={() => setMetas(metas.filter((_, idx) => idx !== i))}><DeleteIcon /></IconButton>
+              <IconButton color="error" onClick={() => { quitarClave(i); setMetas(metas.filter((_, idx) => idx !== i)); }}><DeleteIcon /></IconButton>
             </Grid>
           </Grid>
         ))}

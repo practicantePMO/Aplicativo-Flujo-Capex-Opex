@@ -434,7 +434,7 @@ export function TablaUsuarios() {
         <DialogTitle>Editar área de {usuarioParaEditarArea?.nombre}</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus fullWidth label="Área" value={nuevaArea}
+            fullWidth label="Área" value={nuevaArea}
             onChange={(e) => setNuevaArea(e.target.value)}
             sx={{ mt: 1 }}
           />
