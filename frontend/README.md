@@ -74,6 +74,8 @@ Las versiones exactas están en `package.json` y `package-lock.json`.
 | `vite`, `@vitejs/plugin-react` | Desarrollo y compilación |
 | `typescript`, `@types/*` | Tipado estático |
 | `eslint`, `typescript-eslint`, `eslint-plugin-react-hooks`, `eslint-plugin-react-refresh` | Calidad del código |
+| `vitest`, `@vitest/coverage-v8`, `jsdom` | Pruebas automatizadas y cobertura |
+| `@testing-library/react`, `@testing-library/user-event`, `@testing-library/jest-dom`, `@testing-library/dom` | Pruebas de componentes como las usa una persona |
 
 ## 5. Arquitectura de la aplicación
 
@@ -224,16 +226,23 @@ El detalle de cada endpoint está documentado en el README del backend.
 
 ## 9. Pruebas automatizadas
 
-Actualmente el frontend **no cuenta con pruebas unitarias automatizadas**. Los flujos se validaron con pruebas funcionales manuales por escenario y por rol, usando el selector de usuarios de prueba (DevSwitcher).
+El frontend tiene pruebas automatizadas con **Vitest** y **React Testing Library**, en `src/test/pruebas/`. Cubren:
 
-Validaciones automáticas disponibles:
+- **Funciones y validaciones:** la validación de la Solicitud de Inversión, el manejo de errores y los interceptores de axios.
+- **Formularios:** Solicitud de Inversión, Orden Interna, Control de Cambios y Acta de Cierre.
+- **Acciones por rol:** aprobar, rechazar, cancelar, elegir gerente o Activos Fijos, y editar partes interesadas.
+- **Recorrido completo de la aplicación:** cada rol abre todas las pantallas de cada proyecto, más la gestión de usuarios, Mis Pendientes, el inicio de sesión con Microsoft y Google, y el backup.
+
+**Cómo se simula el backend:** las pruebas no llaman al backend real. Usan respuestas reales que se grabaron del backend para cada rol (`src/test/fixtures/respuestas-api.json`), servidas por un adaptador de axios simulado (`src/test/apiFalsa.ts`).
 
 ```bash
-npm run lint    # revisión de calidad del código (ESLint)
-npm run build   # verificación de tipos (TypeScript) y compilación
+npm test           # ejecuta las pruebas
+npm run test:cov   # ejecuta las pruebas y genera el reporte de cobertura en coverage/
+npm run lint       # revisión de calidad del código (ESLint)
+npm run build      # verificación de tipos (TypeScript) y compilación
 ```
 
-> Incorporar pruebas con Vitest y React Testing Library está en el plan de mejora.
+La cobertura combinada (líneas + ramas) es de **89,9 %** (95,3 % de líneas y 83,4 % de ramas). `coverage/` incluye los reportes `lcov.info` y `cobertura-coverage.xml`.
 
 ## 10. Imágenes
 
@@ -355,7 +364,6 @@ Variables en el archivo `.env`, que **no** se sube al repositorio. La plantilla 
 
 **Limitaciones conocidas**
 - La navegación no usa URLs por pantalla: al recargar el navegador se vuelve a la pantalla inicial.
-- No hay pruebas unitarias automatizadas (ver sección 9).
 
 ## 15. Autores
 
