@@ -205,6 +205,41 @@ const styles = {
   },
 };
 
+function BotonColapsar({ abierto, onToggleAbierto }: Pick<SidebarProps, 'abierto' | 'onToggleAbierto'>) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: abierto
+          ? 'flex-end'
+          : 'center',
+        marginBottom: 2.5,
+      }}
+    >
+      <Tooltip
+        title={
+          abierto
+            ? 'Contraer menú'
+            : 'Expandir menú'
+        }
+        placement="right"
+      >
+        <IconButton
+          onClick={onToggleAbierto}
+          size="small"
+          sx={styles.toggleButton}
+        >
+          {abierto ? (
+            <ChevronLeftIcon fontSize="small" />
+          ) : (
+            <ChevronRightIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
 export function Sidebar({
   vistaActual,
   onCambiarVista,
@@ -339,36 +374,7 @@ export function Sidebar({
         }}
       >
         {/* Botón contraer / expandir */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: abierto
-              ? 'flex-end'
-              : 'center',
-            marginBottom: 2.5,
-          }}
-        >
-          <Tooltip
-            title={
-              abierto
-                ? 'Contraer menú'
-                : 'Expandir menú'
-            }
-            placement="right"
-          >
-            <IconButton
-              onClick={onToggleAbierto}
-              size="small"
-              sx={styles.toggleButton}
-            >
-              {abierto ? (
-                <ChevronLeftIcon fontSize="small" />
-              ) : (
-                <ChevronRightIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Box>
+        <BotonColapsar abierto={abierto} onToggleAbierto={onToggleAbierto} />
 
         {/* MENÚ PRINCIPAL */}
         {abierto && (

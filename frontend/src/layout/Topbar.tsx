@@ -118,6 +118,54 @@ const styles = {
   },
 };
 
+function Marca() {
+  return (
+    <Box sx={styles.brandBox}>
+      <BusinessCenterIcon sx={styles.brandIcon} />
+      <Box>
+        <Typography sx={styles.brandTitle}>
+          Aplicativo Flujo CAPEX - OPEX
+        </Typography>
+        <Typography sx={styles.brandSubtitle}>
+          Grupo Nutresa
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+interface SeccionUsuarioProps {
+  nombre: string;
+  email: string;
+  inicial: string;
+  rolPrincipal: string;
+  onLogout: () => void;
+}
+
+function SeccionUsuario({ nombre, email, inicial, rolPrincipal, onLogout }: SeccionUsuarioProps) {
+  return (
+    <Box sx={styles.userSection}>
+      <Box sx={styles.userInfo}>
+        <Avatar sx={styles.avatar}>{inicial}</Avatar>
+        <Box sx={styles.userDetails}>
+          <Typography sx={styles.userName}>{nombre}</Typography>
+          <Typography sx={styles.userEmail}>{email}</Typography>
+        </Box>
+      </Box>
+
+      <Chip label={rolPrincipal} sx={styles.roleChip} />
+
+      <Box sx={styles.separator} />
+
+      <Tooltip title="Cerrar sesión">
+        <IconButton onClick={onLogout} sx={styles.logoutBtn}>
+          <LogoutIcon />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
 export function Topbar() {
   const { usuario, logout } = useAuth();
 
@@ -127,41 +175,18 @@ export function Topbar() {
   return (
     <AppBar position="fixed" elevation={0} sx={styles.appBar}>
       <Toolbar sx={styles.toolbar}>
-        <Box sx={styles.brandBox}>
-          <BusinessCenterIcon sx={styles.brandIcon} />
-          <Box>
-            <Typography sx={styles.brandTitle}>
-              Aplicativo Flujo CAPEX - OPEX
-            </Typography>
-            <Typography sx={styles.brandSubtitle}>
-              Grupo Nutresa
-            </Typography>
-          </Box>
-        </Box>
+        <Marca />
 
         {usuario && (
-          <Box sx={styles.userSection}>
-            <Box sx={styles.userInfo}>
-              <Avatar sx={styles.avatar}>{inicial}</Avatar>
-              <Box sx={styles.userDetails}>
-                <Typography sx={styles.userName}>{usuario.nombre}</Typography>
-                <Typography sx={styles.userEmail}>{usuario.email}</Typography>
-              </Box>
-            </Box>
-
-            <Chip label={rolPrincipal} sx={styles.roleChip} />
-
-            <Box sx={styles.separator} />
-
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={logout} sx={styles.logoutBtn}>
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <SeccionUsuario
+            nombre={usuario.nombre}
+            email={usuario.email}
+            inicial={inicial}
+            rolPrincipal={rolPrincipal}
+            onLogout={logout}
+          />
         )}
       </Toolbar>
     </AppBar>
   );
 }
-

@@ -36,6 +36,15 @@ interface Props {
   onConfirmarAprobar: () => void;
 }
 
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')}>
+      <FormControlLabel value="si" control={<Radio />} label="Sí, enviar a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="No, finaliza aquí (Aprobado)" />
+    </RadioGroup>
+  );
+}
+
 export function DialogosAccionVista({
   dialogoRechazo, setDialogoRechazo, dialogoCancelacion, setDialogoCancelacion,
   dialogoGerencia, setDialogoGerencia, dialogoElegirGerente, setDialogoElegirGerente,
@@ -115,10 +124,7 @@ export function DialogosAccionVista({
           <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1, mb: 2 }} />
           <Typography sx={{ mb: 1 }}>¿Este proyecto requiere aprobación de Presidencia?</Typography>
-          <RadioGroup value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')}>
-            <FormControlLabel value="si" control={<Radio />} label="Sí, enviar a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="No, finaliza aquí (Aprobado)" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogoGerencia(false)}>Cancelar</Button>
