@@ -188,10 +188,10 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   );
 
   const aniosDisponibles = Array.from(
-    new Set(proyectos.map((p) => p.anio_asignado ?? p.anio_proyecto).filter((a): a is number => !!a)),
+    new Set(proyectos.map((p) => p.anio_asignado ?? p.anio_proyecto).filter((a): a is number => Boolean(a))),
   ).sort((a, b) => b - a);
 
-  const puedeAplazar = (_proyecto: Proyecto) => tieneRol('PMO') || tieneRol('ADMIN');
+  const puedeAplazar = tieneRol('PMO') || tieneRol('ADMIN');
 
   return (
     <Box>
@@ -279,7 +279,7 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
                           <Chip label={estadoInfo.label} size="small" color={estadoInfo.color} sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
                         </TableCell>
                         <CeldaAcciones
-                          puedeAplazar={puedeAplazar(proyecto)}
+                          puedeAplazar={puedeAplazar}
                           onAplazar={() => setProyectoAAplazar(proyecto)}
                           onAbrir={() => onSeleccionarProyecto?.(proyecto)}
                         />

@@ -17,7 +17,7 @@ interface Props {
 
 export function PanelActaCierre({ proyectoId, companiaId, creadoPor, onIrAOrdenesInternas }: Props) {
   const { usuario, tieneRol } = useAuth();
-  const [acta, setActa] = useState<ActaCierreResumen | null | undefined>(undefined);
+  const [acta, setActa] = useState<ActaCierreResumen | null | undefined>();
   const [oiPendientesPorCerrar, setOiPendientesPorCerrar] = useState(false);
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
 

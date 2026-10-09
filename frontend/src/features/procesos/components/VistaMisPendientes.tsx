@@ -65,7 +65,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
         const data = await obtenerMisPendientes();
         setPendientes(data);
         setError(null);
-      } catch (err) {
+      } catch {
         setError('No se pudieron cargar tus tareas pendientes.');
       } finally {
         setCargando(false);
@@ -86,8 +86,7 @@ export function VistaMisPendientes({ onAbrirProyecto }: Props) {
   const pendientesFiltrados = pendientes.filter((p) => {
     if (filtroTipoProceso && p.tipo_proceso !== filtroTipoProceso) return false;
     if (filtroCompania && String(p.proyectos?.companias?.id) !== filtroCompania) return false;
-    if (filtroAnio && String(p.proyectos?.anio_asignado) !== filtroAnio) return false;
-    return true;
+    return !(filtroAnio && String(p.proyectos?.anio_asignado) !== filtroAnio);
   });
 
   if (cargando) {

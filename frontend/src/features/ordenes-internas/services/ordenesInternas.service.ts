@@ -12,7 +12,7 @@ export const obtenerOrdenInternaDetalle = async (id: number): Promise<OrdenInter
 };
 
 export const crearOrdenInterna = async (dto: CrearOrdenInternaPayload) => {
-  const { data } = await axiosClient.post(`/ordenes-internas`, dto);
+  const { data } = await axiosClient.post('/ordenes-internas', dto);
   return data as { orden_interna_id: number; proceso_id: number; mensaje: string };
 };
 

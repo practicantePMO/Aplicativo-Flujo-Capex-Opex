@@ -48,7 +48,7 @@ export function GoogleLoginButton() {
   const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID as string | undefined;
 
   useEffect(() => {
-    if (!clientId || !contenedorRef.current) return;
+    if (!clientId || !contenedorRef.current) return undefined;
 
     let cancelado = false;
 

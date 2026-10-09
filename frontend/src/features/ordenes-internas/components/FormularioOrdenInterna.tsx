@@ -95,13 +95,13 @@ function CamposSeccion2({ form, actualizar }: CamposProps) {
 }
 
 export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillControlCambioId, onCancelar, onGuardada }: Props) {
-  const [preguntaRespondida, setPreguntaRespondida] = useState(!!ordenInternaId || !!prefillControlCambioId);
+  const [preguntaRespondida, setPreguntaRespondida] = useState(Boolean(ordenInternaId) || Boolean(prefillControlCambioId));
   const [form, setForm] = useState<CrearOrdenInternaPayload>({
     ...CAMPO_VACIO,
     proyecto_id: proyectoId,
     ...(prefillControlCambioId ? { es_control_cambios: true, control_cambio_id: prefillControlCambioId } : {}),
   });
-  const [cargando, setCargando] = useState(!!ordenInternaId);
+  const [cargando, setCargando] = useState(Boolean(ordenInternaId));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -216,7 +216,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           <Box sx={{ mt: 2 }}>
             {controlesCambioElegibles.length === 0 ? (
               <Alert severity="warning">
-                No hay ningún Control de Cambios de este proyecto marcado como "Requiere Orden Interna". Primero crea (o marca) el Control de Cambios correspondiente.
+                No hay ningún Control de Cambios de este proyecto marcado como &quot;Requiere Orden Interna&quot;. Primero crea (o marca) el Control de Cambios correspondiente.
               </Alert>
             ) : (
               <TextField

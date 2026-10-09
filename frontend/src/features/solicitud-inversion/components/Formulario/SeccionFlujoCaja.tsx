@@ -39,6 +39,11 @@ interface Props {
   setFlujos: React.Dispatch<React.SetStateAction<FlujoCaja[]>>;
 }
 
+// Devuelve una copia del objeto sin las claves que cumplan la condición.
+function sinClaves<O extends object>(obj: O, quitar: (clave: string) => boolean): O {
+  return Object.fromEntries(Object.entries(obj).filter(([clave]) => !quitar(clave))) as O;
+}
+
 interface SelectorTiposProps {
   tieneCapex: boolean;
   tieneGcapex: boolean;
@@ -223,18 +228,8 @@ export function SeccionFlujoCaja({
     if (safeAniosFlujo.length <= 1) return;
     setAniosFlujo(safeAniosFlujo.filter((a) => Number(a) !== Number(anioEliminar)));
     setFlujos((prev) => (Array.isArray(prev) ? prev.filter((f) => Number(f.anio) !== Number(anioEliminar)) : []));
-    setMesesSeleccionados((prev) => {
-      const nuevo = { ...(prev || {}) };
-      delete nuevo[anioEliminar];
-      return nuevo;
-    });
-    setTiposPorMes((prev) => {
-      const nuevo = { ...(prev || {}) };
-      Object.keys(nuevo).forEach((clave) => {
-        if (clave.startsWith(`${anioEliminar}_`)) delete nuevo[clave];
-      });
-      return nuevo;
-    });
+    setMesesSeleccionados((prev) => sinClaves(prev || {}, (clave) => clave === String(anioEliminar)));
+    setTiposPorMes((prev) => sinClaves(prev || {}, (clave) => clave.startsWith(`${anioEliminar}_`)));
   };
 
   const quitarFlujosDeTipo = (anio: number, tipos: Tipo[]) => {
@@ -321,11 +316,8 @@ export function SeccionFlujoCaja({
           (f) => !(Number(f.anio) === Number(anio) && quitados.includes(Number(f.mes))),
         ),
       );
-      setTiposPorMes((prev) => {
-        const nuevo = { ...(prev || {}) };
-        quitados.forEach((m) => delete nuevo[claveMes(anio, m)]);
-        return nuevo;
-      });
+      const clavesQuitadas = quitados.map((m) => claveMes(anio, m));
+      setTiposPorMes((prev) => sinClaves(prev || {}, (clave) => clavesQuitadas.includes(clave)));
     }
   };
 

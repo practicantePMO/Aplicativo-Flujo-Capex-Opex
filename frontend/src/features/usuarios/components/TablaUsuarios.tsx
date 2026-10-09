@@ -192,8 +192,7 @@ export function TablaUsuarios() {
     if (filtroSoloPendientes && u.usuario_roles_compania.length > 0) return false;
     if (filtroArea && u.area !== filtroArea) return false;
     if (filtroEstado === 'activo' && !u.activo) return false;
-    if (filtroEstado === 'inactivo' && u.activo) return false;
-    return true;
+    return !(filtroEstado === 'inactivo' && u.activo);
   });
 
   const manejarQuitarRol = async (asignacionId: number) => {
@@ -250,7 +249,7 @@ export function TablaUsuarios() {
   };
 
   const abrirEditarEmpresa = (u: Usuario) => {
-    const empresaActual = u.empresa ? empresas.find((e) => e.id === u.empresa!.id) || null : null;
+    const empresaActual = u.empresa ? empresas.find((e) => e.id === u.empresa?.id) || null : null;
     setNuevaEmpresa(empresaActual);
     setUsuarioParaEditarEmpresa(u);
   };
@@ -416,7 +415,7 @@ export function TablaUsuarios() {
         onAsignado={() => { setUsuarioParaAsignar(null); cargarUsuarios(); }}
       />
 
-      <Dialog open={!!usuarioParaDesactivar} onClose={() => setUsuarioParaDesactivar(null)}>
+      <Dialog open={Boolean(usuarioParaDesactivar)} onClose={() => setUsuarioParaDesactivar(null)}>
         <DialogTitle>¿Desactivar a {usuarioParaDesactivar?.nombre}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -431,7 +430,7 @@ export function TablaUsuarios() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={!!usuarioParaEditarArea} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
+      <Dialog open={Boolean(usuarioParaEditarArea)} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
         <DialogTitle>Editar área de {usuarioParaEditarArea?.nombre}</DialogTitle>
         <DialogContent>
           <TextField
@@ -448,7 +447,7 @@ export function TablaUsuarios() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!usuarioParaEditarEmpresa} onClose={() => setUsuarioParaEditarEmpresa(null)} fullWidth maxWidth="xs">
+      <Dialog open={Boolean(usuarioParaEditarEmpresa)} onClose={() => setUsuarioParaEditarEmpresa(null)} fullWidth maxWidth="xs">
         <DialogTitle>Editar empresa de {usuarioParaEditarEmpresa?.nombre}</DialogTitle>
         <DialogContent>
           <Autocomplete

@@ -256,8 +256,14 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarElegirActivosFijos = async () => {
-    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
-    if (!activosFijosElegido) return avisar('Debes elegir a quién de Activos Fijos enviar el proceso.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!activosFijosElegido) {
+      avisar('Debes elegir a quién de Activos Fijos enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, undefined, activosFijosElegido.id);
@@ -271,8 +277,14 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarElegirGerente = async () => {
-    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
-    if (!gerenteElegido) return avisar('Debes elegir a qué gerente enviar el proceso.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
+    if (!gerenteElegido) {
+      avisar('Debes elegir a qué gerente enviar el proceso.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, undefined, gerenteElegido.id);
@@ -286,7 +298,10 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarAprobar = async () => {
-    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios);
@@ -300,7 +315,10 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarAprobarGerencia = async () => {
-    if (!comentarios.trim()) return avisar('La observación es obligatoria para aprobar.');
+    if (!comentarios.trim()) {
+      avisar('La observación es obligatoria para aprobar.');
+      return;
+    }
     setProcesando(true);
     try {
       await aprobarActaCierre(procesoId, comentarios, enviarPresidencia === 'si');
@@ -314,7 +332,10 @@ export function DetalleActaCierre({ procesoId, companiaId, onCambio, onEditar }:
   };
 
   const confirmarRechazar = async () => {
-    if (!razonRechazo.trim()) return avisar('La razón del rechazo es obligatoria.');
+    if (!razonRechazo.trim()) {
+      avisar('La razón del rechazo es obligatoria.');
+      return;
+    }
     setProcesando(true);
     try {
       await rechazarActaCierre(procesoId, razonRechazo);
