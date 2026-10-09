@@ -52,6 +52,15 @@ describe('AuthService', () => {
       ).toThrow(UnauthorizedException);
     });
 
+    it('acepta varios dominios separados por comas (con o sin @ y espacios)', () => {
+      process.env.ALLOWED_EMAIL_DOMAIN = 'empresa.com, @filial.com.co ,otra.com';
+      expect(() => validarDominioCorporativo('ana@empresa.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('Luis@Filial.com.co')).not.toThrow();
+      expect(() => validarDominioCorporativo('eva@otra.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('x@gmail.com')).toThrow(UnauthorizedException);
+      expect(() => validarDominioCorporativo('x@filial.com')).toThrow(UnauthorizedException);
+    });
+
     it('debe fallar de forma segura si ALLOWED_EMAIL_DOMAIN no está configurado', () => {
       delete process.env.ALLOWED_EMAIL_DOMAIN;
       expect(() => validarDominioCorporativo('laura.pm@empresa.com')).toThrow(
