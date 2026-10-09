@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import type { Proyecto } from '../../proyectos/types/proyecto.types';
-import type { SolicitudInversionDetalle, FlujoCaja, Meta } from '../types/solicitud.types';
+import type { SolicitudInversionDetalle, FlujoCaja, Meta, Grupo, Programa, Subprograma, UsuarioActivo } from '../types/solicitud.types';
+import { mensajeDelBackend } from '../../../utils/errores';
 import {
   obtenerJerarquia,
   obtenerCategorias,
@@ -8,6 +9,7 @@ import {
   crearSolicitudInversion,
   actualizarSolicitudInversion,
 } from '../services/solicitudInversion.service';
+import { validarYConstruirPayload } from './validarSolicitud';
 
 type Tipo = 'CAPEX' | 'GCAPEX' | 'OPEX';
 type Moneda = 'USD' | 'COP';
@@ -21,17 +23,17 @@ export function useSolicitudForm(
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [grupos, setGrupos] = useState<any[]>([]);
-  const [programas, setProgramas] = useState<any[]>([]);
-  const [subprogramas, setSubprogramas] = useState<any[]>([]);
+  const [grupos, setGrupos] = useState<Grupo[]>([]);
+  const [programas, setProgramas] = useState<Programa[]>([]);
+  const [subprogramas, setSubprogramas] = useState<Subprograma[]>([]);
   const [categorias, setCategorias] = useState<{ id: number; nombre: string; requiere_evaluacion_obligatoria: boolean }[]>([]);
-  const [usuarios, setUsuarios] = useState<any[]>([]);
+  const [usuarios, setUsuarios] = useState<UsuarioActivo[]>([]);
 
   // 1. Extraer flujos existentes 
   const flujosGuardados = (solicitudExistente?.solicitudes_inversion?.solicitud_flujo_caja || []) as FlujoCaja[];
 
   // 2. Determinar el año base 
-  const anioBase = (proyecto as any)?.anio_proyecto || new Date().getFullYear();
+  const anioBase = proyecto?.anio_proyecto || new Date().getFullYear();
 
   // 3. Configurar años iniciales (flujos existentes o el año base si es nuevo)
   const initialAnios = flujosGuardados.length > 0
@@ -47,7 +49,7 @@ export function useSolicitudForm(
   if (flujosGuardados.length > 0) {
     flujosGuardados.forEach((f) => {
       const anio = Number(f.anio);
-      const tipo = (f as any).tipo as Tipo;
+      const tipo = f.tipo;
       const mes = Number(f.mes);
 
       if (!initialTipos[anio]) initialTipos[anio] = [];
@@ -68,7 +70,7 @@ export function useSolicitudForm(
     initialMeses[anioBase] = [];
   }
 
-  const esNuevaGuardada = Boolean((solicitudExistente?.solicitudes_inversion as any)?.categoria_id);
+  const esNuevaGuardada = Boolean(solicitudExistente?.solicitudes_inversion?.categoria_id);
   const esTradicionalGuardada = Boolean(solicitudExistente?.solicitudes_inversion?.subprograma_id);
 
   // 5. INICIALIZAR EL FORMULARIO
@@ -79,7 +81,7 @@ export function useSolicitudForm(
     grupoId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programas?.id_grupo || ('' as number | ''),
     programaId: solicitudExistente?.solicitudes_inversion?.subprogramas?.programa_id || ('' as number | ''),
     subprogramaId: solicitudExistente?.solicitudes_inversion?.subprograma_id || ('' as number | ''),
-    categoriaId: (solicitudExistente?.solicitudes_inversion as any)?.categoria_id || ('' as number | ''),
+    categoriaId: solicitudExistente?.solicitudes_inversion?.categoria_id || ('' as number | ''),
 
     entregablePlaneado: solicitudExistente?.solicitudes_inversion?.entregable_planeado || '',
     tieneEvaluacionFinanciera: solicitudExistente?.solicitudes_inversion?.tiene_evaluacion_financiera ?? false,
@@ -91,7 +93,7 @@ export function useSolicitudForm(
     payback: solicitudExistente?.solicitudes_inversion?.solicitud_evaluacion_financiera?.payback?.toString() || '',
 
     metas: (solicitudExistente?.solicitudes_inversion?.solicitud_metas?.length
-      ? solicitudExistente.solicitudes_inversion.solicitud_metas.map((m: any) => ({
+      ? solicitudExistente.solicitudes_inversion.solicitud_metas.map((m) => ({
           compromiso: m.compromiso || '',
           fecha_inicio: m.fecha_inicio ? String(m.fecha_inicio).split('T')[0] : '',
           indicador: m.indicador || '',
@@ -108,7 +110,7 @@ export function useSolicitudForm(
     partesInteresadas: (solicitudExistente?.asignaciones_proceso || [])
       .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
       .map((a) => a.usuarios)
-      .filter((u): u is any => !!u),
+      .filter((u): u is NonNullable<typeof u> => Boolean(u)),
 
     linkActa: solicitudExistente?.solicitudes_inversion?.link_acta_aprobacion || '',
     linkPlan: solicitudExistente?.solicitudes_inversion?.link_plan_proyecto || '',
@@ -119,7 +121,7 @@ export function useSolicitudForm(
     (async () => {
       try {
         setCargandoCatalogos(true);
-        const companiaId = proyecto?.companias?.id || (proyecto as any)?.compania_id || 1;
+        const companiaId = proyecto?.companias?.id || proyecto?.compania_id || 1;
 
         const [resJerarquia, resCategorias, resUsuarios] = await Promise.allSettled([
           obtenerJerarquia(),
@@ -128,7 +130,7 @@ export function useSolicitudForm(
         ]);
 
         if (resJerarquia.status === 'fulfilled') setGrupos(resJerarquia.value);
-        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value as any);
+        if (resCategorias.status === 'fulfilled') setCategorias(resCategorias.value);
         if (resUsuarios.status === 'fulfilled') setUsuarios(resUsuarios.value);
       } catch (err) {
         console.error('Error cargando catálogos:', err);
@@ -141,8 +143,8 @@ export function useSolicitudForm(
 
   useEffect(() => {
     if (form.grupoId && grupos.length > 0) {
-      const g = grupos.find((item) => item.id === Number(form.grupoId));
-      setProgramas(g?.programas || []);
+      const grupo = grupos.find((item) => item.id === Number(form.grupoId));
+      setProgramas(grupo?.programas || []);
     } else {
       setProgramas([]);
     }
@@ -150,8 +152,8 @@ export function useSolicitudForm(
 
   useEffect(() => {
     if (form.programaId && programas.length > 0) {
-      const p = programas.find((item) => item.id === Number(form.programaId));
-      setSubprogramas(p?.subprogramas || []);
+      const programa = programas.find((item) => item.id === Number(form.programaId));
+      setSubprogramas(programa?.subprogramas || []);
     } else {
       setSubprogramas([]);
     }
@@ -174,7 +176,7 @@ export function useSolicitudForm(
 
   const sumarFlujos = (tipos: Tipo[], moneda: Moneda) =>
     (form.flujos || [])
-      .filter((f) => tipos.includes((f as any).tipo) && ((f as any).moneda || 'COP') === moneda)
+      .filter((f) => tipos.includes(f.tipo) && (f.moneda || 'COP') === moneda)
       .reduce((acc, f) => acc + (Number(f.monto) || 0), 0);
 
   const activoUsd = sumarFlujos(['CAPEX'], 'USD');
@@ -187,112 +189,7 @@ export function useSolicitudForm(
       setGuardando(true);
       setError(null);
 
-      // --- Categorización: al menos una de las dos, y completa la que se marque ---
-      if (!form.incluyeTradicional && !form.incluyeNueva) {
-        throw new Error('Debes marcar al menos una clasificación: Tradicional, Nueva, o ambas.');
-      }
-      if (form.incluyeTradicional && !form.subprogramaId) {
-        throw new Error('Debes seleccionar el Grupo, Programa y Subprograma (clasificación Tradicional).');
-      }
-      if (form.incluyeNueva && !form.categoriaId) {
-        throw new Error('Debes seleccionar una Categoría (clasificación Nueva).');
-      }
-
-      // --- Entregable planeado ---
-      if (!form.entregablePlaneado || !form.entregablePlaneado.trim()) {
-        throw new Error('Debes describir el entregable planeado.');
-      }
-
-      // --- Evaluación financiera / justificación ---
-      if (form.tieneEvaluacionFinanciera) {
-        if (form.tir === '' || form.vpn === '' || form.payback === '') {
-          throw new Error('Debes ingresar TIR, VPN y Payback si el proyecto tiene evaluación financiera.');
-        }
-      } else if (!form.justificacion || !form.justificacion.trim()) {
-        throw new Error('Debes ingresar una justificación si el proyecto no tiene evaluación financiera.');
-      }
-
-      // --- Metas: al menos una, completa ---
-      const metasCompletas = (form.metas || [])
-        .filter((m) => m.compromiso?.trim() && m.fecha_inicio && m.indicador?.trim())
-        .map((m) => ({ compromiso: m.compromiso.trim(), fecha_inicio: m.fecha_inicio, indicador: m.indicador.trim() }));
-      if (metasCompletas.length === 0) {
-        throw new Error('Debes registrar al menos una meta completa (compromiso, fecha e indicador).');
-      }
-
-      if (!form.trm || form.trm.trim() === '') {
-        throw new Error('Debes ingresar la TRM.');
-      }
-
-       // --- Flujo de caja: cada mes que el PM marcó debe tener valor > 0 SOLO
-      // en los tipos que él mismo dijo que aplican ese mes puntual ---
-      for (const anio of form.aniosFlujo || []) {
-        const tiposAnio = form.tiposSeleccionados[anio] || [];
-        const mesesAnio = form.mesesSeleccionados[anio] || [];
-        if (tiposAnio.length > 0 && mesesAnio.length === 0) {
-          throw new Error(`Marca al menos un mes para el año ${anio} en el Flujo de Caja.`);
-        }
-        for (const mesNum of mesesAnio) {
-          const claveMes = `${anio}_${mesNum}`;
-          // Si el mes no tiene selección puntual, por defecto aplican todos los del año.
-          const tiposDeEsteMes = form.tiposPorMes[claveMes] || tiposAnio;
-          if (tiposDeEsteMes.length === 0) {
-            throw new Error(`Elige al menos un tipo (CAPEX/GCAPEX/OPEX) para el mes seleccionado (año ${anio}).`);
-          }
-          for (const tipo of tiposDeEsteMes) {
-            const monto = (form.flujos || [])
-              .find((f) => Number(f.anio) === Number(anio) && Number(f.mes) === Number(mesNum) && (f as any).tipo === tipo)
-              ?.monto;
-            if (!monto || Number(monto) <= 0) {
-              throw new Error(`Falta ingresar el valor de ${tipo} para el mes seleccionado (año ${anio}). No puede quedar en blanco o en 0.`);
-            }
-          }
-        }
-      }
-
-      const flujosLimpios = (form.flujos || [])
-        .filter((f) => Number(f.monto) > 0)
-        .map((f) => ({
-          anio: Number(f.anio),
-          mes: Number(f.mes),
-          tipo: (f as any).tipo,
-          moneda: (f as any).moneda || 'COP',
-          monto: Number(f.monto),
-        }));
-      if (flujosLimpios.length === 0) {
-        throw new Error('Debes registrar al menos un monto en la tabla de Flujo de Caja.');
-      }
-
-      // --- Partes interesadas: al menos una ---
-      if (!form.partesInteresadas || form.partesInteresadas.length === 0) {
-        throw new Error('Debes asignar al menos una parte interesada para la etapa de verificación.');
-      }
-
-      // --- Documentos: los 3 links son obligatorios ---
-      if (!form.linkActa?.trim() || !form.linkPlan?.trim() || !form.linkPresentacion?.trim()) {
-        throw new Error('Debes adjuntar los 3 links de documentos (Acta, Plan de proyecto y Presentación).');
-      }
-
-      const dtoPayload: any = {
-        proyecto_id: proyecto.id,
-        incluye_tradicional: form.incluyeTradicional,
-        incluye_nueva: form.incluyeNueva,
-        subprograma_id: form.incluyeTradicional && form.subprogramaId ? Number(form.subprogramaId) : undefined,
-        categoria_id: form.incluyeNueva && form.categoriaId ? Number(form.categoriaId) : undefined,
-        entregable_planeado: form.entregablePlaneado || undefined,
-        tiene_evaluacion_financiera: Boolean(form.tieneEvaluacionFinanciera),
-        trm: Number(form.trm),
-        justificacion_sin_evaluacion: !form.tieneEvaluacionFinanciera ? form.justificacion.trim() : undefined,
-        evaluacion_financiera: form.tieneEvaluacionFinanciera
-          ? { tir: Number(form.tir) || 0, vpn: Number(form.vpn) || 0, payback: Number(form.payback) || 0 }
-          : undefined,
-        metas: metasCompletas,
-        flujos_caja: flujosLimpios,
-        partes_interesadas_ids: (form.partesInteresadas || []).map((u) => u.id),
-        link_acta_aprobacion: form.linkActa || undefined,
-        link_plan_proyecto: form.linkPlan || undefined,
-        link_presentacion_puertas_3: form.linkPresentacion || undefined,
-      };
+      const dtoPayload = validarYConstruirPayload(form, proyecto.id);
 
       let resProcesoId: number;
       if (solicitudExistente) {
@@ -304,8 +201,8 @@ export function useSolicitudForm(
       }
 
       if (onCreada) onCreada(resProcesoId);
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar la solicitud.');
+    } catch (err) {
+      setError((err instanceof Error ? err.message : '') || mensajeDelBackend(err) || 'Error al guardar la solicitud.');
     } finally {
       setGuardando(false);
     }

@@ -1,3 +1,6 @@
 .env
 node_modules/
 .\backup-db.ps1
+backups/
+backend/dist/
+coverage/

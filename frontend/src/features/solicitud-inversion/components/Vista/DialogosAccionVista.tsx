@@ -36,6 +36,15 @@ interface Props {
   onConfirmarAprobar: () => void;
 }
 
+function OpcionesPresidencia({ valor, onCambiar }: { valor: 'si' | 'no'; onCambiar: (val: 'si' | 'no') => void }) {
+  return (
+    <RadioGroup value={valor} onChange={(e) => onCambiar(e.target.value as 'si' | 'no')}>
+      <FormControlLabel value="si" control={<Radio />} label="Sí, enviar a Presidencia" />
+      <FormControlLabel value="no" control={<Radio />} label="No, finaliza aquí (Aprobado)" />
+    </RadioGroup>
+  );
+}
+
 export function DialogosAccionVista({
   dialogoRechazo, setDialogoRechazo, dialogoCancelacion, setDialogoCancelacion,
   dialogoGerencia, setDialogoGerencia, dialogoElegirGerente, setDialogoElegirGerente,
@@ -59,7 +68,7 @@ export function DialogosAccionVista({
             onChange={(_, value) => setGerenteElegido(value)}
             renderInput={(params) => <TextField {...params} label="¿A qué gerente se envía el proceso?" sx={{ mt: 1, mb: 2 }} />}
           />
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} />
         </DialogContent>
         <DialogActions>
@@ -72,7 +81,7 @@ export function DialogosAccionVista({
       <Dialog open={dialogoAprobar} onClose={() => setDialogoAprobar(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar etapa</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -85,7 +94,7 @@ export function DialogosAccionVista({
       <Dialog open={dialogoRechazo} onClose={() => setDialogoRechazo(false)} fullWidth maxWidth="sm">
         <DialogTitle>Rechazar solicitud</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Razón del rechazo (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1 }} />
         </DialogContent>
         <DialogActions>
@@ -99,7 +108,7 @@ export function DialogosAccionVista({
         <DialogTitle>Cancelar definitivamente</DialogTitle>
         <DialogContent>
           <Alert severity="warning" sx={{ mb: 2 }}>Esta acción es irreversible: cierra el proyecto por completo.</Alert>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Razón de la cancelación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Razón de la cancelación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} />
         </DialogContent>
         <DialogActions>
@@ -112,13 +121,10 @@ export function DialogosAccionVista({
       <Dialog open={dialogoGerencia} onClose={() => setDialogoGerencia(false)} fullWidth maxWidth="sm">
         <DialogTitle>Aprobar en Gerencia</DialogTitle>
         <DialogContent>
-          <TextField autoFocus fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
+          <TextField fullWidth multiline minRows={3} label="Observación / justificación (obligatoria)"
             value={razon} onChange={(e) => setRazon(e.target.value)} sx={{ mt: 1, mb: 2 }} />
           <Typography sx={{ mb: 1 }}>¿Este proyecto requiere aprobación de Presidencia?</Typography>
-          <RadioGroup value={enviarPresidencia} onChange={(e) => setEnviarPresidencia(e.target.value as 'si' | 'no')}>
-            <FormControlLabel value="si" control={<Radio />} label="Sí, enviar a Presidencia" />
-            <FormControlLabel value="no" control={<Radio />} label="No, finaliza aquí (Aprobado)" />
-          </RadioGroup>
+          <OpcionesPresidencia valor={enviarPresidencia} onCambiar={setEnviarPresidencia} />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDialogoGerencia(false)}>Cancelar</Button>
@@ -136,9 +142,9 @@ export function DialogosAccionVista({
             getOptionLabel={(u) => `${u.nombre} (${u.email})`}
             value={partesSeleccionadas}
             onChange={(_, value) => setPartesSeleccionadas(value)}
-            renderTags={(value, getTagProps) =>
+            renderValue={(value, getItemProps) =>
               value.map((option, index) => {
-                const { key, ...tagProps } = getTagProps({ index });
+                const { key, ...tagProps } = getItemProps({ index });
                 return <Chip key={option.id || key} label={option.nombre} {...tagProps} />;
               })
             }

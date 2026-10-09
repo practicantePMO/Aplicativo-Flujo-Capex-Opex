@@ -11,57 +11,11 @@ import {
 import LogoutIcon from '@mui/icons-material/Logout';
 import BusinessCenterIcon from '@mui/icons-material/BusinessCenter';
 import { useAuth } from '../auth/AuthContext';
-
-export function Topbar() {
-  const { usuario, logout } = useAuth();
-
-  const rolPrincipal = usuario?.roles?.[0]?.rol.nombre || 'Sin Rol';
-  const inicial = usuario?.nombre?.charAt(0)?.toUpperCase() || 'U';
-
-  return (
-    <AppBar position="fixed" elevation={0} sx={styles.appBar}>
-      <Toolbar sx={styles.toolbar}>
-        <Box sx={styles.brandBox}>
-          <BusinessCenterIcon sx={styles.brandIcon} />
-          <Box>
-            <Typography sx={styles.brandTitle}>
-              Aplicativo Flujo CAPEX - OPEX
-            </Typography>
-            <Typography sx={styles.brandSubtitle}>
-              Grupo Nutresa
-            </Typography>
-          </Box>
-        </Box>
-
-        {usuario && (
-          <Box sx={styles.userSection}>
-            <Box sx={styles.userInfo}>
-              <Avatar sx={styles.avatar}>{inicial}</Avatar>
-              <Box sx={styles.userDetails}>
-                <Typography sx={styles.userName}>{usuario.nombre}</Typography>
-                <Typography sx={styles.userEmail}>{usuario.email}</Typography>
-              </Box>
-            </Box>
-
-            <Chip label={rolPrincipal} sx={styles.roleChip} />
-
-            <Box sx={styles.separator} />
-
-            <Tooltip title="Cerrar sesión">
-              <IconButton onClick={logout} sx={styles.logoutBtn}>
-                <LogoutIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        )}
-      </Toolbar>
-    </AppBar>
-  );
-}
+import type { Theme } from '@mui/material/styles';
 
 const styles = {
   appBar: {
-    zIndex: (theme: any) => theme.zIndex.drawer + 1,
+    zIndex: (theme: Theme) => theme.zIndex.drawer + 1,
     backgroundColor: '#ffffff',
     borderBottom: '1px solid #e2e8f0',
     boxShadow: '0 1px 3px rgba(0,0,0,.04)',
@@ -163,3 +117,76 @@ const styles = {
     },
   },
 };
+
+function Marca() {
+  return (
+    <Box sx={styles.brandBox}>
+      <BusinessCenterIcon sx={styles.brandIcon} />
+      <Box>
+        <Typography sx={styles.brandTitle}>
+          Aplicativo Flujo CAPEX - OPEX
+        </Typography>
+        <Typography sx={styles.brandSubtitle}>
+          Grupo Nutresa
+        </Typography>
+      </Box>
+    </Box>
+  );
+}
+
+interface SeccionUsuarioProps {
+  nombre: string;
+  email: string;
+  inicial: string;
+  rolPrincipal: string;
+  onLogout: () => void;
+}
+
+function SeccionUsuario({ nombre, email, inicial, rolPrincipal, onLogout }: SeccionUsuarioProps) {
+  return (
+    <Box sx={styles.userSection}>
+      <Box sx={styles.userInfo}>
+        <Avatar sx={styles.avatar}>{inicial}</Avatar>
+        <Box sx={styles.userDetails}>
+          <Typography sx={styles.userName}>{nombre}</Typography>
+          <Typography sx={styles.userEmail}>{email}</Typography>
+        </Box>
+      </Box>
+
+      <Chip label={rolPrincipal} sx={styles.roleChip} />
+
+      <Box sx={styles.separator} />
+
+      <Tooltip title="Cerrar sesión">
+        <IconButton onClick={onLogout} sx={styles.logoutBtn}>
+          <LogoutIcon />
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
+export function Topbar() {
+  const { usuario, logout } = useAuth();
+
+  const rolPrincipal = usuario?.roles?.[0]?.rol?.nombre || 'Sin Rol';
+  const inicial = usuario?.nombre?.charAt(0)?.toUpperCase() || 'U';
+
+  return (
+    <AppBar position="fixed" elevation={0} sx={styles.appBar}>
+      <Toolbar sx={styles.toolbar}>
+        <Marca />
+
+        {usuario && (
+          <SeccionUsuario
+            nombre={usuario.nombre}
+            email={usuario.email}
+            inicial={inicial}
+            rolPrincipal={rolPrincipal}
+            onLogout={logout}
+          />
+        )}
+      </Toolbar>
+    </AppBar>
+  );
+}

@@ -10,7 +10,12 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
-import { SolicitudInversionHelpersService, REGLA_POR_ETAPA } from './solicitud-inversion-helpers.service';
+import {
+  SolicitudInversionHelpersService,
+  REGLA_POR_ETAPA,
+  validarClasificacion,
+  calcularValoresDesdeFlujo,
+} from './solicitud-inversion-helpers.service';
 import { CrearSolicitudInversionDto } from './dto/crear-solicitud-inversion.dto';
 import { RechazarSolicitudDto, AprobarSolicitudDto } from './dto/cambiar-estado-solicitud.dto';
 import { ActualizarPartesInteresadasDto } from './dto/actualizar-partes-interesadas.dto';
@@ -50,7 +55,7 @@ export class SolicitudInversionService {
       );
     }
 
-    const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
+    const { tipoClasificacion } = await validarClasificacion(this.prisma, dto);
     await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, proyecto.compania_id, usuarioId);
 
     try {
@@ -91,9 +96,7 @@ export class SolicitudInversionService {
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
           });
           await tx.solicitud_valores.createMany({
-            data: this.helpers
-              .calcularValoresDesdeFlujo(dto.flujos_caja)
-              .map((v) => ({ ...v, solicitud_id: solicitud.id })),
+            data: calcularValoresDesdeFlujo(dto.flujos_caja).map((v) => ({ ...v, solicitud_id: solicitud.id })),
           });
         }
         if (dto.partes_interesadas_ids?.length) {
@@ -381,7 +384,7 @@ export class SolicitudInversionService {
           });
         }
       } else if (REGLA_POR_ETAPA[nuevoEstado]?.roles) {
-        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles!, companiaId);
+        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles ?? [], companiaId);
         if (destinatariosSiguiente.length) {
           await this.notificaciones.encolarNotificacion({
             tipo: 'NUEVA_SOLICITUD',
@@ -586,7 +589,7 @@ export class SolicitudInversionService {
       throw new ForbiddenException('No tienes permisos para modificar este borrador.');
     }
 
-    const { tipoClasificacion } = await this.helpers.validarClasificacion(this.prisma, dto);
+    const { tipoClasificacion } = await validarClasificacion(this.prisma, dto);
     await this.permisos.validarPartesInteresadas(dto.partes_interesadas_ids, companiaId, solicitud.responsable_pm_id);
 
     try {
@@ -636,9 +639,7 @@ export class SolicitudInversionService {
             data: dto.flujos_caja.map((f) => ({ ...f, solicitud_id: solicitud.id })),
           });
           await tx.solicitud_valores.createMany({
-            data: this.helpers
-              .calcularValoresDesdeFlujo(dto.flujos_caja)
-              .map((v) => ({ ...v, solicitud_id: solicitud.id })),
+            data: calcularValoresDesdeFlujo(dto.flujos_caja).map((v) => ({ ...v, solicitud_id: solicitud.id })),
           });
         }
 

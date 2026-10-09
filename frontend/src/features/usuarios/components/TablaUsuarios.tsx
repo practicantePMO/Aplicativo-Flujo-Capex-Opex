@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   Box, Card, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
   Typography, TextField, InputAdornment, Chip, IconButton, Tooltip,
@@ -16,9 +17,125 @@ import { obtenerUsuarios, obtenerRolesDisponibles, quitarRol, cambiarActivoUsuar
 import { obtenerCompanias, obtenerEmpresas } from '../../proyectos/services/proyectos.service';
 import { DialogoAsignarRol } from './DialogoAsignarRol';
 import { useAuth } from '../../../auth/AuthContext';
+import { mensajeDelBackend } from '../../../utils/errores';
+import { useNotificaciones } from '../../../notificaciones/useNotificaciones';
+
+const styles = {
+  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
+  title: { fontWeight: 700, color: '#0e381e' },
+  filterCard: { p: 2, mb: 2.5 },
+  tableCard: { borderRadius: 3, overflow: 'hidden' },
+  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
+  tableHeaderRow: { backgroundColor: '#f8fafc' },
+  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
+  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
+  rolChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.7rem' },
+};
+
+interface FilaFiltrosProps {
+  areasDisponibles: string[];
+  filtroArea: string;
+  setFiltroArea: (val: string) => void;
+  filtroEstado: string;
+  setFiltroEstado: (val: string) => void;
+  filtroSoloPendientes: boolean;
+  setFiltroSoloPendientes: Dispatch<SetStateAction<boolean>>;
+}
+
+function FilaFiltros({
+  areasDisponibles, filtroArea, setFiltroArea, filtroEstado, setFiltroEstado,
+  filtroSoloPendientes, setFiltroSoloPendientes,
+}: FilaFiltrosProps) {
+  return (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
+      <TextField
+        select size="small" label="Área" value={filtroArea}
+        onChange={(e) => setFiltroArea(e.target.value)} sx={{ minWidth: 180 }}
+      >
+        <MenuItem value="">Todas las áreas</MenuItem>
+        {areasDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+      </TextField>
+
+      <TextField
+        select size="small" label="Estado" value={filtroEstado}
+        onChange={(e) => setFiltroEstado(e.target.value)} sx={{ minWidth: 160 }}
+      >
+        <MenuItem value="">Todos</MenuItem>
+        <MenuItem value="activo">Activos</MenuItem>
+        <MenuItem value="inactivo">Inactivos</MenuItem>
+      </TextField>
+
+      <Button
+        size="small"
+        variant={filtroSoloPendientes ? 'contained' : 'outlined'}
+        color="warning"
+        onClick={() => setFiltroSoloPendientes((v) => !v)}
+        sx={{ borderRadius: '10px', textTransform: 'none' }}
+      >
+        {filtroSoloPendientes ? '✓ ' : ''}Solo en espera de rol
+      </Button>
+
+      {(filtroArea || filtroEstado || filtroSoloPendientes) && (
+        <Button
+          size="small" color="inherit"
+          onClick={() => { setFiltroArea(''); setFiltroEstado(''); setFiltroSoloPendientes(false); }}
+          sx={{ color: '#64748b', textTransform: 'none' }}
+        >
+          Limpiar filtros
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+function EncabezadoTablaUsuarios() {
+  return (
+    <TableHead>
+      <TableRow sx={styles.tableHeaderRow}>
+        <TableCell sx={styles.tableHeaderCell}>USUARIO</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ÁREA</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>EMPRESA</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ROLES</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
+        <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+interface CeldaEstadoProps {
+  activo: boolean;
+  esUnoMismo: boolean;
+  puedeModificar: boolean;
+  onCambiar: () => void;
+}
+
+function CeldaEstado({ activo, esUnoMismo, puedeModificar, onCambiar }: CeldaEstadoProps) {
+  return (
+    <TableCell>
+      <Tooltip title={esUnoMismo ? 'No puedes modificar tu propia cuenta' : (!puedeModificar ? 'No tienes permiso para modificar a un Administrador' : '')}>
+        <span>
+          <Switch
+            checked={activo}
+            disabled={esUnoMismo || !puedeModificar}
+            onChange={onCambiar}
+            color="secondary"
+          />
+        </span>
+      </Tooltip>
+      <Chip
+        size="small"
+        label={activo ? 'Activo' : 'Inactivo'}
+        color={activo ? 'success' : 'default'}
+        sx={{ fontWeight: 700, fontSize: '0.65rem' }}
+      />
+    </TableCell>
+  );
+}
 
 export function TablaUsuarios() {
   const { usuario: usuarioActual, tieneRol } = useAuth();
+  const { avisar, confirmar } = useNotificaciones();
   const [usuarios, setUsuarios] = useState<Usuario[]>([]);
   const [roles, setRoles] = useState<RolDisponible[]>([]);
   const [companias, setCompanias] = useState<Compania[]>([]);
@@ -47,10 +164,6 @@ export function TablaUsuarios() {
     obtenerEmpresas().then(setEmpresas).catch(() => setEmpresas([]));
   }, []);
 
-  useEffect(() => {
-    cargarUsuarios();
-  }, [usuarioActual?.id]);
-
   const cargarUsuarios = async () => {
     try {
       setCargando(true);
@@ -66,6 +179,10 @@ export function TablaUsuarios() {
     }
   };
 
+  useEffect(() => {
+    cargarUsuarios();
+  }, [usuarioActual?.id]);
+
   const areasDisponibles = Array.from(new Set(usuarios.map((u) => u.area).filter(Boolean))) as string[];
 
   const usuariosFiltrados = usuarios.filter((u) => {
@@ -75,17 +192,16 @@ export function TablaUsuarios() {
     if (filtroSoloPendientes && u.usuario_roles_compania.length > 0) return false;
     if (filtroArea && u.area !== filtroArea) return false;
     if (filtroEstado === 'activo' && !u.activo) return false;
-    if (filtroEstado === 'inactivo' && u.activo) return false;
-    return true;
+    return !(filtroEstado === 'inactivo' && u.activo);
   });
 
   const manejarQuitarRol = async (asignacionId: number) => {
-    if (!window.confirm('¿Quitar este rol al usuario?')) return;
+    if (!(await confirmar('¿Quitar este rol al usuario?'))) return;
     try {
       await quitarRol(asignacionId);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al quitar el rol.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al quitar el rol.');
     }
   };
 
@@ -97,8 +213,8 @@ export function TablaUsuarios() {
     try {
       await cambiarActivoUsuario(u.id, true);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al activar al usuario.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al activar al usuario.');
     }
   };
 
@@ -108,8 +224,8 @@ export function TablaUsuarios() {
       await cambiarActivoUsuario(usuarioParaDesactivar.id, false);
       setUsuarioParaDesactivar(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al desactivar al usuario.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al desactivar al usuario.');
     }
   };
 
@@ -125,15 +241,15 @@ export function TablaUsuarios() {
       await editarAreaUsuario(usuarioParaEditarArea.id, nuevaArea.trim());
       setUsuarioParaEditarArea(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al actualizar el área.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al actualizar el área.');
     } finally {
       setGuardandoArea(false);
     }
   };
 
   const abrirEditarEmpresa = (u: Usuario) => {
-    const empresaActual = u.empresa ? empresas.find((e) => e.id === u.empresa!.id) || null : null;
+    const empresaActual = u.empresa ? empresas.find((e) => e.id === u.empresa?.id) || null : null;
     setNuevaEmpresa(empresaActual);
     setUsuarioParaEditarEmpresa(u);
   };
@@ -145,8 +261,8 @@ export function TablaUsuarios() {
       await editarEmpresaUsuario(usuarioParaEditarEmpresa.id, nuevaEmpresa?.id ?? null);
       setUsuarioParaEditarEmpresa(null);
       await cargarUsuarios();
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Error al actualizar la empresa.');
+    } catch (e) {
+      avisar(mensajeDelBackend(e) || 'Error al actualizar la empresa.');
     } finally {
       setGuardandoEmpresa(false);
     }
@@ -183,44 +299,15 @@ export function TablaUsuarios() {
           </Typography>
         </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
-          <TextField
-            select size="small" label="Área" value={filtroArea}
-            onChange={(e) => setFiltroArea(e.target.value)} sx={{ minWidth: 180 }}
-          >
-            <MenuItem value="">Todas las áreas</MenuItem>
-            {areasDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-          </TextField>
-
-          <TextField
-            select size="small" label="Estado" value={filtroEstado}
-            onChange={(e) => setFiltroEstado(e.target.value)} sx={{ minWidth: 160 }}
-          >
-            <MenuItem value="">Todos</MenuItem>
-            <MenuItem value="activo">Activos</MenuItem>
-            <MenuItem value="inactivo">Inactivos</MenuItem>
-          </TextField>
-
-          <Button
-            size="small"
-            variant={filtroSoloPendientes ? 'contained' : 'outlined'}
-            color="warning"
-            onClick={() => setFiltroSoloPendientes((v) => !v)}
-            sx={{ borderRadius: '10px', textTransform: 'none' }}
-          >
-            {filtroSoloPendientes ? '✓ ' : ''}Solo en espera de rol
-          </Button>
-
-          {(filtroArea || filtroEstado || filtroSoloPendientes) && (
-            <Button
-              size="small" color="inherit"
-              onClick={() => { setFiltroArea(''); setFiltroEstado(''); setFiltroSoloPendientes(false); }}
-              sx={{ color: '#64748b', textTransform: 'none' }}
-            >
-              Limpiar filtros
-            </Button>
-          )}
-        </Stack>
+        <FilaFiltros
+          areasDisponibles={areasDisponibles}
+          filtroArea={filtroArea}
+          setFiltroArea={setFiltroArea}
+          filtroEstado={filtroEstado}
+          setFiltroEstado={setFiltroEstado}
+          filtroSoloPendientes={filtroSoloPendientes}
+          setFiltroSoloPendientes={setFiltroSoloPendientes}
+        />
       </Card>
 
       <Card sx={styles.tableCard}>
@@ -229,16 +316,7 @@ export function TablaUsuarios() {
         ) : (
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow sx={styles.tableHeaderRow}>
-                  <TableCell sx={styles.tableHeaderCell}>USUARIO</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ÁREA</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>EMPRESA</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ROLES</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
-                  <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
-                </TableRow>
-              </TableHead>
+              <EncabezadoTablaUsuarios />
               <TableBody>
                 {usuariosFiltrados.length === 0 ? (
                   <TableRow>
@@ -304,24 +382,12 @@ export function TablaUsuarios() {
                             </Stack>
                           )}
                         </TableCell>
-                        <TableCell>
-                          <Tooltip title={esUnoMismo ? 'No puedes modificar tu propia cuenta' : (!puedeModificar ? 'No tienes permiso para modificar a un Administrador' : '')}>
-                            <span>
-                              <Switch
-                                checked={u.activo}
-                                disabled={esUnoMismo || !puedeModificar}
-                                onChange={() => manejarCambiarActivo(u)}
-                                color="secondary"
-                              />
-                            </span>
-                          </Tooltip>
-                          <Chip
-                            size="small"
-                            label={u.activo ? 'Activo' : 'Inactivo'}
-                            color={u.activo ? 'success' : 'default'}
-                            sx={{ fontWeight: 700, fontSize: '0.65rem' }}
-                          />
-                        </TableCell>
+                        <CeldaEstado
+                          activo={u.activo}
+                          esUnoMismo={esUnoMismo}
+                          puedeModificar={puedeModificar}
+                          onCambiar={() => manejarCambiarActivo(u)}
+                        />
                         <TableCell align="right">
                           {puedeModificar && (
                             <Tooltip title="Asignar rol">
@@ -349,7 +415,7 @@ export function TablaUsuarios() {
         onAsignado={() => { setUsuarioParaAsignar(null); cargarUsuarios(); }}
       />
 
-      <Dialog open={!!usuarioParaDesactivar} onClose={() => setUsuarioParaDesactivar(null)}>
+      <Dialog open={Boolean(usuarioParaDesactivar)} onClose={() => setUsuarioParaDesactivar(null)}>
         <DialogTitle>¿Desactivar a {usuarioParaDesactivar?.nombre}?</DialogTitle>
         <DialogContent>
           <DialogContentText>
@@ -364,11 +430,11 @@ export function TablaUsuarios() {
           </Button>
         </DialogActions>
       </Dialog>
-      <Dialog open={!!usuarioParaEditarArea} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
+      <Dialog open={Boolean(usuarioParaEditarArea)} onClose={() => setUsuarioParaEditarArea(null)} fullWidth maxWidth="xs">
         <DialogTitle>Editar área de {usuarioParaEditarArea?.nombre}</DialogTitle>
         <DialogContent>
           <TextField
-            autoFocus fullWidth label="Área" value={nuevaArea}
+            fullWidth label="Área" value={nuevaArea}
             onChange={(e) => setNuevaArea(e.target.value)}
             sx={{ mt: 1 }}
           />
@@ -381,7 +447,7 @@ export function TablaUsuarios() {
         </DialogActions>
       </Dialog>
 
-      <Dialog open={!!usuarioParaEditarEmpresa} onClose={() => setUsuarioParaEditarEmpresa(null)} fullWidth maxWidth="xs">
+      <Dialog open={Boolean(usuarioParaEditarEmpresa)} onClose={() => setUsuarioParaEditarEmpresa(null)} fullWidth maxWidth="xs">
         <DialogTitle>Editar empresa de {usuarioParaEditarEmpresa?.nombre}</DialogTitle>
         <DialogContent>
           <Autocomplete
@@ -405,14 +471,3 @@ export function TablaUsuarios() {
   );
 }
 
-const styles = {
-  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
-  title: { fontWeight: 700, color: '#0e381e' },
-  filterCard: { p: 2, mb: 2.5 },
-  tableCard: { borderRadius: 3, overflow: 'hidden' },
-  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
-  tableHeaderRow: { backgroundColor: '#f8fafc' },
-  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
-  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
-  rolChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.7rem' },
-};

@@ -18,6 +18,7 @@ import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { ActualizarPartesInteresadasDto } from './dto/actualizar-partes-interesadas.dto';
 import { CancelarSolicitudDto } from './dto/cancelar-solicitud.dto';
+import type { RequestConUsuario } from '../auth/interfaces/usuario-autenticado.interface';
 
 @Controller('solicitud-inversion')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -29,7 +30,7 @@ export class SolicitudInversionController {
 
   @Post()
   @Roles('PM', 'PMO', 'ADMIN')
-  async crear(@Req() req: any, @Body() dto: CrearSolicitudInversionDto) {
+  crear(@Req() req: RequestConUsuario, @Body() dto: CrearSolicitudInversionDto) {
     return this.service.crear(req.user.userId, dto);
   }
 
@@ -39,13 +40,13 @@ export class SolicitudInversionController {
 
   @Get('categorias')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
-  async obtenerCategorias() {
+  obtenerCategorias() {
     return this.consulta.obtenerCategorias();
   }
 
   @Get('mis-pendientes')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'CONTROL_GESTION', 'ADMIN')
-  async obtenerMisPendientes(@Req() req: any) {
+  obtenerMisPendientes(@Req() req: RequestConUsuario) {
     return this.consulta.obtenerMisPendientes(req.user.userId);
   }
 
@@ -61,14 +62,14 @@ export class SolicitudInversionController {
 
   @Post(':procesoId/enviar')
   @Roles('PM', 'ADMIN')
-  async enviarARevision(@Req() req: any, @Param('procesoId', ParseIntPipe) procesoId: number) {
+  enviarARevision(@Req() req: RequestConUsuario, @Param('procesoId', ParseIntPipe) procesoId: number) {
     return this.service.enviarARevision(procesoId, req.user.userId);
   }
 
   @Post(':procesoId/aprobar')
   @Roles('PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
-  async aprobarEtapa(
-    @Req() req: any,
+  aprobarEtapa(
+    @Req() req: RequestConUsuario,
     @Param('procesoId', ParseIntPipe) procesoId: number,
     @Body() dto: AprobarSolicitudDto,
   ) {
@@ -77,8 +78,8 @@ export class SolicitudInversionController {
 
   @Post(':procesoId/rechazar')
   @Roles('PMO', 'DIRECTOR_PMO', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA', 'ADMIN')
-  async rechazarEtapa(
-    @Req() req: any,
+  rechazarEtapa(
+    @Req() req: RequestConUsuario,
     @Param('procesoId', ParseIntPipe) procesoId: number,
     @Body() dto: RechazarSolicitudDto,
   ) {
@@ -87,14 +88,14 @@ export class SolicitudInversionController {
 
   @Get(':procesoId')
   @Roles('ADMIN', 'PMO', 'DIRECTOR_PMO', 'PM', 'PARTE_INTERESADA', 'GERENCIA', 'PRESIDENCIA')
-  async obtener(@Req() req: any, @Param('procesoId', ParseIntPipe) procesoId: number) {
+  obtener(@Req() req: RequestConUsuario, @Param('procesoId', ParseIntPipe) procesoId: number) {
     return this.consulta.obtenerPorProcesoId(req.user.userId, procesoId);
   }
 
   @Post(':procesoId/partes-interesadas')
   @Roles('PM', 'PMO', 'DIRECTOR_PMO', 'ADMIN')
-  async actualizarPartesInteresadas(
-    @Req() req: any,
+  actualizarPartesInteresadas(
+    @Req() req: RequestConUsuario,
     @Param('procesoId', ParseIntPipe) procesoId: number,
     @Body() dto: ActualizarPartesInteresadasDto,
   ) {
@@ -103,8 +104,8 @@ export class SolicitudInversionController {
 
   @Post(':procesoId/cancelar')
   @Roles('PMO', 'DIRECTOR_PMO', 'ADMIN')
-  async cancelarDefinitivamente(
-    @Req() req: any,
+  cancelarDefinitivamente(
+    @Req() req: RequestConUsuario,
     @Param('procesoId', ParseIntPipe) procesoId: number,
     @Body() dto: CancelarSolicitudDto,
   ) {
@@ -113,8 +114,8 @@ export class SolicitudInversionController {
 
   @Put('borrador/:procesoId')
   @Roles('PM', 'PMO', 'ADMIN')
-  async actualizarBorrador(
-    @Req() req: any,
+  actualizarBorrador(
+    @Req() req: RequestConUsuario,
     @Param('procesoId', ParseIntPipe) procesoId: number,
     @Body() dto: CrearSolicitudInversionDto,
   ) {

@@ -1,9 +1,15 @@
 import { Autocomplete, TextField, Chip, Card, CardContent, Typography } from '@mui/material';
+// Usuario que se puede elegir como parte interesada
+interface UsuarioSeleccionable {
+  id: number;
+  nombre: string;
+  email?: string;
+}
 
 interface Props {
-  usuarios: any[];
-  partesInteresadas: any[];
-  setPartesInteresadas: (val: any[]) => void;
+  usuarios: UsuarioSeleccionable[];
+  partesInteresadas: UsuarioSeleccionable[];
+  setPartesInteresadas: (val: UsuarioSeleccionable[]) => void;
 }
 
 export function SeccionPartesInteresadas({ usuarios, partesInteresadas, setPartesInteresadas }: Props) {

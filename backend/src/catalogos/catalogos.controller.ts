@@ -10,31 +10,31 @@ export class CatalogosController {
 
   // GET /catalogos/jerarquia
   @Get('jerarquia')
-  async obtenerJerarquia() {
+  obtenerJerarquia() {
     return this.catalogosService.obtenerJerarquiaCompleta();
   }
 
   // GET /catalogos/grupos
   @Get('grupos')
-  async obtenerGrupos() {
+  obtenerGrupos() {
     return this.catalogosService.obtenerGrupos();
   }
 
   // GET /catalogos/programas/grupo/1
   @Get('programas/grupo/:grupoId')
-  async obtenerProgramasPorGrupo(@Param('grupoId', ParseIntPipe) grupoId: number) {
+  obtenerProgramasPorGrupo(@Param('grupoId', ParseIntPipe) grupoId: number) {
     return this.catalogosService.obtenerProgramasPorGrupo(grupoId);
   }
 
   // GET /catalogos/subprogramas/programa/2
   @Get('subprogramas/programa/:programaId')
-  async obtenerSubprogramasPorPrograma(@Param('programaId', ParseIntPipe) programaId: number) {
+  obtenerSubprogramasPorPrograma(@Param('programaId', ParseIntPipe) programaId: number) {
     return this.catalogosService.obtenerSubprogramasPorPrograma(programaId);
   }
 
   // GET /catalogos/empresas — todas las empresas de todas las compañías.
   @Get('empresas')
-  async obtenerEmpresas() {
+  obtenerEmpresas() {
     return this.catalogosService.obtenerEmpresas();
   }
 }

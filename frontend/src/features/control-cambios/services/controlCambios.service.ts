@@ -12,7 +12,7 @@ export const obtenerControlCambioDetalle = async (procesoId: number): Promise<Co
 };
 
 export const crearControlCambio = async (dto: CrearControlCambioPayload) => {
-  const { data } = await axiosClient.post(`/control-cambios`, dto);
+  const { data } = await axiosClient.post('/control-cambios', dto);
   return data as { proceso_id: number; control_cambio_id: number; mensaje: string };
 };
 

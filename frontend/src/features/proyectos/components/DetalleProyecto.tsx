@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { Box, Typography, Button, Card, CardContent, Chip, Divider, CircularProgress, Stack, Avatar, Alert } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AssignmentIcon from '@mui/icons-material/Assignment';
@@ -29,6 +30,71 @@ const ESTADO_GRUPO_OI_CONFIG: Record<string, { label: string; color: 'success' |
   CERRADO: { label: 'Cerrado', color: 'default' },
 };
 
+const styles = {
+  backBtn: { mb: 2, color: '#64748b', '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' } },
+  sectionTitle: { fontWeight: 700, color: '#0e381e', mb: 1 },
+  centerBox: { display: 'flex', justifyContent: 'center', py: 5 },
+  emptyBox: { textAlign: 'center', py: 6, backgroundColor: '#ffffff', borderRadius: 3, border: '1px dashed #cbd5e1' },
+  processCard: {
+    width: '100%',
+    borderRadius: 3, border: '1px solid #e2e8f0', boxShadow: 'none', transition: 'transform 0.2s', cursor: 'pointer',
+    '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', borderColor: '#75b70e' },
+  },
+  processIcon: { backgroundColor: '#f0fdf4', color: '#75b70e' },
+};
+
+type ColorChip = 'success' | 'warning' | 'default' | 'secondary';
+
+interface ChipProceso {
+  label: string;
+  color: ColorChip;
+}
+
+// Chip de la tarjeta de Órdenes Internas: estado del grupo, o "Sin Órdenes".
+function chipOrdenesInternas(hayOrdenesInternas: boolean, grupoOiEstado: string | null): ChipProceso {
+  if (hayOrdenesInternas && grupoOiEstado) {
+    return {
+      label: ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.label || grupoOiEstado,
+      color: ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.color || 'default',
+    };
+  }
+  return { label: 'Sin Órdenes', color: 'default' };
+}
+
+// Chip de las tarjetas de Control de Cambios y Acta de Cierre.
+function chipSegunExistencia(existe: boolean, proyectoCerrado: boolean, textoSinProceso: string): ChipProceso {
+  if (!existe) return { label: textoSinProceso, color: 'default' };
+  if (proyectoCerrado) return { label: 'Cerrado', color: 'default' };
+  return { label: 'Activo', color: 'secondary' };
+}
+
+interface TarjetaProcesoProps {
+  icono: ReactNode;
+  titulo: string;
+  descripcion: string;
+  chip: ChipProceso;
+  onClick: () => void;
+}
+
+function TarjetaProceso({ icono, titulo, descripcion, chip, onClick }: TarjetaProcesoProps) {
+  return (
+    <Card sx={styles.processCard} onClick={onClick}>
+      <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+        <Avatar sx={styles.processIcon}>{icono}</Avatar>
+        <Box sx={{ flexGrow: 1 }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
+            {titulo}
+          </Typography>
+          <Typography variant="caption" color="text.secondary">
+            {descripcion}
+          </Typography>
+        </Box>
+        <Chip label={chip.label} color={chip.color} size="small" sx={{ fontWeight: 'bold' }} />
+      </CardContent>
+    </Card>
+  );
+}
+
 export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: DetalleProyectoProps) {
   const { tieneRol } = useAuth();
   const [procesos, setProcesos] = useState<Proceso[]>([]);
@@ -48,8 +114,6 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
   const [procesoInicialAplicado, setProcesoInicialAplicado] = useState(false);
 
   const puedeCrearProceso = tieneRol('PM') || tieneRol('ADMIN');
-
-  useEffect(() => { cargarProcesos(); }, [proyecto.id]);
 
   // Al llegar desde "Mis pendientes": cuando terminan de cargar los procesos,
   // abre directamente el proceso pendiente (solo una vez, para que "Volver"
@@ -81,8 +145,21 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
           .catch(() => setOiIdParaAbrir(null))
           .finally(() => setVerOrdenesInternas(true));
         break;
+      default:
+        break;
     }
   }, [procesoIdInicial, procesoInicialAplicado, cargando, procesos, proyecto.id]);
+
+    const cargarEstadoOi = async () => {
+    try {
+      const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
+      setGrupoOiEstado(grupo?.estado ?? null);
+      setHayOrdenesInternas((grupo?.ordenes_internas?.length ?? 0) > 0);
+    } catch {
+      setGrupoOiEstado(null);
+      setHayOrdenesInternas(false);
+    }
+  };
 
   const cargarProcesos = async () => {
     try {
@@ -97,16 +174,7 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
     cargarEstadoOi();
   };
 
-  const cargarEstadoOi = async () => {
-    try {
-      const grupo = await obtenerOrdenesInternasPorProyecto(proyecto.id);
-      setGrupoOiEstado(grupo?.estado ?? null);
-      setHayOrdenesInternas((grupo?.ordenes_internas?.length ?? 0) > 0);
-    } catch {
-      setGrupoOiEstado(null);
-      setHayOrdenesInternas(false);
-    }
-  };
+  useEffect(() => { cargarProcesos(); }, [proyecto.id]);
 
   const solicitudesInversion = procesos.filter(
     (p) => p.tipo_proceso === 'SOLICITUD_INVERSION'
@@ -276,66 +344,33 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
           ))}
 
           {tieneSolicitudAprobada && (
-            <Card sx={styles.processCard} onClick={() => setVerOrdenesInternas(true)}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={styles.processIcon}><ReceiptLongIcon /></Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
-                    ÓRDENES INTERNAS
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Gestión y seguimiento de Órdenes Internas
-                  </Typography>
-                </Box>
-                <Chip
-                  label={hayOrdenesInternas && grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.label || grupoOiEstado : 'Sin Órdenes'}
-                  color={hayOrdenesInternas && grupoOiEstado ? ESTADO_GRUPO_OI_CONFIG[grupoOiEstado]?.color || 'default' : 'default'}
-                  size="small" sx={{ fontWeight: 'bold' }}
-                />
-              </CardContent>
-            </Card>
+            <TarjetaProceso
+              icono={<ReceiptLongIcon />}
+              titulo="ÓRDENES INTERNAS"
+              descripcion="Gestión y seguimiento de Órdenes Internas"
+              chip={chipOrdenesInternas(hayOrdenesInternas, grupoOiEstado)}
+              onClick={() => setVerOrdenesInternas(true)}
+            />
           )}
 
           {tieneSolicitudAprobada && (
-            <Card sx={styles.processCard} onClick={() => setVerControlCambios(true)}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={styles.processIcon}><SyncAltIcon /></Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
-                    CONTROL DE CAMBIOS
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Cambios registrados sobre este proyecto
-                  </Typography>
-                </Box>
-                <Chip
-                  label={!tieneControlCambios ? 'Sin CC' : proyectoCerrado ? 'Cerrado' : 'Activo'}
-                  color={!tieneControlCambios ? 'default' : proyectoCerrado ? 'default' : 'secondary'}
-                  size="small" sx={{ fontWeight: 'bold' }}
-                />
-              </CardContent>
-            </Card>
+            <TarjetaProceso
+              icono={<SyncAltIcon />}
+              titulo="CONTROL DE CAMBIOS"
+              descripcion="Cambios registrados sobre este proyecto"
+              chip={chipSegunExistencia(tieneControlCambios, proyectoCerrado, 'Sin CC')}
+              onClick={() => setVerControlCambios(true)}
+            />
           )}
 
           {solicitudesInversion.length > 0 && (
-            <Card sx={styles.processCard} onClick={() => setVerActaCierre(true)}>
-              <CardContent sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                <Avatar sx={styles.processIcon}><GavelIcon /></Avatar>
-                <Box sx={{ flexGrow: 1 }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#0e381e' }}>
-                    ACTA DE CIERRE
-                  </Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    Cierre por culminación o cancelación del proyecto
-                  </Typography>
-                </Box>
-                <Chip
-                  label={!tieneActaCierre ? 'Sin Acta' : proyectoCerrado ? 'Cerrado' : 'Activo'}
-                  color={!tieneActaCierre ? 'default' : proyectoCerrado ? 'default' : 'secondary'}
-                  size="small" sx={{ fontWeight: 'bold' }}
-                />
-                </CardContent>
-            </Card>
+            <TarjetaProceso
+              icono={<GavelIcon />}
+              titulo="ACTA DE CIERRE"
+              descripcion="Cierre por culminación o cancelación del proyecto"
+              chip={chipSegunExistencia(tieneActaCierre, proyectoCerrado, 'Sin Acta')}
+              onClick={() => setVerActaCierre(true)}
+            />
           )}
         </Stack>
       )}
@@ -343,15 +378,3 @@ export function DetalleProyecto({ proyecto, procesoIdInicial, onVolver }: Detall
   );
 }
 
-const styles = {
-  backBtn: { mb: 2, color: '#64748b', '&:hover': { backgroundColor: '#f1f5f9', color: '#0f172a' } },
-  sectionTitle: { fontWeight: 700, color: '#0e381e', mb: 1 },
-  centerBox: { display: 'flex', justifyContent: 'center', py: 5 },
-  emptyBox: { textAlign: 'center', py: 6, backgroundColor: '#ffffff', borderRadius: 3, border: '1px dashed #cbd5e1' },
-  processCard: {
-    width: '100%',
-    borderRadius: 3, border: '1px solid #e2e8f0', boxShadow: 'none', transition: 'transform 0.2s', cursor: 'pointer',
-    '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 6px 20px rgba(0,0,0,0.08)', borderColor: '#75b70e' },
-  },
-  processIcon: { backgroundColor: '#f0fdf4', color: '#75b70e' },
-};

@@ -36,241 +36,6 @@ interface SidebarProps {
   onToggleAbierto: () => void;
 }
 
-export function Sidebar({
-  vistaActual,
-  onCambiarVista,
-  abierto,
-  onToggleAbierto,
-}: SidebarProps) {
-  const { tieneRol } = useAuth();
-
-  const puedeAdministrarUsuarios =
-    tieneRol('PMO') || tieneRol('ADMIN');
-
-  const [usuariosPendientes, setUsuariosPendientes] = useState(0);
-
-  useEffect(() => {
-    if (!puedeAdministrarUsuarios) return;
-
-    obtenerUsuarios()
-      .then((data) =>
-        setUsuariosPendientes(
-          data.filter(
-            (u) => u.usuario_roles_compania.length === 0
-          ).length
-        )
-      )
-      .catch(() => setUsuariosPendientes(0));
-  }, [puedeAdministrarUsuarios]);
-
-  const anchoActual = abierto
-    ? DRAWER_WIDTH
-    : DRAWER_WIDTH_COLAPSADO;
-
-  const renderItem = (
-    vista: string,
-    icono: React.ReactNode,
-    titulo: string,
-    subtitulo: string,
-    badge?: number
-  ) => {
-    const contenido = (
-      <ListItemButton
-        selected={vistaActual === vista}
-        onClick={() => onCambiarVista(vista)}
-        sx={{
-          ...styles.navButton,
-          justifyContent: abierto ? 'flex-start' : 'center',
-        }}
-      >
-        <ListItemIcon
-          sx={{
-            ...styles.navIcon,
-            minWidth: abierto ? 42 : 0,
-            marginRight: abierto ? 0.5 : 0,
-          }}
-        >
-          {badge !== undefined && badge > 0 ? (
-            <Badge
-              badgeContent={badge}
-              color="warning"
-              sx={styles.badge}
-            >
-              {icono}
-            </Badge>
-          ) : (
-            icono
-          )}
-        </ListItemIcon>
-
-        {abierto && (
-          <ListItemText
-            primary={
-              <Typography sx={styles.primaryText}>
-                {titulo}
-              </Typography>
-            }
-            secondary={
-              <Typography sx={styles.secondaryText}>
-                {subtitulo}
-              </Typography>
-            }
-          />
-        )}
-      </ListItemButton>
-    );
-
-    return (
-      <ListItem disablePadding key={vista}>
-        {abierto ? (
-          contenido
-        ) : (
-          <Tooltip title={titulo} placement="right">
-            {contenido}
-          </Tooltip>
-        )}
-      </ListItem>
-    );
-  };
-
-  return (
-    <Drawer
-      variant="permanent"
-      sx={{
-        width: anchoActual,
-        flexShrink: 0,
-
-        '& .MuiDrawer-paper': {
-          width: anchoActual,
-          boxSizing: 'border-box',
-
-          backgroundColor: '#0e381e',
-
-          borderRight: 'none',
-          boxShadow: '2px 0 6px rgba(0,0,0,.12)',
-
-          overflowX: 'hidden',
-
-          transition: 'width 0.2s ease',
-        },
-      }}
-    >
-      {/* Espacio reservado para el Topbar */}
-      <Toolbar sx={{ minHeight: '76px !important' }} />
-
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: 'column',
-          height: '100%',
-          padding: abierto
-            ? '20px 14px'
-            : '20px 8px',
-          overflowY: 'auto',
-        }}
-      >
-        {/* Botón contraer / expandir */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: abierto
-              ? 'flex-end'
-              : 'center',
-            marginBottom: 2.5,
-          }}
-        >
-          <Tooltip
-            title={
-              abierto
-                ? 'Contraer menú'
-                : 'Expandir menú'
-            }
-            placement="right"
-          >
-            <IconButton
-              onClick={onToggleAbierto}
-              size="small"
-              sx={styles.toggleButton}
-            >
-              {abierto ? (
-                <ChevronLeftIcon fontSize="small" />
-              ) : (
-                <ChevronRightIcon fontSize="small" />
-              )}
-            </IconButton>
-          </Tooltip>
-        </Box>
-
-        {/* MENÚ PRINCIPAL */}
-        {abierto && (
-          <Typography sx={styles.sectionTitle}>
-            MENÚ PRINCIPAL
-          </Typography>
-        )}
-
-        <List disablePadding>
-          {renderItem(
-            'inicio',
-            <HomeRoundedIcon />,
-            'Inicio',
-            'Resumen general'
-          )}
-
-          {renderItem(
-            'pendientes',
-            <InboxRoundedIcon />,
-            'Mis Pendientes',
-            'Tareas por aprobar'
-          )}
-
-          {renderItem(
-            'proyectos',
-            <FolderSpecialRoundedIcon />,
-            'Proyectos',
-            'Gestión del portafolio'
-          )}
-        </List>
-
-        {/* ADMINISTRACIÓN */}
-        {puedeAdministrarUsuarios && (
-          <>
-            <Divider sx={styles.divider} />
-
-            {abierto && (
-              <Typography sx={styles.sectionTitle}>
-                ADMINISTRACIÓN
-              </Typography>
-            )}
-
-            <List disablePadding>
-              {renderItem(
-                'usuarios',
-                <ManageAccountsRoundedIcon />,
-                'Gestión de Usuarios',
-                'Roles y permisos',
-                usuariosPendientes
-              )}
-            </List>
-          </>
-        )}
-
-        {/* Información inferior */}
-        {abierto && (
-          <Box sx={styles.footer}>
-            <Typography sx={styles.footerTitle}>
-              Sistema PMO
-            </Typography>
-
-            <Typography sx={styles.footerText}>
-              Grupo Nutresa · v1.0.0
-            </Typography>
-          </Box>
-        )}
-      </Box>
-    </Drawer>
-  );
-}
-
 const styles = {
   toggleButton: {
     width: 32,
@@ -439,3 +204,244 @@ const styles = {
     marginTop: '3px',
   },
 };
+
+function BotonColapsar({ abierto, onToggleAbierto }: Pick<SidebarProps, 'abierto' | 'onToggleAbierto'>) {
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        justifyContent: abierto
+          ? 'flex-end'
+          : 'center',
+        marginBottom: 2.5,
+      }}
+    >
+      <Tooltip
+        title={
+          abierto
+            ? 'Contraer menú'
+            : 'Expandir menú'
+        }
+        placement="right"
+      >
+        <IconButton
+          onClick={onToggleAbierto}
+          size="small"
+          sx={styles.toggleButton}
+        >
+          {abierto ? (
+            <ChevronLeftIcon fontSize="small" />
+          ) : (
+            <ChevronRightIcon fontSize="small" />
+          )}
+        </IconButton>
+      </Tooltip>
+    </Box>
+  );
+}
+
+export function Sidebar({
+  vistaActual,
+  onCambiarVista,
+  abierto,
+  onToggleAbierto,
+}: SidebarProps) {
+  const { tieneRol } = useAuth();
+
+  const puedeAdministrarUsuarios =
+    tieneRol('PMO') || tieneRol('ADMIN');
+
+  const [usuariosPendientes, setUsuariosPendientes] = useState(0);
+
+  useEffect(() => {
+    if (!puedeAdministrarUsuarios) return;
+
+    obtenerUsuarios()
+      .then((data) =>
+        setUsuariosPendientes(
+          data.filter(
+            (u) => u.usuario_roles_compania.length === 0
+          ).length
+        )
+      )
+      .catch(() => setUsuariosPendientes(0));
+  }, [puedeAdministrarUsuarios]);
+
+  const anchoActual = abierto
+    ? DRAWER_WIDTH
+    : DRAWER_WIDTH_COLAPSADO;
+
+  const renderItem = (
+    vista: string,
+    icono: React.ReactNode,
+    titulo: string,
+    subtitulo: string,
+    badge?: number
+  ) => {
+    const contenido = (
+      <ListItemButton
+        selected={vistaActual === vista}
+        onClick={() => onCambiarVista(vista)}
+        sx={{
+          ...styles.navButton,
+          justifyContent: abierto ? 'flex-start' : 'center',
+        }}
+      >
+        <ListItemIcon
+          sx={{
+            ...styles.navIcon,
+            minWidth: abierto ? 42 : 0,
+            marginRight: abierto ? 0.5 : 0,
+          }}
+        >
+          {badge !== undefined && badge > 0 ? (
+            <Badge
+              badgeContent={badge}
+              color="warning"
+              sx={styles.badge}
+            >
+              {icono}
+            </Badge>
+          ) : (
+            icono
+          )}
+        </ListItemIcon>
+
+        {abierto && (
+          <ListItemText
+            primary={
+              <Typography sx={styles.primaryText}>
+                {titulo}
+              </Typography>
+            }
+            secondary={
+              <Typography sx={styles.secondaryText}>
+                {subtitulo}
+              </Typography>
+            }
+          />
+        )}
+      </ListItemButton>
+    );
+
+    return (
+      <ListItem disablePadding key={vista}>
+        {abierto ? (
+          contenido
+        ) : (
+          <Tooltip title={titulo} placement="right">
+            {contenido}
+          </Tooltip>
+        )}
+      </ListItem>
+    );
+  };
+
+  return (
+    <Drawer
+      variant="permanent"
+      sx={{
+        width: anchoActual,
+        flexShrink: 0,
+
+        '& .MuiDrawer-paper': {
+          width: anchoActual,
+          boxSizing: 'border-box',
+
+          backgroundColor: '#0e381e',
+
+          borderRight: 'none',
+          boxShadow: '2px 0 6px rgba(0,0,0,.12)',
+
+          overflowX: 'hidden',
+
+          transition: 'width 0.2s ease',
+        },
+      }}
+    >
+      {/* Espacio reservado para el Topbar */}
+      <Toolbar sx={{ minHeight: '76px !important' }} />
+
+      <Box
+        sx={{
+          display: 'flex',
+          flexDirection: 'column',
+          height: '100%',
+          padding: abierto
+            ? '20px 14px'
+            : '20px 8px',
+          overflowY: 'auto',
+        }}
+      >
+        {/* Botón contraer / expandir */}
+        <BotonColapsar abierto={abierto} onToggleAbierto={onToggleAbierto} />
+
+        {/* MENÚ PRINCIPAL */}
+        {abierto && (
+          <Typography sx={styles.sectionTitle}>
+            MENÚ PRINCIPAL
+          </Typography>
+        )}
+
+        <List disablePadding>
+          {renderItem(
+            'inicio',
+            <HomeRoundedIcon />,
+            'Inicio',
+            'Resumen general'
+          )}
+
+          {renderItem(
+            'pendientes',
+            <InboxRoundedIcon />,
+            'Mis Pendientes',
+            'Tareas por aprobar'
+          )}
+
+          {renderItem(
+            'proyectos',
+            <FolderSpecialRoundedIcon />,
+            'Proyectos',
+            'Gestión del portafolio'
+          )}
+        </List>
+
+        {/* ADMINISTRACIÓN */}
+        {puedeAdministrarUsuarios && (
+          <>
+            <Divider sx={styles.divider} />
+
+            {abierto && (
+              <Typography sx={styles.sectionTitle}>
+                ADMINISTRACIÓN
+              </Typography>
+            )}
+
+            <List disablePadding>
+              {renderItem(
+                'usuarios',
+                <ManageAccountsRoundedIcon />,
+                'Gestión de Usuarios',
+                'Roles y permisos',
+                usuariosPendientes
+              )}
+            </List>
+          </>
+        )}
+
+        {/* Información inferior */}
+        {abierto && (
+          <Box sx={styles.footer}>
+            <Typography sx={styles.footerTitle}>
+              Sistema PMO
+            </Typography>
+
+            <Typography sx={styles.footerText}>
+              Grupo Nutresa · v1.0.0
+            </Typography>
+          </Box>
+        )}
+      </Box>
+    </Drawer>
+  );
+}

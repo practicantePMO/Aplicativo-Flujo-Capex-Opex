@@ -8,6 +8,7 @@ import type { CrearOrdenInternaPayload } from '../types/ordenInterna.types';
 import { crearOrdenInterna, actualizarOrdenInterna, obtenerOrdenInternaDetalle } from '../services/ordenesInternas.service';
 import { obtenerControlCambiosPorProyecto } from '../../control-cambios/services/controlCambios.service';
 import type { ControlCambioResumen } from '../../control-cambios/types/controlCambio.types';
+import { mensajeDelBackend } from '../../../utils/errores';
 
 interface Props {
   proyectoId: string;
@@ -42,14 +43,65 @@ const CAMPO_VACIO: CrearOrdenInternaPayload = {
   ],
 };
 
+interface CamposProps {
+  form: CrearOrdenInternaPayload;
+  actualizar: (patch: Partial<CrearOrdenInternaPayload>) => void;
+}
+
+function CamposSeccion1({ form, actualizar }: CamposProps) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+      <TextField label="Nombre Descriptivo *" value={form.nombre_descriptivo} onChange={(e) => actualizar({ nombre_descriptivo: e.target.value })} />
+      <TextField select label="Tipo de orden *" value={form.tipo_orden} onChange={(e) => actualizar({ tipo_orden: e.target.value as 'ACTIVO' | 'GASTO' })}>
+        <MenuItem value="ACTIVO">Activo</MenuItem>
+        <MenuItem value="GASTO">Gasto</MenuItem>
+      </TextField>
+      <TextField label="Centro de Costos" value={form.centro_costos} onChange={(e) => actualizar({ centro_costos: e.target.value })} />
+      <TextField label="Oficina de Ventas" value={form.oficina_ventas} onChange={(e) => actualizar({ oficina_ventas: e.target.value })} />
+      <TextField label="Línea de Marca" value={form.linea_marca} onChange={(e) => actualizar({ linea_marca: e.target.value })} />
+      <TextField label="Cliente" value={form.cliente} onChange={(e) => actualizar({ cliente: e.target.value })} />
+      <TextField label="Ramo" value={form.ramo} onChange={(e) => actualizar({ ramo: e.target.value })} />
+      <TextField label="%" type="number" value={form.porcentaje_1 ?? ''} onChange={(e) => actualizar({ porcentaje_1: e.target.value === '' ? undefined : Number(e.target.value) })} />
+    </Box>
+  );
+}
+
+function CamposSeccion2({ form, actualizar }: CamposProps) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+      {form.tipo_orden === 'ACTIVO' && (
+        <>
+          <TextField label="Activo Fijo en curso *" value={form.activo_fijo_curso} onChange={(e) => actualizar({ activo_fijo_curso: e.target.value })} />
+          <TextField select label="Tipo de activo *" value={form.tipo_activo || ''} onChange={(e) => actualizar({ tipo_activo: e.target.value })}>
+            <MenuItem value="EXPANSION">Inversión Expansión</MenuItem>
+            <MenuItem value="REEMPLAZO">Inversión Reemplazo</MenuItem>
+          </TextField>
+          <TextField label="%" type="number" value={form.porcentaje_2 ?? ''} onChange={(e) => actualizar({ porcentaje_2: e.target.value === '' ? undefined : Number(e.target.value) })} />
+          <TextField select label="Activo Real Productivo *" value={form.activo_real_productivo || ''} onChange={(e) => actualizar({ activo_real_productivo: e.target.value })}>
+            <MenuItem value="SI">Sí</MenuItem>
+            <MenuItem value="NO">No</MenuItem>
+          </TextField>
+        </>
+      )}
+      <Box sx={{ display: 'flex', gap: 1 }}>
+        <TextField label="Presupuesto *" type="number" fullWidth value={form.presupuesto || ''} onChange={(e) => actualizar({ presupuesto: Number(e.target.value) || 0 })} />
+        <TextField select label="Moneda" value={form.presupuesto_moneda || 'COP'} onChange={(e) => actualizar({ presupuesto_moneda: e.target.value as 'USD' | 'COP' })} sx={{ minWidth: 110 }}>
+          <MenuItem value="COP">COP</MenuItem>
+          <MenuItem value="USD">USD</MenuItem>
+        </TextField>
+      </Box>
+    </Box>
+  );
+}
+
 export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillControlCambioId, onCancelar, onGuardada }: Props) {
-  const [preguntaRespondida, setPreguntaRespondida] = useState(!!ordenInternaId || !!prefillControlCambioId);
+  const [preguntaRespondida, setPreguntaRespondida] = useState(Boolean(ordenInternaId) || Boolean(prefillControlCambioId));
   const [form, setForm] = useState<CrearOrdenInternaPayload>({
     ...CAMPO_VACIO,
     proyecto_id: proyectoId,
     ...(prefillControlCambioId ? { es_control_cambios: true, control_cambio_id: prefillControlCambioId } : {}),
   });
-  const [cargando, setCargando] = useState(!!ordenInternaId);
+  const [cargando, setCargando] = useState(Boolean(ordenInternaId));
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -84,7 +136,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           activo_real_productivo: detalle.activo_real_productivo || '',
           observaciones_pm: detalle.observaciones_pm || '',
           valores: detalle.oi_valores?.length
-            ? detalle.oi_valores.map((v: any) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
+          ? detalle.oi_valores.map((v) => ({ categoria: v.categoria, usd: Number(v.usd) || 0, cop: Number(v.cop) || 0 }))
             : CAMPO_VACIO.valores,
         });
       } catch {
@@ -133,8 +185,8 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
         const respuesta = await crearOrdenInterna(payload);
         onGuardada(respuesta.orden_interna_id);
       }
-    } catch (err: any) {
-      setError(err.message || err.response?.data?.message || 'Error al guardar la Orden Interna.');
+    } catch (err) {
+      setError((err instanceof Error ? err.message : '') || mensajeDelBackend(err) || 'Error al guardar la Orden Interna.');
     } finally {
       setGuardando(false);
     }
@@ -164,7 +216,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
           <Box sx={{ mt: 2 }}>
             {controlesCambioElegibles.length === 0 ? (
               <Alert severity="warning">
-                No hay ningún Control de Cambios de este proyecto marcado como "Requiere Orden Interna". Primero crea (o marca) el Control de Cambios correspondiente.
+                No hay ningún Control de Cambios de este proyecto marcado como &quot;Requiere Orden Interna&quot;. Primero crea (o marca) el Control de Cambios correspondiente.
               </Alert>
             ) : (
               <TextField
@@ -212,19 +264,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
       <Card sx={{ mb: 4, mt: 3 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Sección 1</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <TextField label="Nombre Descriptivo *" value={form.nombre_descriptivo} onChange={(e) => actualizar({ nombre_descriptivo: e.target.value })} />
-            <TextField select label="Tipo de orden *" value={form.tipo_orden} onChange={(e) => actualizar({ tipo_orden: e.target.value as 'ACTIVO' | 'GASTO' })}>
-              <MenuItem value="ACTIVO">Activo</MenuItem>
-              <MenuItem value="GASTO">Gasto</MenuItem>
-            </TextField>
-            <TextField label="Centro de Costos" value={form.centro_costos} onChange={(e) => actualizar({ centro_costos: e.target.value })} />
-            <TextField label="Oficina de Ventas" value={form.oficina_ventas} onChange={(e) => actualizar({ oficina_ventas: e.target.value })} />
-            <TextField label="Línea de Marca" value={form.linea_marca} onChange={(e) => actualizar({ linea_marca: e.target.value })} />
-            <TextField label="Cliente" value={form.cliente} onChange={(e) => actualizar({ cliente: e.target.value })} />
-            <TextField label="Ramo" value={form.ramo} onChange={(e) => actualizar({ ramo: e.target.value })} />
-            <TextField label="%" type="number" value={form.porcentaje_1 ?? ''} onChange={(e) => actualizar({ porcentaje_1: e.target.value === '' ? undefined : Number(e.target.value) })} />
-          </Box>
+          <CamposSeccion1 form={form} actualizar={actualizar} />
         </CardContent>
       </Card>
 
@@ -232,29 +272,7 @@ export function FormularioOrdenInterna({ proyectoId, ordenInternaId, prefillCont
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Sección 2</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            {form.tipo_orden === 'ACTIVO' && (
-              <>
-                <TextField label="Activo Fijo en curso *" value={form.activo_fijo_curso} onChange={(e) => actualizar({ activo_fijo_curso: e.target.value })} />
-                <TextField select label="Tipo de activo *" value={form.tipo_activo || ''} onChange={(e) => actualizar({ tipo_activo: e.target.value })}>
-                  <MenuItem value="EXPANSION">Inversión Expansión</MenuItem>
-                  <MenuItem value="REEMPLAZO">Inversión Reemplazo</MenuItem>
-                </TextField>
-                <TextField label="%" type="number" value={form.porcentaje_2 ?? ''} onChange={(e) => actualizar({ porcentaje_2: e.target.value === '' ? undefined : Number(e.target.value) })} />
-                <TextField select label="Activo Real Productivo *" value={form.activo_real_productivo || ''} onChange={(e) => actualizar({ activo_real_productivo: e.target.value })}>
-                  <MenuItem value="SI">Sí</MenuItem>
-                  <MenuItem value="NO">No</MenuItem>
-                </TextField>
-              </>
-            )}
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <TextField label="Presupuesto *" type="number" fullWidth value={form.presupuesto || ''} onChange={(e) => actualizar({ presupuesto: Number(e.target.value) || 0 })} />
-              <TextField select label="Moneda" value={form.presupuesto_moneda || 'COP'} onChange={(e) => actualizar({ presupuesto_moneda: e.target.value as 'USD' | 'COP' })} sx={{ minWidth: 110 }}>
-                <MenuItem value="COP">COP</MenuItem>
-                <MenuItem value="USD">USD</MenuItem>
-              </TextField>
-            </Box>
-          </Box>
+          <CamposSeccion2 form={form} actualizar={actualizar} />
         </CardContent>
       </Card>
 

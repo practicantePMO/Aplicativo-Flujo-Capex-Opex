@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import {
   Card,
   CardContent,
@@ -19,29 +20,23 @@ interface Props {
   estado: string;
 }
 
-export function EncabezadoSolicitud({
-  nombreProyecto,
-  idProyecto,
-  nombreCompania,
-  nombrePm,
-  estado,
-}: Props) {
-  const colorEstado = (est: string) => {
-    if (est === 'APROBADO_FINAL') return 'success';
-    if (est === 'CANCELADO') return 'error';
-    if (est === 'BORRADOR') return 'default';
-    return 'warning';
-  };
+const colorEstado = (est: string) => {
+  if (est === 'APROBADO_FINAL') return 'success';
+  if (est === 'CANCELADO') return 'error';
+  if (est === 'BORRADOR') return 'default';
+  return 'warning';
+};
 
-  const InfoCard = ({
-    icon,
-    titulo,
-    valor,
-  }: {
-    icon: React.ReactNode;
-    titulo: string;
-    valor: string;
-  }) => (
+function InfoCard({
+  icon,
+  titulo,
+  valor,
+}: {
+  icon: ReactNode;
+  titulo: string;
+  valor: string;
+}) {
+  return (
     <Box
       sx={{
         display: 'flex',
@@ -96,7 +91,130 @@ export function EncabezadoSolicitud({
       </Box>
     </Box>
   );
+}
 
+function TituloSolicitud({
+  nombreProyecto,
+  idProyecto,
+}: Pick<Props, 'nombreProyecto' | 'idProyecto'>) {
+  return (
+    <Box>
+      <Typography
+        variant="overline"
+        sx={{
+          opacity: .8,
+          letterSpacing: 1,
+        }}
+      >
+        SOLICITUD DE INVERSIÓN
+      </Typography>
+
+      <Typography
+        variant="h4"
+        sx={{
+          fontWeight: 800,
+          mt: .5,
+        }}
+      >
+        {nombreProyecto}
+      </Typography>
+
+      <Typography
+        variant="body2"
+        sx={{
+          opacity: .85,
+          mt: .5,
+        }}
+      >
+        Proyecto #{idProyecto}
+      </Typography>
+    </Box>
+  );
+}
+
+function CabeceraSolicitud({
+  nombreProyecto,
+  idProyecto,
+  estado,
+}: Pick<Props, 'nombreProyecto' | 'idProyecto' | 'estado'>) {
+  return (
+    <Box
+      sx={{
+        px: 3,
+        py: 3,
+        background:
+          'linear-gradient(90deg, #33533f 0%, #155d33 100%)',
+        color: 'white',
+      }}
+    >
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: {
+            xs: 'flex-start',
+            md: 'center',
+          },
+          flexWrap: 'wrap',
+          gap: 2,
+        }}
+      >
+        <TituloSolicitud nombreProyecto={nombreProyecto} idProyecto={idProyecto} />
+
+        <Chip
+          label={estado.replace(/_/g, ' ')}
+          color={colorEstado(estado)}
+          sx={{
+            fontWeight: 800,
+            fontSize: '.85rem',
+            px: 1,
+          }}
+        />
+      </Box>
+    </Box>
+  );
+}
+
+function DatosSolicitud({
+  nombreCompania,
+  nombrePm,
+}: Pick<Props, 'nombreCompania' | 'nombrePm'>) {
+  return (
+    <Grid container spacing={2}>
+      <Grid size={{ xs: 12, md: 4 }}>
+        <InfoCard
+          icon={<BusinessIcon fontSize="small" />}
+          titulo="Compañía"
+          valor={nombreCompania || 'Sin compañía'}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 4 }}>
+        <InfoCard
+          icon={<PersonIcon fontSize="small" />}
+          titulo="Project Manager"
+          valor={nombrePm || 'No asignado'}
+        />
+      </Grid>
+
+      <Grid size={{ xs: 12, md: 4 }}>
+        <InfoCard
+          icon={<AssignmentIcon fontSize="small" />}
+          titulo="Proceso"
+          valor="Solicitud de Inversión"
+        />
+      </Grid>
+    </Grid>
+  );
+}
+
+export function EncabezadoSolicitud({
+  nombreProyecto,
+  idProyecto,
+  nombreCompania,
+  nombrePm,
+  estado,
+}: Props) {
   return (
     <Card
       elevation={2}
@@ -107,98 +225,11 @@ export function EncabezadoSolicitud({
       }}
     >
       {/* Cabecera */}
-      <Box
-        sx={{
-          px: 3,
-          py: 3,
-          background:
-            'linear-gradient(90deg, #33533f 0%, #155d33 100%)',
-          color: 'white',
-        }}
-      >
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: {
-              xs: 'flex-start',
-              md: 'center',
-            },
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Box>
-            <Typography
-              variant="overline"
-              sx={{
-                opacity: .8,
-                letterSpacing: 1,
-              }}
-            >
-              SOLICITUD DE INVERSIÓN
-            </Typography>
-
-            <Typography
-              variant="h4"
-              sx={{
-                fontWeight: 800,
-                mt: .5,
-              }}
-            >
-              {nombreProyecto}
-            </Typography>
-
-            <Typography
-              variant="body2"
-              sx={{
-                opacity: .85,
-                mt: .5,
-              }}
-            >
-              Proyecto #{idProyecto}
-            </Typography>
-          </Box>
-
-          <Chip
-            label={estado.replace(/_/g, ' ')}
-            color={colorEstado(estado) as any}
-            sx={{
-              fontWeight: 800,
-              fontSize: '.85rem',
-              px: 1,
-            }}
-          />
-        </Box>
-      </Box>
+      <CabeceraSolicitud nombreProyecto={nombreProyecto} idProyecto={idProyecto} estado={estado} />
 
       {/* Información */}
       <CardContent sx={{ p: 3 }}>
-        <Grid container spacing={2}>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <InfoCard
-              icon={<BusinessIcon fontSize="small" />}
-              titulo="Compañía"
-              valor={nombreCompania || 'Sin compañía'}
-            />
-          </Grid>
-
-          <Grid size={{ xs: 12, md: 4 }}>
-            <InfoCard
-              icon={<PersonIcon fontSize="small" />}
-              titulo="Project Manager"
-              valor={nombrePm || 'No asignado'}
-            />
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <InfoCard
-              icon={<AssignmentIcon fontSize="small" />}
-              titulo="Proceso"
-              valor="Solicitud de Inversión"
-            />
-          </Grid>
-        </Grid>
+        <DatosSolicitud nombreCompania={nombreCompania} nombrePm={nombrePm} />
       </CardContent>
     </Card>
   );

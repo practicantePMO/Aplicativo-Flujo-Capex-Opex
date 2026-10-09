@@ -21,7 +21,7 @@ export function StepperProceso({ etapas, etapaActual, estadoFinal, estadoCancela
     );
   }
 
-  const esFinal = !!estadoFinal && etapaActual === estadoFinal;
+  const esFinal = Boolean(estadoFinal) && etapaActual === estadoFinal;
   const indiceActual = etapas.findIndex((e) => e.key === etapaActual);
   const activeStep = esFinal ? etapas.length : indiceActual === -1 ? 0 : indiceActual;
 

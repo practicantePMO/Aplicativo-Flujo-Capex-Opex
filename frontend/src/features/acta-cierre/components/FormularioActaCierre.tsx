@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
+import type { Dispatch, SetStateAction } from 'react';
 import {
   Box, Typography, Button, TextField, RadioGroup, FormControlLabel, Radio,
   Alert, CircularProgress, Divider, Card, CardContent, IconButton, FormLabel, Autocomplete,
-  TableContainer, Table, TableHead, TableRow, TableCell, TableBody,
+  TableContainer, Table, TableRow, TableCell, TableBody,
 } from '@mui/material';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import AddIcon from '@mui/icons-material/Add';
@@ -17,6 +18,9 @@ import {
 } from '../../solicitud-inversion/services/solicitudInversion.service';
 import { obtenerProcesosPorProyecto } from '../../proyectos/services/proyectos.service';
 import { obtenerOrdenesInternasPorProyecto } from '../../ordenes-internas/services/ordenesInternas.service';
+import { mensajeDelBackend } from '../../../utils/errores';
+import { useClavesFilas } from '../../../hooks/useClavesFilas';
+import { EncabezadoTabla } from '../../../components/EncabezadoTabla';
 
 const MESES = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
 
@@ -39,7 +43,7 @@ interface FilaFlujoCaja {
 
 interface FilaOiValorReal {
   orden_interna_id: number;
-  numero_oi: string;
+  numero_oi: string | null;
   nombre_descriptivo: string;
   tipo_orden: string;
   presupuesto?: number;
@@ -54,6 +58,78 @@ interface Props {
   procesoId?: number;
   onCancelar: () => void;
   onGuardado: (procesoId: number) => void;
+}
+
+interface ValorReal {
+  usd: number;
+  cop: number;
+}
+
+function OpcionesTipoCierre({ valor, onCambiar }: { valor: TipoCierre; onCambiar: (val: TipoCierre) => void }) {
+  return (
+    <RadioGroup row value={valor} onChange={(e) => onCambiar(e.target.value as TipoCierre)} sx={{ mb: 2 }}>
+      <FormControlLabel value="CULMINACION" control={<Radio />} label="Culminación (el proyecto se ejecutó)" />
+      <FormControlLabel value="CANCELACION" control={<Radio />} label="Cancelación (el proyecto se cancela)" />
+    </RadioGroup>
+  );
+}
+
+interface CamposAsignacionProps {
+  usuariosCG: UsuarioActivo[];
+  cgAsignado: UsuarioActivo | null;
+  setCgAsignado: (val: UsuarioActivo | null) => void;
+  p5Link: string;
+  setP5Link: (val: string) => void;
+}
+
+function CamposAsignacion({ usuariosCG, cgAsignado, setCgAsignado, p5Link, setP5Link }: CamposAsignacionProps) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+      <Autocomplete
+        options={usuariosCG}
+        getOptionLabel={(u) => u.nombre}
+        value={cgAsignado}
+        onChange={(_, v) => setCgAsignado(v)}
+        renderInput={(params) => <TextField {...params} label="¿Quién de Control Gestión revisa este cierre? *" />}
+      />
+      <TextField label="Presentación de Puertas 5 (link)" value={p5Link} onChange={(e) => setP5Link(e.target.value)} />
+    </Box>
+  );
+}
+
+interface CamposEntregableProps {
+  entregableInicial: string | null;
+  entregableReal: string;
+  setEntregableReal: (val: string) => void;
+}
+
+function CamposEntregable({ entregableInicial, entregableReal, setEntregableReal }: CamposEntregableProps) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
+      <TextField label="Entregable Inicial (de la SI)" value={entregableInicial || '—'} slotProps={{ input: { readOnly: true } }} sx={{ bgcolor: '#f1f5f9' }} />
+      <TextField label="Entregable Real" multiline minRows={2} value={entregableReal} onChange={(e) => setEntregableReal(e.target.value)} />
+    </Box>
+  );
+}
+
+interface CamposValorRealProps {
+  valorActivo: ValorReal;
+  setValorActivo: Dispatch<SetStateAction<ValorReal>>;
+  valorGasto: ValorReal;
+  setValorGasto: Dispatch<SetStateAction<ValorReal>>;
+}
+
+function CamposValorReal({ valorActivo, setValorActivo, valorGasto, setValorGasto }: CamposValorRealProps) {
+  return (
+    <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 2, alignItems: 'center', mb: 1 }}>
+      <Typography sx={{ fontWeight: 700 }}>ACTIVO</Typography>
+      <TextField size="small" label="Real USD" type="number" value={valorActivo.usd || ''} onChange={(e) => setValorActivo((p) => ({ ...p, usd: Number(e.target.value) || 0 }))} />
+      <TextField size="small" label="Real COP" type="number" value={valorActivo.cop || ''} onChange={(e) => setValorActivo((p) => ({ ...p, cop: Number(e.target.value) || 0 }))} />
+      <Typography sx={{ fontWeight: 700 }}>GASTO</Typography>
+      <TextField size="small" label="Real USD" type="number" value={valorGasto.usd || ''} onChange={(e) => setValorGasto((p) => ({ ...p, usd: Number(e.target.value) || 0 }))} />
+      <TextField size="small" label="Real COP" type="number" value={valorGasto.cop || ''} onChange={(e) => setValorGasto((p) => ({ ...p, cop: Number(e.target.value) || 0 }))} />
+    </Box>
+  );
 }
 
 export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCancelar, onGuardado }: Props) {
@@ -105,7 +181,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
 
           if (!procesoId) {
             setMetas(
-              (si.solicitudes_inversion?.solicitud_metas || []).map((m: any) => ({
+              (si.solicitudes_inversion?.solicitud_metas || []).map((m) => ({
                 solicitud_meta_id: m.id,
                 compromiso: m.compromiso,
                 fecha_inicio: m.fecha_inicio,
@@ -114,7 +190,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
               })),
             );
             setFlujoCaja(
-              (si.solicitudes_inversion?.solicitud_flujo_caja || []).map((f: any) => ({
+              (si.solicitudes_inversion?.solicitud_flujo_caja || []).map((f) => ({
                 tipo: f.tipo,
                 moneda: f.moneda,
                 anio: f.anio,
@@ -129,7 +205,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         const ordenesInternas = ordenesGrupo?.ordenes_internas || [];
         if (!procesoId) {
           setOiValoresReales(
-            ordenesInternas.map((oi: any) => ({
+            ordenesInternas.map((oi) => ({
               orden_interna_id: oi.id,
               numero_oi: oi.numero_oi,
               nombre_descriptivo: oi.nombre_descriptivo,
@@ -202,7 +278,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           const actuales = detalle.procesos.asignaciones_proceso
             .filter((a) => a.etapa === 'VERIFICACION_PARTES_INTERESADAS')
             .map((a) => a.usuarios)
-            .filter((u): u is NonNullable<typeof u> => !!u) as UsuarioActivo[];
+            .filter((u): u is NonNullable<typeof u> => Boolean(u)) as UsuarioActivo[];
           setPartesSeleccionadas(actuales);
         }
       } catch {
@@ -215,7 +291,11 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
 
   const agregarEntregable = () =>
     setEntregables((prev) => [...prev, { equipo_sistema: '', codigo_activo_produccion: '', codigo_activo_montaje: '', unidad_vida_util: '', vida_util: undefined, observaciones: '', anexo_url: '' }]);
-  const quitarEntregable = (index: number) => setEntregables((prev) => prev.filter((_, i) => i !== index));
+  const { claves: clavesEntregables, quitarClave } = useClavesFilas(entregables.length);
+  const quitarEntregable = (index: number) => {
+    quitarClave(index);
+    setEntregables((prev) => prev.filter((_, i) => i !== index));
+  };
   const actualizarEntregable = (index: number, patch: Partial<ActaCierreEntregablePayload>) =>
     setEntregables((prev) => prev.map((e, i) => (i === index ? { ...e, ...patch } : e)));
 
@@ -257,8 +337,8 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       await actualizarPartesInteresadasAc(procesoIdResultante, partesSeleccionadas.map((u) => u.id));
 
       onGuardado(procesoIdResultante);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Error al guardar el Acta de Cierre.');
+    } catch (err) {
+      setError(mensajeDelBackend(err) || (err instanceof Error ? err.message : '') || 'Error al guardar el Acta de Cierre.');
     } finally {
       setGuardando(false);
     }
@@ -281,21 +361,15 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           <Typography variant="h6" sx={{ mb: 2 }}>Información General</Typography>
 
           <FormLabel sx={{ fontWeight: 600, fontSize: '0.9rem', color: 'text.primary' }}>Tipo de cierre</FormLabel>
-          <RadioGroup row value={tipoCierre} onChange={(e) => setTipoCierre(e.target.value as TipoCierre)} sx={{ mb: 2 }}>
-            <FormControlLabel value="CULMINACION" control={<Radio />} label="Culminación (el proyecto se ejecutó)" />
-            <FormControlLabel value="CANCELACION" control={<Radio />} label="Cancelación (el proyecto se cancela)" />
-          </RadioGroup>
+          <OpcionesTipoCierre valor={tipoCierre} onCambiar={setTipoCierre} />
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-            <Autocomplete
-              options={usuariosCG}
-              getOptionLabel={(u) => u.nombre}
-              value={cgAsignado}
-              onChange={(_, v) => setCgAsignado(v)}
-              renderInput={(params) => <TextField {...params} label="¿Quién de Control Gestión revisa este cierre? *" />}
-            />
-            <TextField label="Presentación de Puertas 5 (link)" value={p5Link} onChange={(e) => setP5Link(e.target.value)} />
-          </Box>
+          <CamposAsignacion
+            usuariosCG={usuariosCG}
+            cgAsignado={cgAsignado}
+            setCgAsignado={setCgAsignado}
+            p5Link={p5Link}
+            setP5Link={setP5Link}
+          />
         </CardContent>
       </Card>
 
@@ -303,10 +377,11 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
       <Card sx={{ mb: 4 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Entregable Planeado</Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2 }}>
-                        <TextField label="Entregable Inicial (de la SI)" value={entregableInicial || '—'} slotProps={{ input: { readOnly: true } }} sx={{ bgcolor: '#f1f5f9' }} />
-            <TextField label="Entregable Real" multiline minRows={2} value={entregableReal} onChange={(e) => setEntregableReal(e.target.value)} />
-          </Box>
+          <CamposEntregable
+            entregableInicial={entregableInicial}
+            entregableReal={entregableReal}
+            setEntregableReal={setEntregableReal}
+          />
         </CardContent>
       </Card>
 
@@ -319,14 +394,12 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Compromiso P3</TableCell>
-                    <TableCell>Fecha inicio medición</TableCell>
-                    <TableCell>Indicador</TableCell>
-                    <TableCell sx={{ minWidth: 220 }}>Resultados del escalamiento / Cierre</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoTabla columnas={[
+                  { titulo: 'Compromiso P3' },
+                  { titulo: 'Fecha inicio medición' },
+                  { titulo: 'Indicador' },
+                  { titulo: 'Resultados del escalamiento / Cierre', sx: { minWidth: 220 } },
+                ]} />
                 <TableBody>
                   {metas.map((m, i) => (
                     <TableRow key={m.solicitud_meta_id}>
@@ -353,14 +426,12 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 2 }}>
             El comparativo contra lo planeado en la SI (y contra Control de Cambios, si aplica) se muestra en la vista una vez guardada el Acta.
           </Typography>
-          <Box sx={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr', gap: 2, alignItems: 'center', mb: 1 }}>
-            <Typography sx={{ fontWeight: 700 }}>ACTIVO</Typography>
-            <TextField size="small" label="Real USD" type="number" value={valorActivo.usd || ''} onChange={(e) => setValorActivo((p) => ({ ...p, usd: Number(e.target.value) || 0 }))} />
-            <TextField size="small" label="Real COP" type="number" value={valorActivo.cop || ''} onChange={(e) => setValorActivo((p) => ({ ...p, cop: Number(e.target.value) || 0 }))} />
-            <Typography sx={{ fontWeight: 700 }}>GASTO</Typography>
-            <TextField size="small" label="Real USD" type="number" value={valorGasto.usd || ''} onChange={(e) => setValorGasto((p) => ({ ...p, usd: Number(e.target.value) || 0 }))} />
-            <TextField size="small" label="Real COP" type="number" value={valorGasto.cop || ''} onChange={(e) => setValorGasto((p) => ({ ...p, cop: Number(e.target.value) || 0 }))} />
-          </Box>
+          <CamposValorReal
+            valorActivo={valorActivo}
+            setValorActivo={setValorActivo}
+            valorGasto={valorGasto}
+            setValorGasto={setValorGasto}
+          />
           <TextField fullWidth multiline minRows={2} label="Explicación de sobre/sub-ejecución" value={explicacionEjecucion}
             onChange={(e) => setExplicacionEjecucion(e.target.value)} sx={{ mt: 1 }} />
         </CardContent>
@@ -381,15 +452,13 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
                   <Typography variant="subtitle2" sx={{ fontWeight: 700, mb: 1 }}>{tipo}</Typography>
                   <TableContainer sx={{ overflowX: 'auto' }}>
                     <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Mes</TableCell>
-                          <TableCell>Año</TableCell>
-                          <TableCell>Moneda</TableCell>
-                          <TableCell align="right">Planeado</TableCell>
-                          <TableCell align="right" sx={{ minWidth: 140 }}>Real</TableCell>
-                        </TableRow>
-                      </TableHead>
+                      <EncabezadoTabla columnas={[
+                        { titulo: 'Mes' },
+                        { titulo: 'Año' },
+                        { titulo: 'Moneda' },
+                        { titulo: 'Planeado', align: 'right' },
+                        { titulo: 'Real', align: 'right', sx: { minWidth: 140 } },
+                      ]} />
                       <TableBody>
                         {filas.map((f) => {
                           const idxGlobal = flujoCaja.findIndex((x) => x === f);
@@ -425,15 +494,13 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
           ) : (
             <TableContainer sx={{ overflowX: 'auto' }}>
               <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>N° OI</TableCell>
-                    <TableCell>Nombre descriptivo</TableCell>
-                    <TableCell>Activo/Gasto</TableCell>
-                    <TableCell align="right">PPT OI</TableCell>
-                    <TableCell align="right" sx={{ minWidth: 140 }}>Valor Real</TableCell>
-                  </TableRow>
-                </TableHead>
+                <EncabezadoTabla columnas={[
+                  { titulo: 'N° OI' },
+                  { titulo: 'Nombre descriptivo' },
+                  { titulo: 'Activo/Gasto' },
+                  { titulo: 'PPT OI', align: 'right' },
+                  { titulo: 'Valor Real', align: 'right', sx: { minWidth: 140 } },
+                ]} />
                 <TableBody>
                   {oiValoresReales.map((o, i) => (
                     <TableRow key={o.orden_interna_id}>
@@ -459,7 +526,7 @@ export function FormularioActaCierre({ proyectoId, companiaId, procesoId, onCanc
         <CardContent sx={{ p: 3 }}>
           <Typography variant="h6" sx={{ mb: 2 }}>Entregable</Typography>
           {entregables.map((ent, i) => (
-            <Box key={i} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
+            <Box key={clavesEntregables[i]} sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr 1fr 40px' }, gap: 1.5, mb: 1.5, alignItems: 'flex-start' }}>
               <TextField size="small" label="Equipo / Sistema *" value={ent.equipo_sistema} onChange={(e) => actualizarEntregable(i, { equipo_sistema: e.target.value })} />
               <TextField size="small" label="Código activo fijo en producción" value={ent.codigo_activo_produccion || ''} onChange={(e) => actualizarEntregable(i, { codigo_activo_produccion: e.target.value })} />
               <TextField size="small" label="Código activo fijo en montaje" value={ent.codigo_activo_montaje || ''} onChange={(e) => actualizarEntregable(i, { codigo_activo_montaje: e.target.value })} />

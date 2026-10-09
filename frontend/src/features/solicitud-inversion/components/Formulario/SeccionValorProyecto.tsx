@@ -9,10 +9,68 @@ interface Props {
   gastoCop: number;
 }
 
-export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoUsd, gastoCop }: Props) {
+function EncabezadoTablaValores() {
+  return (
+    <TableHead>
+      <TableRow>
+        <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
+        <TableCell align="center" sx={{ width: '33%' }}>Valor USD</TableCell>
+        <TableCell align="center" sx={{ width: '33%' }}>Valor COP</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+function FilaValor({ categoria, usd, cop }: { categoria: string; usd: number; cop: number }) {
+  return (
+    <TableRow>
+      <TableCell sx={{ fontWeight: 600 }}>{categoria}</TableCell>
+      <TableCell align="center">${usd.toLocaleString()}</TableCell>
+      <TableCell align="center">COP{cop.toLocaleString()}</TableCell>
+    </TableRow>
+  );
+}
+
+function FilaTotal({ usd, cop }: { usd: number; cop: number }) {
+  return (
+    <TableRow>
+      <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+        ${usd.toLocaleString()}
+      </TableCell>
+      <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+        COP{cop.toLocaleString()}
+      </TableCell>
+    </TableRow>
+  );
+}
+
+interface PropsTablaValores {
+  activoUsd: number;
+  activoCop: number;
+  gastoUsd: number;
+  gastoCop: number;
+}
+
+function TablaValores({ activoUsd, activoCop, gastoUsd, gastoCop }: PropsTablaValores) {
   const totalUsd = activoUsd + gastoUsd;
   const totalCop = activoCop + gastoCop;
 
+  return (
+    <TableContainer component={Paper} variant="outlined">
+      <Table size="small">
+        <EncabezadoTablaValores />
+        <TableBody>
+          <FilaValor categoria="ACTIVO (CAPEX)" usd={activoUsd} cop={activoCop} />
+          <FilaValor categoria="GASTO (GCAPEX + OPEX)" usd={gastoUsd} cop={gastoCop} />
+          <FilaTotal usd={totalUsd} cop={totalCop} />
+        </TableBody>
+      </Table>
+    </TableContainer>
+  );
+}
+
+export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoUsd, gastoCop }: Props) {
   return (
     <Card sx={{ mb: 4 }}>
       <CardContent sx={{ p: 3 }}>
@@ -21,7 +79,7 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3 }}>
-          Estos valores se calculan automáticamente sumando la sección "Flujo de Caja Planeado" de abajo
+          Estos valores se calculan automáticamente sumando la sección &quot;Flujo de Caja Planeado&quot; de abajo
           (CAPEX = Activo; GCAPEX + OPEX = Gasto), separados por la moneda de cada fila. Para cambiarlos, edita el flujo de caja.
         </Alert>
 
@@ -33,38 +91,7 @@ export function SeccionValorProyecto({ trm, setTrm, activoUsd, activoCop, gastoU
           />
         </Box>
 
-        <TableContainer component={Paper} variant="outlined">
-          <Table size="small">
-            <TableHead>
-              <TableRow>
-                <TableCell sx={{ width: '34%' }}>Categoría</TableCell>
-                <TableCell align="center" sx={{ width: '33%' }}>Valor USD</TableCell>
-                <TableCell align="center" sx={{ width: '33%' }}>Valor COP</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>ACTIVO (CAPEX)</TableCell>
-                <TableCell align="center">${activoUsd.toLocaleString()}</TableCell>
-                <TableCell align="center">COP{activoCop.toLocaleString()}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 600 }}>GASTO (GCAPEX + OPEX)</TableCell>
-                <TableCell align="center">${gastoUsd.toLocaleString()}</TableCell>
-                <TableCell align="center">COP{gastoCop.toLocaleString()}</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell sx={{ fontWeight: 700 }}>TOTAL</TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                  ${totalUsd.toLocaleString()}
-                </TableCell>
-                <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                  COP{totalCop.toLocaleString()}
-                </TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
-        </TableContainer>
+        <TablaValores activoUsd={activoUsd} activoCop={activoCop} gastoUsd={gastoUsd} gastoCop={gastoCop} />
       </CardContent>
     </Card>
   );

@@ -74,7 +74,8 @@ export interface SolicitudInversionDetalle {
   proyectos: {
     id: string;
     nombre: string;
-    compania_id?: number;
+    fecha_proyecto: string;
+    compania_id: number;
     companias?: {
       id: number;
       nombre: string;
@@ -89,6 +90,8 @@ export interface SolicitudInversionDetalle {
     id: number;
     subprograma_id?: number | null;
     categoria_id?: number | null;
+    tipo_clasificacion?: 'TRADICIONAL' | 'NUEVA' | 'AMBAS' | null;
+    categorias?: { id: number; nombre: string } | null;
     entregable_planeado?: string | null;
     tiene_evaluacion_financiera: boolean;
     trm?: number;
@@ -120,7 +123,7 @@ export interface SolicitudInversionDetalle {
       vpn?: number | null;
       payback?: number | null;
     } | null;
-    solicitud_metas: Meta[];
+    solicitud_metas: (Meta & { id: number })[];
     solicitud_valores: Valor[];
     solicitud_flujo_caja: FlujoCaja[];
   };

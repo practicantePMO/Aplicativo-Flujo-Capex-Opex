@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService } from './auth.service';
+import { AuthService, validarDominioCorporativo } from './auth.service';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { PrismaService } from '../prisma/prisma.service';
 
@@ -31,28 +31,39 @@ describe('AuthService', () => {
     process.env.ALLOWED_EMAIL_DOMAIN = dominioOriginal;
   });
 
+  it('debe crearse correctamente', () => {
+    expect(service).toBeDefined();
+  });
+
   describe('validarDominioCorporativo', () => {
     it('debe aceptar un correo del dominio corporativo permitido', () => {
-      // "as any" nos deja llamar un método privado solo para esta prueba,
-      // sin tener que hacerlo público en el código real.
-      expect(() => (service as any).validarDominioCorporativo('laura.pm@empresa.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('laura.pm@empresa.com')).not.toThrow();
     });
 
     it('debe RECHAZAR un correo de un dominio externo (ej. gmail personal)', () => {
-      expect(() => (service as any).validarDominioCorporativo('cualquiera@gmail.com')).toThrow(
+      expect(() => validarDominioCorporativo('cualquiera@gmail.com')).toThrow(
         UnauthorizedException,
       );
     });
 
     it('no debe dejarse engañar por un dominio que solo termina parecido (ej. "empresa.com.malicioso.com")', () => {
       expect(() =>
-        (service as any).validarDominioCorporativo('atacante@empresa.com.malicioso.com'),
+        validarDominioCorporativo('atacante@empresa.com.malicioso.com'),
       ).toThrow(UnauthorizedException);
+    });
+
+    it('acepta varios dominios separados por comas (con o sin @ y espacios)', () => {
+      process.env.ALLOWED_EMAIL_DOMAIN = 'empresa.com, @filial.com.co ,otra.com';
+      expect(() => validarDominioCorporativo('ana@empresa.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('Luis@Filial.com.co')).not.toThrow();
+      expect(() => validarDominioCorporativo('eva@otra.com')).not.toThrow();
+      expect(() => validarDominioCorporativo('x@gmail.com')).toThrow(UnauthorizedException);
+      expect(() => validarDominioCorporativo('x@filial.com')).toThrow(UnauthorizedException);
     });
 
     it('debe fallar de forma segura si ALLOWED_EMAIL_DOMAIN no está configurado', () => {
       delete process.env.ALLOWED_EMAIL_DOMAIN;
-      expect(() => (service as any).validarDominioCorporativo('laura.pm@empresa.com')).toThrow(
+      expect(() => validarDominioCorporativo('laura.pm@empresa.com')).toThrow(
         'Falta configurar ALLOWED_EMAIL_DOMAIN',
       );
     });

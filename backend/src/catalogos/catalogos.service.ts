@@ -6,7 +6,7 @@ export class CatalogosService {
   constructor(private readonly prisma: PrismaService) {}
 
   // precargar los desplegables del Frontend
-  async obtenerJerarquiaCompleta() {
+  obtenerJerarquiaCompleta() {
     return this.prisma.grupos.findMany({
       select: {
         id: true,
@@ -30,7 +30,7 @@ export class CatalogosService {
   }
 
   // 2. Obtener solo la lista de Grupos
-  async obtenerGrupos() {
+  obtenerGrupos() {
     return this.prisma.grupos.findMany({
       select: { id: true, nombre: true },
       orderBy: { id: 'asc' },
@@ -38,7 +38,7 @@ export class CatalogosService {
   }
 
   // 3. Obtener Programas pertenecientes a un Grupo específico
-  async obtenerProgramasPorGrupo(grupoId: number) {
+  obtenerProgramasPorGrupo(grupoId: number) {
     return this.prisma.programas.findMany({
       where: { id_grupo: grupoId },
       select: { id: true, nombre: true },
@@ -47,7 +47,7 @@ export class CatalogosService {
   }
 
   // 4. Obtener Subprogramas pertenecientes a un Programa específico
-  async obtenerSubprogramasPorPrograma(programaId: number) {
+  obtenerSubprogramasPorPrograma(programaId: number) {
     return this.prisma.subprogramas.findMany({
       where: { programa_id: programaId },
       select: {
@@ -59,7 +59,7 @@ export class CatalogosService {
     });
   }
 
-  async obtenerEmpresas() {
+  obtenerEmpresas() {
     return this.prisma.empresas.findMany({
       select: {
         id: true,

@@ -29,6 +29,112 @@ const ESTADO_CONFIG: Record<string, { label: string; color: 'success' | 'warning
   FINALIZADO: { label: 'Finalizado', color: 'success' },
 };
 
+const styles = {
+  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
+  title: { fontWeight: 700, color: '#0e381e' },
+  createBtn: { borderRadius: '10px', px: 2.5 },
+  filterCard: { p: 2, mb: 2.5 },
+  tableCard: { borderRadius: 3, overflow: 'hidden' },
+  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
+  tableHeaderRow: { backgroundColor: '#f8fafc' },
+  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
+  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
+  idCell: { color: '#0e381e' },
+  companiaChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.73rem' },
+};
+
+interface FilaFiltrosProps {
+  aniosDisponibles: number[];
+  companias: Compania[];
+  filtroAnio: string;
+  setFiltroAnio: (val: string) => void;
+  filtroCompania: string;
+  setFiltroCompania: (val: string) => void;
+  filtroAplazados: boolean;
+  setFiltroAplazados: (val: boolean) => void;
+}
+
+function FilaFiltros({
+  aniosDisponibles, companias, filtroAnio, setFiltroAnio,
+  filtroCompania, setFiltroCompania, filtroAplazados, setFiltroAplazados,
+}: FilaFiltrosProps) {
+  return (
+    <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
+      <TextField
+        select size="small" label="Año" value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}
+        sx={{ minWidth: 140 }}
+      >
+        <MenuItem value="">Todos los años</MenuItem>
+        {aniosDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
+      </TextField>
+
+      <TextField
+        select size="small" label="Compañía" value={filtroCompania} onChange={(e) => setFiltroCompania(e.target.value)}
+        sx={{ minWidth: 200 }}
+      >
+        <MenuItem value="">Todas las compañías</MenuItem>
+        {companias.map((c) => <MenuItem key={c.id} value={c.id}>{c.nombre}</MenuItem>)}
+      </TextField>
+
+      <FormControlLabel
+        sx={{ ml: { xs: 0, sm: 1 } }}
+        control={<Switch checked={filtroAplazados} onChange={(e) => setFiltroAplazados(e.target.checked)} />}
+        label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>Solo proyectos aplazados</Typography>}
+      />
+
+      {(filtroAnio || filtroCompania || filtroAplazados) && (
+        <Button
+          size="small" color="inherit"
+          onClick={() => { setFiltroAnio(''); setFiltroCompania(''); setFiltroAplazados(false); }}
+          sx={{ color: '#64748b', textTransform: 'none' }}
+        >
+          Limpiar filtros
+        </Button>
+      )}
+    </Stack>
+  );
+}
+
+function EncabezadoTablaProyectos() {
+  return (
+    <TableHead>
+      <TableRow sx={styles.tableHeaderRow}>
+        <TableCell sx={styles.tableHeaderCell}>ID PROYECTO</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>NOMBRE DEL PROYECTO</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>COMPAÑÍA</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>AÑO ASIGNADO</TableCell>
+        <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
+        <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
+      </TableRow>
+    </TableHead>
+  );
+}
+
+interface CeldaAccionesProps {
+  puedeAplazar: boolean;
+  onAplazar: () => void;
+  onAbrir: () => void;
+}
+
+function CeldaAcciones({ puedeAplazar, onAplazar, onAbrir }: CeldaAccionesProps) {
+  return (
+    <TableCell align="right">
+      {puedeAplazar && (
+        <Tooltip title="Aplazar a otro año">
+          <IconButton color="warning" size="small" onClick={onAplazar}>
+            <UpdateIcon />
+          </IconButton>
+        </Tooltip>
+      )}
+      <Tooltip title="Abrir procesos del proyecto">
+        <IconButton color="primary" size="small" onClick={onAbrir}>
+          <ArrowForwardIcon />
+        </IconButton>
+      </Tooltip>
+    </TableCell>
+  );
+}
+
 export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   const { usuario, tieneRol } = useAuth();
   const [proyectos, setProyectos] = useState<Proyecto[]>([]);
@@ -50,10 +156,6 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
     obtenerCompanias().then(setCompanias).catch(() => setCompanias([]));
   }, []);
 
-  useEffect(() => {
-    cargarListaProyectos();
-  }, [usuario?.id, filtroAnio, filtroCompania, filtroAplazados]);
-
   const cargarListaProyectos = async () => {
     try {
       setCargando(true);
@@ -73,6 +175,11 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
     }
   };
 
+  useEffect(() => {
+    cargarListaProyectos();
+  }, [usuario?.id, filtroAnio, filtroCompania, filtroAplazados]);
+
+
   const proyectosFiltrados = proyectos.filter(
     (p) =>
       p.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -81,10 +188,10 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   );
 
   const aniosDisponibles = Array.from(
-    new Set(proyectos.map((p) => p.anio_asignado ?? p.anio_proyecto).filter((a): a is number => !!a)),
+    new Set(proyectos.map((p) => p.anio_asignado ?? p.anio_proyecto).filter((a): a is number => Boolean(a))),
   ).sort((a, b) => b - a);
 
-  const puedeAplazar = (_proyecto: Proyecto) => tieneRol('PMO') || tieneRol('ADMIN');
+  const puedeAplazar = tieneRol('PMO') || tieneRol('ADMIN');
 
   return (
     <Box>
@@ -123,39 +230,16 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
           </Typography>
         </Stack>
 
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} useFlexGap sx={{ alignItems: { xs: 'stretch', sm: 'center' }, flexWrap: 'wrap' }}>
-          <TextField
-            select size="small" label="Año" value={filtroAnio} onChange={(e) => setFiltroAnio(e.target.value)}
-            sx={{ minWidth: 140 }}
-          >
-            <MenuItem value="">Todos los años</MenuItem>
-            {aniosDisponibles.map((a) => <MenuItem key={a} value={a}>{a}</MenuItem>)}
-          </TextField>
-
-          <TextField
-            select size="small" label="Compañía" value={filtroCompania} onChange={(e) => setFiltroCompania(e.target.value)}
-            sx={{ minWidth: 200 }}
-          >
-            <MenuItem value="">Todas las compañías</MenuItem>
-            {companias.map((c) => <MenuItem key={c.id} value={c.id}>{c.nombre}</MenuItem>)}
-          </TextField>
-
-          <FormControlLabel
-            sx={{ ml: { xs: 0, sm: 1 } }}
-            control={<Switch checked={filtroAplazados} onChange={(e) => setFiltroAplazados(e.target.checked)} />}
-            label={<Typography variant="body2" sx={{ fontWeight: 600, color: '#475569' }}>Solo proyectos aplazados</Typography>}
-          />
-
-          {(filtroAnio || filtroCompania || filtroAplazados) && (
-            <Button
-              size="small" color="inherit"
-              onClick={() => { setFiltroAnio(''); setFiltroCompania(''); setFiltroAplazados(false); }}
-              sx={{ color: '#64748b', textTransform: 'none' }}
-            >
-              Limpiar filtros
-            </Button>
-          )}
-        </Stack>
+        <FilaFiltros
+          aniosDisponibles={aniosDisponibles}
+          companias={companias}
+          filtroAnio={filtroAnio}
+          setFiltroAnio={setFiltroAnio}
+          filtroCompania={filtroCompania}
+          setFiltroCompania={setFiltroCompania}
+          filtroAplazados={filtroAplazados}
+          setFiltroAplazados={setFiltroAplazados}
+        />
       </Card>
 
       {/* Tabla */}
@@ -165,16 +249,7 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
         ) : (
           <TableContainer>
             <Table>
-              <TableHead>
-                <TableRow sx={styles.tableHeaderRow}>
-                  <TableCell sx={styles.tableHeaderCell}>ID PROYECTO</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>NOMBRE DEL PROYECTO</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>COMPAÑÍA</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>AÑO ASIGNADO</TableCell>
-                  <TableCell sx={styles.tableHeaderCell}>ESTADO</TableCell>
-                  <TableCell align="right" sx={styles.tableHeaderCell}>ACCIONES</TableCell>
-                </TableRow>
-              </TableHead>
+              <EncabezadoTablaProyectos />
               <TableBody>
                 {proyectosFiltrados.length === 0 ? (
                   <TableRow>
@@ -203,20 +278,11 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
                         <TableCell>
                           <Chip label={estadoInfo.label} size="small" color={estadoInfo.color} sx={{ fontWeight: 700, fontSize: '0.7rem' }} />
                         </TableCell>
-                        <TableCell align="right">
-                          {puedeAplazar(proyecto) && (
-                            <Tooltip title="Aplazar a otro año">
-                              <IconButton color="warning" size="small" onClick={() => setProyectoAAplazar(proyecto)}>
-                                <UpdateIcon />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="Abrir procesos del proyecto">
-                            <IconButton color="primary" size="small" onClick={() => onSeleccionarProyecto?.(proyecto)}>
-                              <ArrowForwardIcon />
-                            </IconButton>
-                          </Tooltip>
-                        </TableCell>
+                        <CeldaAcciones
+                          puedeAplazar={puedeAplazar}
+                          onAplazar={() => setProyectoAAplazar(proyecto)}
+                          onAbrir={() => onSeleccionarProyecto?.(proyecto)}
+                        />
                       </TableRow>
                     );
                   })
@@ -243,16 +309,3 @@ export function TablaProyectos({ onSeleccionarProyecto }: TablaProyectosProps) {
   );
 }
 
-const styles = {
-  headerBox: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 },
-  title: { fontWeight: 700, color: '#0e381e' },
-  createBtn: { borderRadius: '10px', px: 2.5 },
-  filterCard: { p: 2, mb: 2.5 },
-  tableCard: { borderRadius: 3, overflow: 'hidden' },
-  loadingBox: { display: 'flex', justifyContent: 'center', py: 6 },
-  tableHeaderRow: { backgroundColor: '#f8fafc' },
-  tableHeaderCell: { fontWeight: 700, color: '#0e381e', fontSize: '0.72rem', letterSpacing: '0.5px' },
-  tableRow: { '&:last-child td, &:last-child th': { border: 0 } },
-  idCell: { color: '#0e381e' },
-  companiaChip: { backgroundColor: '#e6f7ed', color: '#0e381e', fontWeight: 700, fontSize: '0.73rem' },
-};
