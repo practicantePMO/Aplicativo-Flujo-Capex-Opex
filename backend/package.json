@@ -56,6 +56,7 @@
     "seed": "npx prisma db execute --file ./prisma/seed.sql"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@eslint/eslintrc": "^3.2.0",
     "@eslint/js": "^9.18.0",
     "@nestjs/cli": "^11.0.0",
@@ -75,6 +76,7 @@
     "eslint-plugin-prettier": "^5.2.2",
     "globals": "^17.0.0",
     "jest": "^30.0.0",
+    "pglite-prisma-adapter": "^0.7.2",
     "prettier": "^3.4.2",
     "source-map-support": "^0.5.21",
     "supertest": "^7.0.0",
@@ -94,16 +96,26 @@
     "rootDir": "src",
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
+      "node_modules[/\\\\]@electric-sql[/\\\\]pglite[/\\\\].+\\.c?js$": "<rootDir>/../test/transformar-import-dinamico.js",
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "transformIgnorePatterns": [
-      "node_modules/(?!(jose|jwks-rsa)/)"
+      "node_modules[/\\\\](?!(jose|jwks-rsa|@electric-sql[/\\\\]pglite)[/\\\\])"
     ],
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "**/*.(t|j)s",
+      "!main.ts",
+      "!**/*.module.ts",
+      "!integracion/**"
     ],
     "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
+    "testEnvironment": "node",
+    "setupFiles": [
+      "<rootDir>/../test/entorno-pruebas.ts"
+    ],
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
+    }
   },
   "overrides": {
     "nodemailer": "$nodemailer",

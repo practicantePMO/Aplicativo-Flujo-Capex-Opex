@@ -31,4 +31,24 @@ describe('BackupService', () => {
       'AC - OI Valores Reales',
     ]);
   });
+
+  it('deja las celdas vacías cuando a una fila le faltan datos opcionales', async () => {
+    // Cada tabla devuelve una fila sin datos (solo la lista de OI del CC, que siempre viene,
+    // con una OI todavía sin número): todos los campos opcionales quedan en blanco.
+    const filaVacia = { ordenes_internas: [{}] };
+    const tablaConFilaVacia = {
+      findMany: jest.fn().mockResolvedValue([filaVacia]),
+    };
+    const prismaFalso = new Proxy({}, { get: () => tablaConFilaVacia });
+    const servicio = new BackupService(prismaFalso as unknown as PrismaService);
+
+    const buffer = await servicio.generarExcel();
+
+    const libro = new ExcelJS.Workbook();
+    await libro.xlsx.load(new Uint8Array(buffer).buffer);
+    // cada hoja tiene el encabezado y la fila (vacía) de datos
+    for (const hoja of libro.worksheets) {
+      expect(hoja.rowCount).toBe(2);
+    }
+  });
 });
