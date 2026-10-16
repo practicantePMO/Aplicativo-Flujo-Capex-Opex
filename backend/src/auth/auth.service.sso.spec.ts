@@ -2,11 +2,11 @@ import { generateKeyPairSync } from 'crypto';
 import { sign } from 'jsonwebtoken';
 import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { AuthService } from './auth.service';
+import { AuthService, inquilinosMicrosoft } from './auth.service';
 import { UsuariosService } from '../usuarios/usuarios.service';
 import { PrismaService } from '../prisma/prisma.service';
 
-// Login SSO (Google y Microsoft), perfil y login de desarrollo, con los proveedores simulados.
+// Login SSO con Microsoft Entra ID, perfil y login de desarrollo, con los proveedores simulados.
 describe('AuthService (SSO y perfil)', () => {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', {
     modulusLength: 2048,
@@ -19,7 +19,6 @@ describe('AuthService (SSO y perfil)', () => {
   const jwtService = { sign: jest.fn(() => 'token-firmado') };
   const prisma = { usuarios: { findFirst: jest.fn() } };
   let servicio: AuthService;
-  let google: { verifyIdToken: jest.Mock };
   let jwks: { getSigningKey: jest.Mock };
 
   const tokenMicrosoft = (datos: object, opciones: object = {}) =>
@@ -63,54 +62,12 @@ describe('AuthService (SSO y perfil)', () => {
       jwtService as unknown as JwtService,
       prisma as unknown as PrismaService,
     );
-    google = { verifyIdToken: jest.fn() };
     jwks = {
       getSigningKey: jest.fn((_kid, cb) =>
         cb(null, { getPublicKey: () => llavePublica }),
       ),
     };
-    Object.assign(servicio, {
-      googleClient: google,
-      microsoftJwksClient: jwks,
-    });
-  });
-
-  describe('Google', () => {
-    const ticket = (payload?: object) => ({
-      getPayload: () => payload,
-    });
-
-    it('acepta un token con correo corporativo', async () => {
-      google.verifyIdToken.mockResolvedValue(
-        ticket({ email: 'Ana@Empresa.com', name: 'Ana' }),
-      );
-      await expect(servicio.verificarTokenGoogle('t')).resolves.toEqual({
-        email: 'ana@empresa.com',
-        nombre: 'Ana',
-      });
-      google.verifyIdToken.mockResolvedValue(
-        ticket({ email: 'luis@empresa.com' }),
-      );
-      await expect(servicio.verificarTokenGoogle('t')).resolves.toEqual({
-        email: 'luis@empresa.com',
-        nombre: 'luis',
-      });
-    });
-
-    it('rechaza tokens sin correo, de otro dominio o inválidos', async () => {
-      google.verifyIdToken.mockResolvedValue(ticket());
-      await expect(servicio.verificarTokenGoogle('t')).rejects.toThrow(
-        'no contiene un correo',
-      );
-      google.verifyIdToken.mockResolvedValue(ticket({ email: 'x@gmail.com' }));
-      await expect(servicio.verificarTokenGoogle('t')).rejects.toThrow(
-        'Acceso denegado',
-      );
-      google.verifyIdToken.mockRejectedValue(new Error('expirado'));
-      await expect(servicio.verificarTokenGoogle('t')).rejects.toThrow(
-        'Google inválido o expirado',
-      );
-    });
+    Object.assign(servicio, { microsoftJwksClient: jwks });
   });
 
   describe('Microsoft', () => {
@@ -158,18 +115,48 @@ describe('AuthService (SSO y perfil)', () => {
         ),
       ).rejects.toThrow(UnauthorizedException);
     });
+
+    it('acepta varios inquilinos separados por comas y rechaza los demás', async () => {
+      const original = process.env.MICROSOFT_TENANT_ID;
+      process.env.MICROSOFT_TENANT_ID = ` ${original}, inquilino-filial ,`;
+      try {
+        expect(inquilinosMicrosoft()).toEqual([original, 'inquilino-filial']);
+        await expect(
+          servicio.verificarTokenMicrosoft(
+            tokenMicrosoft(
+              { email: 'ana@empresa.com' },
+              { issuer: 'https://login.microsoftonline.com/inquilino-filial/v2.0' },
+            ),
+          ),
+        ).resolves.toEqual({ email: 'ana@empresa.com', nombre: 'ana' });
+        await expect(
+          servicio.verificarTokenMicrosoft(
+            tokenMicrosoft(
+              { email: 'ana@empresa.com' },
+              { issuer: 'https://login.microsoftonline.com/otro-inquilino/v2.0' },
+            ),
+          ),
+        ).rejects.toThrow('Microsoft inválido');
+      } finally {
+        process.env.MICROSOFT_TENANT_ID = original;
+      }
+    });
   });
 
   describe('loginSSO', () => {
-    it('inicia sesión con Google y con Microsoft y arma los roles', async () => {
-      google.verifyIdToken.mockResolvedValue({
-        getPayload: () => ({ email: 'ana@empresa.com', name: 'Ana' }),
-      });
+    it('inicia sesión con Microsoft y arma los roles', async () => {
       usuariosService.findOrCreateSSOUser.mockResolvedValue(usuarioConRoles);
-      const respuesta = await servicio.loginSSO('t');
+      const respuesta = await servicio.loginSSO(
+        tokenMicrosoft({ email: 'ana@empresa.com', name: 'Ana' }),
+      );
       expect(respuesta.access_token).toBe('token-firmado');
       expect(respuesta.usuario.rolesCompania).toHaveLength(2);
       expect(respuesta.usuario.esPendiente).toBe(false);
+      expect(usuariosService.findOrCreateSSOUser).toHaveBeenCalledWith({
+        email: 'ana@empresa.com',
+        nombre: 'Ana',
+        proveedor_auth: 'AZURE_AD',
+      });
 
       usuariosService.findOrCreateSSOUser.mockResolvedValue({
         ...usuarioConRoles,
@@ -182,17 +169,17 @@ describe('AuthService (SSO y perfil)', () => {
       expect(resultado.usuario.esPendiente).toBe(true);
     });
 
-    it('rechaza un proveedor no soportado o un usuario que no se pudo registrar', async () => {
+    it('rechaza otros proveedores (Google incluido) o un usuario que no se pudo registrar', async () => {
+      await expect(servicio.loginSSO('t', 'GOOGLE')).rejects.toThrow(
+        'Proveedor de autenticación no soportado',
+      );
       await expect(servicio.loginSSO('t', 'FACEBOOK')).rejects.toThrow(
         'Proveedor de autenticación no soportado',
       );
-      google.verifyIdToken.mockResolvedValue({
-        getPayload: () => ({ email: 'ana@empresa.com' }),
-      });
       usuariosService.findOrCreateSSOUser.mockResolvedValue(null);
-      await expect(servicio.loginSSO('t')).rejects.toThrow(
-        'No se pudo registrar',
-      );
+      await expect(
+        servicio.loginSSO(tokenMicrosoft({ email: 'ana@empresa.com' })),
+      ).rejects.toThrow('No se pudo registrar');
     });
   });
 

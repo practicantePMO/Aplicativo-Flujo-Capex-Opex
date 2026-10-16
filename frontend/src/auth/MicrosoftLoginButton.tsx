@@ -3,6 +3,7 @@ import { Box, Button, CircularProgress, Typography } from '@mui/material';
 import { PublicClientApplication, BrowserAuthError } from '@azure/msal-browser';
 import { useAuth } from './AuthContext';
 import { mensajeDelBackend } from '../utils/errores';
+import { autoridadMicrosoft } from './autoridadMicrosoft';
 
 // Logo de Microsoft (4 cuadros de colores).
 function LogoMicrosoft() {
@@ -24,7 +25,7 @@ async function obtenerClienteMsal(clientId: string, tenantId: string) {
     clienteMsal = new PublicClientApplication({
       auth: {
         clientId,
-        authority: `https://login.microsoftonline.com/${tenantId}`,
+        authority: autoridadMicrosoft(tenantId),
         // Página vacía donde Microsoft devuelve el resultado del popup (frontend/public/blank.html).
         redirectUri: `${window.location.origin}/blank.html`,
       },
@@ -37,7 +38,7 @@ async function obtenerClienteMsal(clientId: string, tenantId: string) {
 
 // Botón "Iniciar sesión con Microsoft". Abre el popup de Microsoft, obtiene el id_token
 // y se lo envía al backend (/auth/login-sso con proveedor MICROSOFT), que lo valida.
-// Solo aparece si están configuradas VITE_MICROSOFT_CLIENT_ID y VITE_MICROSOFT_TENANT_ID.
+// Si faltan VITE_MICROSOFT_CLIENT_ID o VITE_MICROSOFT_TENANT_ID, muestra un aviso en lugar del botón.
 export function MicrosoftLoginButton() {
   const { loginSSO } = useAuth();
   const [cargando, setCargando] = useState(false);
@@ -46,7 +47,13 @@ export function MicrosoftLoginButton() {
   const clientId = import.meta.env.VITE_MICROSOFT_CLIENT_ID as string | undefined;
   const tenantId = import.meta.env.VITE_MICROSOFT_TENANT_ID as string | undefined;
 
-  if (!clientId || !tenantId) return null;
+  if (!clientId || !tenantId) {
+    return (
+      <Typography variant="body2" color="text.secondary" sx={{ mt: 3 }}>
+        El inicio de sesión con Microsoft aún no está configurado. Contacta al administrador del aplicativo.
+      </Typography>
+    );
+  }
 
   const iniciarSesion = async () => {
     setError(null);
@@ -54,7 +61,7 @@ export function MicrosoftLoginButton() {
     try {
       const msal = await obtenerClienteMsal(clientId, tenantId);
       const respuesta = await msal.loginPopup({ scopes: ['openid', 'profile', 'email'], prompt: 'select_account' });
-      await loginSSO(respuesta.idToken, 'MICROSOFT');
+      await loginSSO(respuesta.idToken);
     } catch (err) {
       // Si la persona cerró el popup, no es un error que haya que mostrar.
       if (err instanceof BrowserAuthError && err.errorCode === 'user_cancelled') return;

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, screen, waitFor } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import { MicrosoftLoginButton } from '../../auth/MicrosoftLoginButton';
-import { GoogleLoginButton } from '../../auth/GoogleLoginButton';
+import { autoridadMicrosoft } from '../../auth/autoridadMicrosoft';
 import { peticiones, responder } from '../apiFalsa';
 import { renderizarCon } from '../renderizar';
 
@@ -39,10 +39,11 @@ describe('Botón de Microsoft', () => {
     vi.stubEnv('VITE_MICROSOFT_TENANT_ID', 'inquilino');
   });
 
-  it('no aparece sin configuración', () => {
+  it('sin configuración muestra un aviso en lugar del botón', () => {
     vi.stubEnv('VITE_MICROSOFT_CLIENT_ID', '');
     renderizarCon(null, <MicrosoftLoginButton />);
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.getByText(/aún no está configurado/u)).toBeInTheDocument();
   });
 
   it('inicia sesión, ignora la cancelación y muestra los errores', async () => {
@@ -69,72 +70,9 @@ describe('Botón de Microsoft', () => {
   });
 });
 
-describe('Botón de Google', () => {
-  afterEach(() => {
-    delete window.google;
-    document.head.querySelectorAll('script').forEach((s) => s.remove());
-  });
-
-  function simularGoogle() {
-    const google = {
-      callback: undefined as undefined | ((r: { credential: string }) => Promise<void>),
-      renderButton: vi.fn(),
-    };
-    window.google = {
-      accounts: {
-        id: {
-          initialize: (config) => {
-            google.callback = config.callback as typeof google.callback;
-          },
-          renderButton: google.renderButton,
-        },
-      },
-    };
-    return google;
-  }
-
-  it('no aparece sin configuración', () => {
-    renderizarCon(null, <GoogleLoginButton />);
-    expect(document.querySelector('script')).toBeNull();
-  });
-
-  it('dibuja el botón e inicia sesión con la credencial', async () => {
-    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-id');
-    const google = simularGoogle();
-    responder('POST', '/auth/login-sso', 201, respuestaLogin);
-    renderizarCon(null, <GoogleLoginButton />);
-    await waitFor(() => expect(google.renderButton).toHaveBeenCalled());
-    await act(async () => {
-      await google.callback?.({ credential: 'cred' });
-    });
-    expect(peticiones.at(-1)?.cuerpo).toEqual({ idToken: 'cred', proveedor: 'GOOGLE' });
-    responder('POST', '/auth/login-sso', 403, {});
-    await act(async () => {
-      await google.callback?.({ credential: 'cred' });
-    });
-    expect(screen.getByText(/No se pudo iniciar sesión con Google/u)).toBeInTheDocument();
-  });
-
-  it('carga el script de Google y avisa si falla', async () => {
-    vi.stubEnv('VITE_GOOGLE_CLIENT_ID', 'google-id');
-    const { unmount } = renderizarCon(null, <GoogleLoginButton />);
-    const script = document.querySelector('script') as HTMLScriptElement;
-    expect(script.src).toContain('accounts.google.com');
-    act(() => {
-      script.onerror?.(new Event('error'));
-    });
-    expect(await screen.findByText(/No se pudo cargar el botón de Google/u)).toBeInTheDocument();
-    unmount();
-
-    // Con el script ya en la página, espera su evento "load".
-    const google = simularGoogle();
-    const guardado = window.google;
-    delete window.google;
-    renderizarCon(null, <GoogleLoginButton />);
-    window.google = guardado;
-    act(() => {
-      script.dispatchEvent(new Event('load'));
-    });
-    await waitFor(() => expect(google.renderButton).toHaveBeenCalled());
+describe('Autoridad de Microsoft', () => {
+  it('usa el inquilino, o "organizations" si hay varios', () => {
+    expect(autoridadMicrosoft(' inquilino ')).toBe('https://login.microsoftonline.com/inquilino');
+    expect(autoridadMicrosoft('inquilino-1,inquilino-2')).toBe('https://login.microsoftonline.com/organizations');
   });
 });

@@ -66,7 +66,7 @@ VALUES
         1,
         'Ana Admin',
         'ana.admin@empresa.com',
-        'GOOGLE',
+        'AZURE_AD',
         'TI',
         true
     ),
@@ -76,7 +76,7 @@ VALUES
     2,
     'Laura PM',
     'laura.pm@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Proyectos',
     true
 ),
@@ -84,7 +84,7 @@ VALUES
     8,
     'Mateo PM',
     'mateo.pm@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Proyectos',
     true
 ),
@@ -94,7 +94,7 @@ VALUES
     3,
     'Carlos PMO',
     'carlos.pmo@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'PMO',
     true
 ),
@@ -102,7 +102,7 @@ VALUES
     9,
     'Valentina PMO',
     'valentina.pmo@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'PMO',
     true
 ),
@@ -112,7 +112,7 @@ VALUES
     4,
     'Diana Directora PMO',
     'diana.director@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'PMO',
     true
 ),
@@ -123,7 +123,7 @@ VALUES
     5,
     'Gerardo Gerente (Galletas)',
     'gerardo.gerencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Gerencia',
     true
 ),
@@ -131,7 +131,7 @@ VALUES
     11,
     'Gabriela Gerente (Galletas)',
     'gabriela.gerencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Gerencia',
     true
 ),
@@ -139,7 +139,7 @@ VALUES
     12,
     'German Gerente (Pastas)',
     'german.gerencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Gerencia',
     true
 ),
@@ -147,7 +147,7 @@ VALUES
     13,
     'Gloria Gerente (Snacks)',
     'gloria.gerencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Gerencia',
     true
 ),
@@ -157,7 +157,7 @@ VALUES
     6,
     'Pedro Presidencia (Galletas)',
     'pedro.presidencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Presidencia',
     true
 ),
@@ -165,7 +165,7 @@ VALUES
     14,
     'Patricia Presidencia (Pastas)',
     'patricia.presidencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Presidencia',
     true
 ),
@@ -173,7 +173,7 @@ VALUES
     15,
     'Pablo Presidencia (Snacks)',
     'pablo.presidencia@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Presidencia',
     true
 ),
@@ -183,7 +183,7 @@ VALUES
     7,
     'Sofia Interesada',
     'sofia.interesada@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Operaciones',
     true
 ),
@@ -191,7 +191,7 @@ VALUES
     16,
     'Simon Interesado',
     'simon.interesado@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Calidad',
     true
 ),
@@ -202,7 +202,7 @@ VALUES
     10,
     'Nuevo Sin Rol',
     'nuevo.sinrol@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Sin asignar',
     true
 ),
@@ -210,7 +210,7 @@ VALUES
     17,
     'Camila Control Gestion',
     'camila.cg@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Control de Gestión',
     true
 ),
@@ -218,7 +218,7 @@ VALUES
     18,
     'Cristian Control Gestion',
     'cristian.cg@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Control de Gestión',
     true
 ),
@@ -226,7 +226,7 @@ VALUES
     19,
     'Andrea Activos Fijos',
     'andrea.activosfijos@empresa.com',
-    'GOOGLE',
+    'AZURE_AD',
     'Activos Fijos',
     true
 ) ON CONFLICT (id) DO NOTHING;
