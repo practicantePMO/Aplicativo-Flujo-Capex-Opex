@@ -44,7 +44,7 @@ describe('Detalle de Control de Cambios', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar' }));
     await cerrarAviso(usuario, 'La observación es obligatoria para aprobar.');
-    await usuario.type(dialogo().getByLabelText(/Observación/), 'Ok');
+    await usuario.type(dialogo().getByLabelText(/Observación/u), 'Ok');
     responder('POST', '/control-cambios/7/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar' }));
     await cerrarAviso(usuario, 'Error al aprobar.');
@@ -58,7 +58,7 @@ describe('Detalle de Control de Cambios', () => {
     await usuario.click(screen.getByRole('button', { name: 'Rechazar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'La razón del rechazo es obligatoria.');
-    await usuario.type(dialogo().getByLabelText(/Razón del rechazo/), 'No');
+    await usuario.type(dialogo().getByLabelText(/Razón del rechazo/u), 'No');
     responder('POST', '/control-cambios/7/rechazar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'Error al rechazar.');
@@ -76,10 +76,10 @@ describe('Detalle de Control de Cambios', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar y enviar' }));
     await cerrarAviso(usuario, 'La observación es obligatoria para aprobar.');
-    await usuario.type(dialogo().getByLabelText(/Observación/), 'Va');
+    await usuario.type(dialogo().getByLabelText(/Observación/u), 'Va');
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar y enviar' }));
     await cerrarAviso(usuario, 'Debes elegir a qué gerente enviar el proceso.');
-    await usuario.click(dialogo().getByLabelText(/A qué gerente/));
+    await usuario.click(dialogo().getByLabelText(/A qué gerente/u));
     await usuario.click(await screen.findByRole('option', { name: /Gabriela/ }));
     responder('POST', '/control-cambios/7/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar y enviar' }));
@@ -99,7 +99,7 @@ describe('Detalle de Control de Cambios', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar' }));
     await cerrarAviso(usuario, 'La observación es obligatoria para aprobar.');
-    await usuario.type(dialogo().getByLabelText(/Observación/), 'Ok');
+    await usuario.type(dialogo().getByLabelText(/Observación/u), 'Ok');
     await usuario.click(dialogo().getByLabelText('Finaliza aquí'));
     responder('POST', '/control-cambios/7/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Aprobar' }));

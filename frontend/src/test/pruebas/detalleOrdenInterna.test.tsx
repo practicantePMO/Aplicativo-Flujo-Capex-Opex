@@ -39,7 +39,7 @@ describe('Detalle de Orden Interna', () => {
 
     await usuario.click(screen.getByRole('button', { name: 'Enviar a Control Gestión' }));
     expect(dialogo().getByRole('button', { name: 'Enviar' })).toBeDisabled();
-    await usuario.click(dialogo().getByLabelText(/A quién de Control Gestión/));
+    await usuario.click(dialogo().getByLabelText(/A quién de Control Gestión/u));
     await usuario.click(await screen.findByRole('option', { name: /Camila/ }));
     responder('POST', '/ordenes-internas/3/enviar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Enviar' }));
@@ -54,13 +54,13 @@ describe('Detalle de Orden Interna', () => {
     responder('GET', /usuarios\/por-rol/, 200, []);
     const { usuario, unmount } = abrir('pm', 3);
     await usuario.click(await screen.findByRole('button', { name: 'Enviar a Control Gestión' }));
-    expect(await screen.findByText(/No hay ningún usuario con el rol Control Gestión/)).toBeInTheDocument();
+    expect(await screen.findByText(/No hay ningún usuario con el rol Control Gestión/u)).toBeInTheDocument();
     unmount();
     responder('GET', /usuarios\/por-rol/, 500);
     vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const segundo = abrir('pm', 3);
     await segundo.usuario.click(await screen.findByRole('button', { name: 'Enviar a Control Gestión' }));
-    expect(await screen.findByText(/No se pudo cargar la lista de Control Gestión/)).toBeInTheDocument();
+    expect(await screen.findByText(/No se pudo cargar la lista de Control Gestión/u)).toBeInTheDocument();
   });
 
   it('Control Gestión aprueba (primera OI del grupo) y rechaza', async () => {
@@ -88,7 +88,7 @@ describe('Detalle de Orden Interna', () => {
     await usuario.click(screen.getByRole('button', { name: 'Rechazar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'La observación del rechazo es obligatoria.');
-    await usuario.type(dialogo().getByLabelText(/Observación del rechazo/), 'Mal');
+    await usuario.type(dialogo().getByLabelText(/Observación del rechazo/u), 'Mal');
     responder('POST', '/ordenes-internas/2/rechazar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'Error al rechazar.');

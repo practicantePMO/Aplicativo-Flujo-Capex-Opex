@@ -30,7 +30,7 @@ describe('Vista de la Solicitud de Inversión', () => {
     const { usuario, onVolver, onEditar } = abrir('pm', 14);
     await usuario.click(await screen.findByRole('button', { name: 'Editar Solicitud' }));
     expect(onEditar).toHaveBeenCalled();
-    expect(await screen.findByText(/Editar Solicitud —/)).toBeInTheDocument();
+    expect(await screen.findByText(/Editar Solicitud —/u)).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Cancelar y volver' }));
     await usuario.click(await screen.findByRole('button', { name: 'Editar Solicitud' }));
     await usuario.click(await screen.findByRole('button', { name: 'Guardar Cambios' }));
@@ -50,7 +50,7 @@ describe('Vista de la Solicitud de Inversión', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar aprobación' }));
     expect(await screen.findByText('La observación es obligatoria para aprobar.')).toBeInTheDocument();
-    await escribirRazon(usuario, /Observación/, 'Ok');
+    await escribirRazon(usuario, /Observación/u, 'Ok');
     responder('POST', '/solicitud-inversion/15/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar aprobación' }));
     expect(await screen.findByText('Error al aprobar.')).toBeInTheDocument();
@@ -59,16 +59,16 @@ describe('Vista de la Solicitud de Inversión', () => {
 
     // Rechazar
     await usuario.click(screen.getByRole('button', { name: 'Rechazar' }));
-    await usuario.clear(dialogo().getByLabelText(/Razón del rechazo/));
+    await usuario.clear(dialogo().getByLabelText(/Razón del rechazo/u));
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar rechazo' }));
     expect(await screen.findByText('La razón del rechazo es obligatoria.')).toBeInTheDocument();
-    await escribirRazon(usuario, /Razón del rechazo/, 'No');
+    await escribirRazon(usuario, /Razón del rechazo/u, 'No');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar rechazo' }));
     await waitFor(() => expect(huboPost('/15/rechazar')).toBe(true));
     await cerrarDialogo();
     responder('POST', '/solicitud-inversion/15/rechazar', 500);
     await usuario.click(screen.getByRole('button', { name: 'Rechazar' }));
-    await escribirRazon(usuario, /Razón del rechazo/, 'No');
+    await escribirRazon(usuario, /Razón del rechazo/u, 'No');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar rechazo' }));
     expect(await screen.findByText('Error al rechazar.')).toBeInTheDocument();
     await usuario.click(dialogo().getByRole('button', { name: 'Cancelar' }));
@@ -76,16 +76,16 @@ describe('Vista de la Solicitud de Inversión', () => {
 
     // Cancelar definitivamente
     await usuario.click(screen.getByRole('button', { name: 'Cancelar Definitivamente' }));
-    await usuario.clear(dialogo().getByLabelText(/Razón de la cancelación/));
+    await usuario.clear(dialogo().getByLabelText(/Razón de la cancelación/u));
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar cancelación' }));
     expect(await screen.findByText('La razón de cancelación es obligatoria.')).toBeInTheDocument();
-    await escribirRazon(usuario, /Razón de la cancelación/, 'Fin');
+    await escribirRazon(usuario, /Razón de la cancelación/u, 'Fin');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar cancelación' }));
     await waitFor(() => expect(huboPost('/15/cancelar')).toBe(true));
     await cerrarDialogo();
     responder('POST', '/solicitud-inversion/15/cancelar', 500);
     await usuario.click(screen.getByRole('button', { name: 'Cancelar Definitivamente' }));
-    await escribirRazon(usuario, /Razón de la cancelación/, 'Fin');
+    await escribirRazon(usuario, /Razón de la cancelación/u, 'Fin');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar cancelación' }));
     expect(await screen.findByText('Error al cancelar.')).toBeInTheDocument();
     await usuario.click(dialogo().getByRole('button', { name: 'Volver' }));
@@ -107,7 +107,7 @@ describe('Vista de la Solicitud de Inversión', () => {
 
     // Aprobación exitosa
     await usuario.click(screen.getByRole('button', { name: 'Aprobar' }));
-    await escribirRazon(usuario, /Observación/, 'Bien');
+    await escribirRazon(usuario, /Observación/u, 'Bien');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar aprobación' }));
     await waitFor(() => expect(huboPost('/15/aprobar')).toBe(true));
   });
@@ -117,10 +117,10 @@ describe('Vista de la Solicitud de Inversión', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(await screen.findByRole('button', { name: 'Confirmar envío' }));
     await cerrarAviso(usuario, 'La observación es obligatoria para aprobar.');
-    await escribirRazon(usuario, /Observación/, 'Va');
+    await escribirRazon(usuario, /Observación/u, 'Va');
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar envío' }));
     expect(await screen.findByText('Debes elegir a qué gerente enviar el proceso.')).toBeInTheDocument();
-    await usuario.click(dialogo().getByLabelText(/A qué gerente/));
+    await usuario.click(dialogo().getByLabelText(/A qué gerente/u));
     await usuario.click(await screen.findByRole('option', { name: /Gabriela/ }));
     responder('POST', '/solicitud-inversion/17/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar envío' }));
@@ -128,8 +128,8 @@ describe('Vista de la Solicitud de Inversión', () => {
     await usuario.click(dialogo().getByRole('button', { name: 'Cancelar' }));
     await cerrarDialogo();
     await usuario.click(screen.getByRole('button', { name: 'Aprobar' }));
-    await escribirRazon(usuario, /Observación/, 'Va');
-    await usuario.click(dialogo().getByLabelText(/A qué gerente/));
+    await escribirRazon(usuario, /Observación/u, 'Va');
+    await usuario.click(dialogo().getByLabelText(/A qué gerente/u));
     await usuario.click(await screen.findByRole('option', { name: /Gabriela/ }));
     responder('POST', '/solicitud-inversion/17/aprobar', 201, {});
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar envío' }));
@@ -141,8 +141,8 @@ describe('Vista de la Solicitud de Inversión', () => {
     await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText('La observación es obligatoria para aprobar.')).toBeInTheDocument();
-    await escribirRazon(usuario, /Observación/, 'Ok');
-    await usuario.click(dialogo().getByLabelText(/No, finaliza aquí/));
+    await escribirRazon(usuario, /Observación/u, 'Ok');
+    await usuario.click(dialogo().getByLabelText(/No, finaliza aquí/u));
     responder('POST', '/solicitud-inversion/18/aprobar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Confirmar' }));
     expect(await screen.findByText('Error al aprobar.')).toBeInTheDocument();

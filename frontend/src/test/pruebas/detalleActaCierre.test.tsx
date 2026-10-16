@@ -33,7 +33,7 @@ async function aprobarConDialogo(usuario: UsuarioPrueba, boton: string, elegir?:
   await usuario.click(await screen.findByRole('button', { name: 'Aprobar' }));
   await usuario.click(await within(await screen.findByRole('dialog')).findByRole('button', { name: boton }));
   await cerrarAviso(usuario, 'La observación es obligatoria para aprobar.');
-  await usuario.type(dialogo().getByLabelText(/Observación/), 'Ok');
+  await usuario.type(dialogo().getByLabelText(/Observación/u), 'Ok');
   if (elegir) {
     await usuario.click(dialogo().getByRole('button', { name: boton }));
     await cerrarAviso(usuario, elegir.aviso);
@@ -67,14 +67,14 @@ describe('Detalle del Acta de Cierre', () => {
   it('Control Gestión elige a Activos Fijos y rechaza', async () => {
     const { usuario } = abrir('controlGestion');
     await aprobarConDialogo(usuario, 'Aprobar y enviar', {
-      etiqueta: /A quién de Activos Fijos/, opcion: /Andrea/, aviso: 'Debes elegir a quién de Activos Fijos enviar el proceso.',
+      etiqueta: /A quién de Activos Fijos/u, opcion: /Andrea/, aviso: 'Debes elegir a quién de Activos Fijos enviar el proceso.',
     });
     expect(aprobaciones().at(-1)?.cuerpo).toMatchObject({ activos_fijos_id: 19 });
 
     await usuario.click(screen.getByRole('button', { name: 'Rechazar' }));
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'La razón del rechazo es obligatoria.');
-    await usuario.type(dialogo().getByLabelText(/Razón del rechazo/), 'No');
+    await usuario.type(dialogo().getByLabelText(/Razón del rechazo/u), 'No');
     responder('POST', '/actas-cierre/11/rechazar', 500);
     await usuario.click(dialogo().getByRole('button', { name: 'Rechazar' }));
     await cerrarAviso(usuario, 'Error al rechazar.');
@@ -101,7 +101,7 @@ describe('Detalle del Acta de Cierre', () => {
     await usuario.click(await screen.findByRole('tab', { name: /Valores y Flujo/ }));
     expect(screen.getByText('Inicial (Control de Cambios)')).toBeInTheDocument();
     await aprobarConDialogo(usuario, 'Aprobar y enviar', {
-      etiqueta: /A qué gerente/, opcion: /Gabriela/, aviso: 'Debes elegir a qué gerente enviar el proceso.',
+      etiqueta: /A qué gerente/u, opcion: /Gabriela/, aviso: 'Debes elegir a qué gerente enviar el proceso.',
     });
     expect(aprobaciones().at(-1)?.cuerpo).toMatchObject({ gerente_id: 11 });
   });
