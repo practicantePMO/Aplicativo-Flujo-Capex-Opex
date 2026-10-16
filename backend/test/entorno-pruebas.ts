@@ -1,6 +1,9 @@
 // Variables de entorno para las pruebas (no se usan en producción).
+import { randomBytes } from 'crypto';
+
+// Clave aleatoria en cada ejecución: no hay ninguna clave escrita en el código.
 process.env.JWT_SECRET =
-  process.env.JWT_SECRET || 'secreto-solo-para-pruebas-automatizadas';
+  process.env.JWT_SECRET || randomBytes(32).toString('hex');
 process.env.ALLOW_DEV_LOGIN = 'true';
 process.env.ALLOWED_EMAIL_DOMAIN =
   process.env.ALLOWED_EMAIL_DOMAIN || 'empresa.com';

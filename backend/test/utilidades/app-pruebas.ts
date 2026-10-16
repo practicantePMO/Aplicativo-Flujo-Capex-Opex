@@ -1,5 +1,5 @@
-import * as fs from 'fs';
-import * as path from 'path';
+import { readFileSync, readdirSync, statSync } from 'fs';
+import { join } from 'path';
 import { INestApplication, ValidationPipe } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PGlite } from '@electric-sql/pglite';
@@ -27,29 +27,26 @@ export const USUARIOS = {
 } as const;
 export type NombreUsuario = keyof typeof USUARIOS;
 
-const CARPETA_PRISMA = path.join(__dirname, '../../prisma');
+const CARPETA_PRISMA = join(__dirname, '../../prisma');
 
 // Base Postgres en memoria (PGlite) con todas las migraciones y los datos semilla.
 // No necesita un Postgres instalado: cada archivo de pruebas arranca una base nueva y limpia.
 async function crearBaseEnMemoria(): Promise<PGlite> {
   const db = new PGlite();
-  const migraciones = fs
-    .readdirSync(path.join(CARPETA_PRISMA, 'migrations'))
+  const migraciones = readdirSync(join(CARPETA_PRISMA, 'migrations'))
     .filter((nombre) =>
-      fs
-        .statSync(path.join(CARPETA_PRISMA, 'migrations', nombre))
-        .isDirectory(),
+      statSync(join(CARPETA_PRISMA, 'migrations', nombre)).isDirectory(),
     )
     .sort();
   for (const migracion of migraciones) {
     await db.exec(
-      fs.readFileSync(
-        path.join(CARPETA_PRISMA, 'migrations', migracion, 'migration.sql'),
+      readFileSync(
+        join(CARPETA_PRISMA, 'migrations', migracion, 'migration.sql'),
         'utf8',
       ),
     );
   }
-  await db.exec(fs.readFileSync(path.join(CARPETA_PRISMA, 'seed.sql'), 'utf8'));
+  await db.exec(readFileSync(join(CARPETA_PRISMA, 'seed.sql'), 'utf8'));
   return db;
 }
 

@@ -56,8 +56,8 @@ async function recorrerProyecto(usuario: UsuarioPrueba, nombre: string) {
     await volver(usuario, /Volver al proyecto/);
   }
   for (const [tarjeta, ver, item] of [
-    ['ÓRDENES INTERNAS', /^Ver Órdenes Internas/, /—/],
-    ['CONTROL DE CAMBIOS', /^Ver Control de Cambios/, /(Borrador|Pendiente [\wÁÉÍÓÚáéíóú ]+|Aprobado Final|Rechazado)$/],
+    ['ÓRDENES INTERNAS', /^Ver Órdenes Internas/u, /—/u],
+    ['CONTROL DE CAMBIOS', /^Ver Control de Cambios/, /(Borrador|Pendiente [\wÁÉÍÓÚáéíóú ]+|Aprobado Final|Rechazado)$/u],
   ] as const) {
     if (!screen.queryByText(tarjeta)) continue;
     await abrirTarjeta(usuario, tarjeta);
@@ -116,6 +116,6 @@ describe('vistas sin acceso', () => {
   });
   it('sin sesión muestra la pantalla de inicio de sesión', async () => {
     abrirAppComo(null);
-    expect(await screen.findAllByText(/sesión/i)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/sesión/iu)).not.toHaveLength(0);
   });
 });

@@ -34,21 +34,21 @@ describe('Formulario de Solicitud de Inversión', () => {
       'pm',
       <FormularioSolicitudInversion proyecto={sinProcesos} onCancelar={onCancelar} onCreada={onCreada} />,
     );
-    expect(await screen.findByText(/Nueva Solicitud de Inversión/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nueva Solicitud de Inversión/u)).toBeInTheDocument();
 
-    await guardarYVerError(usuario, /al menos una clasificación/);
+    await guardarYVerError(usuario, /al menos una clasificación/u);
 
     // Clasificación tradicional y nueva
     await usuario.click(screen.getByLabelText(/Tradicional \(Grupo/));
     await guardarYVerError(usuario, /Grupo, Programa y Subprograma/);
     await elegir(usuario, /Grupo/, 'Fortalecer');
     await elegir(usuario, /Programa/, /^Sostenimiento de negocio/);
-    await elegir(usuario, /Subprograma/, /Actualización por Obsolescencia/);
+    await elegir(usuario, /Subprograma/, /Actualización por Obsolescencia/u);
     await elegir(usuario, /Programa/, /^Productividad/);
     await elegir(usuario, /Subprograma/, /^Productividad/);
-    await usuario.click(screen.getByLabelText(/Nueva Clasificación/));
-    await guardarYVerError(usuario, /seleccionar una Categoría/);
-    await elegir(usuario, /Categoría/, 'Sostenimiento y Continuidad');
+    await usuario.click(screen.getByLabelText(/Nueva Clasificación/u));
+    await guardarYVerError(usuario, /seleccionar una Categoría/u);
+    await elegir(usuario, /Categoría/u, 'Sostenimiento y Continuidad');
 
     // Entregable y evaluación financiera (obligatoria por el subprograma)
     await guardarYVerError(usuario, /entregable planeado/);
@@ -142,16 +142,16 @@ describe('Formulario de Solicitud de Inversión', () => {
     expect(await screen.findByText(/Editar Solicitud/)).toBeInTheDocument();
     expect(screen.getByText('Año 2026')).toBeInTheDocument();
     expect(screen.getByText('Año 2027')).toBeInTheDocument();
-    await usuario.click(screen.getByLabelText(/Nueva Clasificación/));
+    await usuario.click(screen.getByLabelText(/Nueva Clasificación/u));
     await usuario.click(screen.getByLabelText(/Tradicional \(Grupo/));
     await usuario.click(screen.getByLabelText(/Tradicional \(Grupo/));
     await elegir(usuario, /Grupo/, 'Fortalecer');
     await elegir(usuario, /Programa/, /^Sostenimiento de negocio/);
-    await elegir(usuario, /Subprograma/, /Actualización por Obsolescencia/);
+    await elegir(usuario, /Subprograma/, /Actualización por Obsolescencia/u);
     const evaluacion = screen.getByLabelText('¿Tiene evaluación financiera?');
     if ((evaluacion as HTMLInputElement).checked) await usuario.click(evaluacion);
-    await guardarYVerError(usuario, /justificación/);
-    await escribir(usuario, /Justificación/, 'No aplica');
+    await guardarYVerError(usuario, /justificación/u);
+    await escribir(usuario, /Justificación/u, 'No aplica');
     await usuario.click(screen.getByText('Año 2026'));
     await usuario.click(screen.getAllByLabelText('Eliminar año')[0]);
     await usuario.click(screen.getByRole('button', { name: 'Guardar Cambios' }));
@@ -164,6 +164,6 @@ describe('Formulario de Solicitud de Inversión', () => {
     responder('GET', '/solicitud-inversion/categorias', 500);
     responder('GET', /partes-interesadas/, 500);
     renderizarCon('pm', <FormularioSolicitudInversion proyecto={{ ...sinProcesos, companias: undefined }} onCancelar={vi.fn()} onCreada={vi.fn()} />);
-    expect(await screen.findByText(/Nueva Solicitud de Inversión/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nueva Solicitud de Inversión/u)).toBeInTheDocument();
   });
 });
