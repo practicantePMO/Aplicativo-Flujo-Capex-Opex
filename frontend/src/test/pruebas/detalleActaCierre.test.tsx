@@ -131,6 +131,15 @@ describe('Detalle del Acta de Cierre', () => {
     expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
   });
 
+  it('el Administrador puede aprobar en Control Gestión y Activos Fijos sin estar asignado', async () => {
+    const primera = abrir('admin');
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+    primera.unmount();
+    actaEnEtapa('ACTIVOS_FIJOS');
+    abrir('admin');
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+  });
+
   it('muestra las pestañas del acta cerrada y el error si no carga', async () => {
     const { usuario, unmount } = abrir('admin', 13);
     for (const pestana of await screen.findAllByRole('tab')) await usuario.click(pestana);

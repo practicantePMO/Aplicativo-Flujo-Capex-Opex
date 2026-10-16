@@ -120,6 +120,12 @@ describe('Detalle de Control de Cambios', () => {
     expect(screen.getByText('Sin movimientos todavía.')).toBeInTheDocument();
   });
 
+  it('el Administrador puede aprobar en Gerencia sin estar asignado', async () => {
+    ccEnEtapa('GERENCIA');
+    abrir('admin', 7);
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+  });
+
   it('un CC aprobado permite ver y crear Órdenes Internas', async () => {
     const { usuario, onCrearOi, onVerOrdenInterna } = abrir('pm', 5);
     await usuario.click(await screen.findByLabelText('Elegir cuál Orden Interna ver'));

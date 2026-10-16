@@ -164,6 +164,18 @@ describe('Vista de la Solicitud de Inversión', () => {
     expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
   });
 
+  it('el Administrador puede aprobar en etapas de personas asignadas, pero no en una solicitud ya aprobada', async () => {
+    const primera = abrir('admin', 16);
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+    primera.unmount();
+    const segunda = abrir('admin', 18);
+    expect(await screen.findByRole('button', { name: 'Aprobar' })).toBeInTheDocument();
+    segunda.unmount();
+    abrir('admin', 1);
+    await screen.findByText('Solicitud de Inversión');
+    expect(screen.queryByRole('button', { name: 'Aprobar' })).not.toBeInTheDocument();
+  });
+
   it('muestra error si no carga', async () => {
     responder('GET', '/solicitud-inversion/99', 404);
     abrir('pm', 99);
