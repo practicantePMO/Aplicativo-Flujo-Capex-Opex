@@ -10,14 +10,14 @@ import {
 
 // Validaciones y permisos de cada proceso: los casos en los que la API debe negarse.
 describe('Validaciones de los procesos', () => {
-  let t: AppDePruebas;
+  let entorno: AppDePruebas;
 
   beforeAll(async () => {
-    t = await crearAppDePruebas();
+    entorno = await crearAppDePruebas();
   }, 120000);
 
   afterAll(async () => {
-    await t.cerrar();
+    await entorno.cerrar();
   });
 
   const estado = async (
@@ -25,7 +25,7 @@ describe('Validaciones de los procesos', () => {
     metodo: 'get' | 'post' | 'put' | 'patch',
     ruta: string,
     cuerpo?: object,
-  ) => (await t.llamar(usuario, metodo, ruta, cuerpo)).status;
+  ) => (await entorno.llamar(usuario, metodo, ruta, cuerpo)).status;
 
   describe('Solicitud de Inversión', () => {
     it('valida proyecto, dueño y estado', async () => {
@@ -37,7 +37,7 @@ describe('Validaciones de los procesos', () => {
           datosSolicitud('NOEXISTE'),
         ),
       ).toBe(404);
-      const proyecto = await t.llamar('pm', 'post', '/proyectos', {
+      const proyecto = await entorno.llamar('pm', 'post', '/proyectos', {
         nombre: 'Ajeno',
         compania_id: 1,
         fecha_proyecto: '2026-07-31',
@@ -51,7 +51,7 @@ describe('Validaciones de los procesos', () => {
         ),
       ).toBe(403);
 
-      const creada = await t.llamar(
+      const creada = await entorno.llamar(
         'pm',
         'post',
         '/solicitud-inversion',
@@ -89,7 +89,7 @@ describe('Validaciones de los procesos', () => {
           }),
         ),
       ).toBe(200);
-      await t.llamar('pm', 'post', `/solicitud-inversion/${id}/enviar`);
+      await entorno.llamar('pm', 'post', `/solicitud-inversion/${id}/enviar`);
       expect(
         await estado(
           'pm',
@@ -104,7 +104,7 @@ describe('Validaciones de los procesos', () => {
     });
 
     it('valida aprobaciones por etapa, partes interesadas y cancelación', async () => {
-      const { siProcesoId: id } = await crearProyectoConSiEnviada(t);
+      const { siProcesoId: id } = await crearProyectoConSiEnviada(entorno);
       expect(
         await estado(
           'pm2',
@@ -113,15 +113,20 @@ describe('Validaciones de los procesos', () => {
           { partes_interesadas_ids: [USUARIOS.interesada] },
         ),
       ).toBe(403);
-      await t.llamar('pmo', 'post', `/solicitud-inversion/${id}/aprobar`, {
-        comentarios: 'ok',
-      });
-      // el admin no tiene asignación como parte interesada
+      await entorno.llamar(
+        'pmo',
+        'post',
+        `/solicitud-inversion/${id}/aprobar`,
+        {
+          comentarios: 'ok',
+        },
+      );
+      // el PMO no está asignado como parte interesada (el Administrador sí podría aprobar)
       expect(
-        await estado('admin', 'post', `/solicitud-inversion/${id}/aprobar`, {
+        await estado('pmo', 'post', `/solicitud-inversion/${id}/aprobar`, {
           comentarios: 'ok',
         }),
-      ).toBe(400);
+      ).toBe(403);
       expect(
         await estado(
           'pmo',
@@ -130,7 +135,7 @@ describe('Validaciones de los procesos', () => {
           { partes_interesadas_ids: [USUARIOS.interesada] },
         ),
       ).toBe(400);
-      await t.llamar(
+      await entorno.llamar(
         'interesada',
         'post',
         `/solicitud-inversion/${id}/aprobar`,
@@ -142,10 +147,15 @@ describe('Validaciones de los procesos', () => {
           gerente_id: USUARIOS.pm,
         }),
       ).toBe(400);
-      await t.llamar('director', 'post', `/solicitud-inversion/${id}/aprobar`, {
-        comentarios: 'ok',
-        gerente_id: USUARIOS.gerencia1,
-      });
+      await entorno.llamar(
+        'director',
+        'post',
+        `/solicitud-inversion/${id}/aprobar`,
+        {
+          comentarios: 'ok',
+          gerente_id: USUARIOS.gerencia1,
+        },
+      );
       expect(
         await estado(
           'gerencia1',
@@ -154,7 +164,7 @@ describe('Validaciones de los procesos', () => {
           { comentarios: 'ok' },
         ),
       ).toBe(400);
-      await t.llamar(
+      await entorno.llamar(
         'gerencia1',
         'post',
         `/solicitud-inversion/${id}/aprobar`,
@@ -179,7 +189,7 @@ describe('Validaciones de los procesos', () => {
     });
 
     beforeAll(async () => {
-      ({ proyectoId } = await crearProyectoConSiAprobada(t));
+      ({ proyectoId } = await crearProyectoConSiAprobada(entorno));
     });
 
     it('valida proyecto, dueño y Control de Cambios vinculado', async () => {
@@ -228,7 +238,12 @@ describe('Validaciones de los procesos', () => {
     });
 
     it('valida cada transición de estado', async () => {
-      const creada = await t.llamar('pm', 'post', '/ordenes-internas', oi());
+      const creada = await entorno.llamar(
+        'pm',
+        'post',
+        '/ordenes-internas',
+        oi(),
+      );
       const id = creada.body.orden_interna_id;
       expect(await estado('pm2', 'put', `/ordenes-internas/${id}`, oi())).toBe(
         403,
@@ -275,7 +290,7 @@ describe('Validaciones de los procesos', () => {
         ),
       ).toBe(400);
 
-      await t.llamar('pm', 'post', `/ordenes-internas/${id}/enviar`, {
+      await entorno.llamar('pm', 'post', `/ordenes-internas/${id}/enviar`, {
         control_gestion_id: USUARIOS.controlGestion,
       });
       expect(await estado('pm', 'put', `/ordenes-internas/${id}`, oi())).toBe(
@@ -290,7 +305,7 @@ describe('Validaciones de los procesos', () => {
         await estado('pm', 'post', `/ordenes-internas/${id}/cancelar`),
       ).toBe(400);
 
-      await t.llamar(
+      await entorno.llamar(
         'controlGestion',
         'post',
         `/ordenes-internas/${id}/aprobar`,
@@ -304,7 +319,7 @@ describe('Validaciones de los procesos', () => {
           {},
         ),
       ).toBe(403);
-      await t.llamar(
+      await entorno.llamar(
         'pm',
         'post',
         `/ordenes-internas/grupo/${proyectoId}/solicitar-cierre`,
@@ -330,19 +345,19 @@ describe('Validaciones de los procesos', () => {
     });
 
     it('valida proyecto, SI aprobada, dueño y estados', async () => {
-      const enviada = await crearProyectoConSiEnviada(t);
+      const enviada = await crearProyectoConSiEnviada(entorno);
       expect(
         await estado('pm', 'post', '/control-cambios', cc(enviada.proyectoId)),
       ).toBe(400);
       expect(
         await estado('pm', 'post', '/control-cambios', cc('NOEXISTE')),
       ).toBe(404);
-      const { proyectoId } = await crearProyectoConSiAprobada(t);
+      const { proyectoId } = await crearProyectoConSiAprobada(entorno);
       expect(
         await estado('pm2', 'post', '/control-cambios', cc(proyectoId)),
       ).toBe(403);
 
-      const creado = await t.llamar(
+      const creado = await entorno.llamar(
         'pm',
         'post',
         '/control-cambios',
@@ -386,13 +401,13 @@ describe('Validaciones de los procesos', () => {
         }),
       ).toBe(400);
 
-      await t.llamar(
+      await entorno.llamar(
         'pm',
         'post',
         `/control-cambios/${id}/partes-interesadas`,
         { partes_interesadas_ids: [USUARIOS.interesada] },
       );
-      await t.llamar('pm', 'post', `/control-cambios/${id}/enviar`);
+      await entorno.llamar('pm', 'post', `/control-cambios/${id}/enviar`);
       expect(
         await estado(
           'pm',
@@ -404,14 +419,14 @@ describe('Validaciones de los procesos', () => {
       expect(await estado('pm', 'post', `/control-cambios/${id}/enviar`)).toBe(
         400,
       );
-      await t.llamar('pmo', 'post', `/control-cambios/${id}/aprobar`, {
+      await entorno.llamar('pmo', 'post', `/control-cambios/${id}/aprobar`, {
         comentarios: 'ok',
       });
       expect(
-        await estado('admin', 'post', `/control-cambios/${id}/aprobar`, {
+        await estado('pmo', 'post', `/control-cambios/${id}/aprobar`, {
           comentarios: 'ok',
         }),
-      ).toBe(400);
+      ).toBe(403);
       expect(
         await estado(
           'pm',
@@ -433,14 +448,14 @@ describe('Validaciones de los procesos', () => {
     });
 
     it('valida SI aprobada, OI, CC en trámite y proyecto', async () => {
-      const enviada = await crearProyectoConSiEnviada(t);
+      const enviada = await crearProyectoConSiEnviada(entorno);
       expect(
         await estado('pm', 'post', '/actas-cierre', acta(enviada.proyectoId)),
       ).toBe(400);
       expect(
         await estado('pm', 'post', '/actas-cierre', acta('NOEXISTE')),
       ).toBe(404);
-      const { proyectoId } = await crearProyectoConSiAprobada(t);
+      const { proyectoId } = await crearProyectoConSiAprobada(entorno);
       expect(
         await estado('pm', 'post', '/actas-cierre', acta(proyectoId)),
       ).toBe(400); // culminación sin OI
@@ -457,23 +472,23 @@ describe('Validaciones de los procesos', () => {
       ).toBe(400);
 
       // con una OI creada, la culminación sigue bloqueada mientras haya un CC en trámite
-      await t.llamar('pm', 'post', '/ordenes-internas', {
+      await entorno.llamar('pm', 'post', '/ordenes-internas', {
         proyecto_id: proyectoId,
         nombre_descriptivo: 'OI',
         tipo_orden: 'GASTO',
         presupuesto: 1,
       });
-      const cc = await t.llamar('pm', 'post', '/control-cambios', {
+      const cc = await entorno.llamar('pm', 'post', '/control-cambios', {
         proyecto_id: proyectoId,
         requiere_orden_interna: false,
       });
-      await t.llamar(
+      await entorno.llamar(
         'pm',
         'post',
         `/control-cambios/${cc.body.proceso_id}/partes-interesadas`,
         { partes_interesadas_ids: [USUARIOS.interesada] },
       );
-      await t.llamar(
+      await entorno.llamar(
         'pm',
         'post',
         `/control-cambios/${cc.body.proceso_id}/enviar`,
@@ -493,7 +508,7 @@ describe('Validaciones de los procesos', () => {
     });
 
     it('valida metas/OI ajenas, dueño, etapas y partes interesadas', async () => {
-      const { proyectoId } = await crearProyectoConSiAprobada(t);
+      const { proyectoId } = await crearProyectoConSiAprobada(entorno);
       const base = acta(proyectoId, { tipo_cierre: 'CANCELACION' });
       expect(
         await estado('pm', 'post', '/actas-cierre', {
@@ -508,7 +523,7 @@ describe('Validaciones de los procesos', () => {
         }),
       ).toBe(400);
 
-      const creada = await t.llamar('pm', 'post', '/actas-cierre', base);
+      const creada = await entorno.llamar('pm', 'post', '/actas-cierre', base);
       const id = creada.body.proceso_id ?? creada.body.procesoId;
       expect(
         await estado('pm2', 'put', `/actas-cierre/borrador/${id}`, base),
@@ -538,17 +553,22 @@ describe('Validaciones de los procesos', () => {
         }),
       ).toBe(400);
 
-      await t.llamar('pm', 'post', `/actas-cierre/${id}/partes-interesadas`, {
-        partes_interesadas_ids: [USUARIOS.interesada],
-      });
-      await t.llamar('pm', 'post', `/actas-cierre/${id}/enviar`);
+      await entorno.llamar(
+        'pm',
+        'post',
+        `/actas-cierre/${id}/partes-interesadas`,
+        {
+          partes_interesadas_ids: [USUARIOS.interesada],
+        },
+      );
+      await entorno.llamar('pm', 'post', `/actas-cierre/${id}/enviar`);
       expect(
         await estado('pm', 'put', `/actas-cierre/borrador/${id}`, base),
       ).toBe(400);
       expect(await estado('pm', 'post', `/actas-cierre/${id}/enviar`)).toBe(
         400,
       );
-      await t.llamar('pmo', 'post', `/actas-cierre/${id}/aprobar`, {
+      await entorno.llamar('pmo', 'post', `/actas-cierre/${id}/aprobar`, {
         comentarios: 'ok',
       });
       expect(
@@ -557,33 +577,48 @@ describe('Validaciones de los procesos', () => {
           activos_fijos_id: USUARIOS.pm,
         }),
       ).toBe(400);
-      await t.llamar('controlGestion', 'post', `/actas-cierre/${id}/aprobar`, {
-        comentarios: 'ok',
-        activos_fijos_id: USUARIOS.activosFijos,
-      });
+      await entorno.llamar(
+        'controlGestion',
+        'post',
+        `/actas-cierre/${id}/aprobar`,
+        {
+          comentarios: 'ok',
+          activos_fijos_id: USUARIOS.activosFijos,
+        },
+      );
       expect(
         await estado('pm', 'post', `/actas-cierre/${id}/partes-interesadas`, {
           partes_interesadas_ids: [USUARIOS.interesada],
         }),
       ).toBe(400);
-      await t.llamar('activosFijos', 'post', `/actas-cierre/${id}/aprobar`, {
-        comentarios: 'ok',
-      });
+      await entorno.llamar(
+        'activosFijos',
+        'post',
+        `/actas-cierre/${id}/aprobar`,
+        {
+          comentarios: 'ok',
+        },
+      );
       expect(
-        await estado('admin', 'post', `/actas-cierre/${id}/aprobar`, {
+        await estado('pmo', 'post', `/actas-cierre/${id}/aprobar`, {
           comentarios: 'ok',
         }),
-      ).toBe(400);
-      await t.llamar('interesada', 'post', `/actas-cierre/${id}/aprobar`, {
-        comentarios: 'ok',
-      });
+      ).toBe(403);
+      await entorno.llamar(
+        'interesada',
+        'post',
+        `/actas-cierre/${id}/aprobar`,
+        {
+          comentarios: 'ok',
+        },
+      );
       expect(
         await estado('director', 'post', `/actas-cierre/${id}/aprobar`, {
           comentarios: 'ok',
           gerente_id: USUARIOS.pm,
         }),
       ).toBe(400);
-      await t.llamar('director', 'post', `/actas-cierre/${id}/aprobar`, {
+      await entorno.llamar('director', 'post', `/actas-cierre/${id}/aprobar`, {
         comentarios: 'ok',
         gerente_id: USUARIOS.gerencia1,
       });
@@ -592,7 +627,7 @@ describe('Validaciones de los procesos', () => {
           comentarios: 'ok',
         }),
       ).toBe(400);
-      await t.llamar('gerencia1', 'post', `/actas-cierre/${id}/aprobar`, {
+      await entorno.llamar('gerencia1', 'post', `/actas-cierre/${id}/aprobar`, {
         comentarios: 'ok',
         enviar_a_presidencia: false,
       });
@@ -626,7 +661,7 @@ describe('Validaciones de los procesos', () => {
       expect(await estado('pm', 'get', '/proyectos/NOEXISTE/procesos')).toBe(
         404,
       );
-      const { proyectoId } = await crearProyectoConSiAprobada(t);
+      const { proyectoId } = await crearProyectoConSiAprobada(entorno);
       for (const usuario of [
         'pm',
         'pmo',
@@ -656,29 +691,30 @@ describe('Validaciones de los procesos', () => {
 
 // Si RabbitMQ falla al encolar, los procesos igual avanzan (el error solo se registra).
 describe('Procesos con las notificaciones caídas', () => {
-  let t: AppDePruebas;
+  let entorno: AppDePruebas;
 
   beforeAll(async () => {
-    t = await crearAppDePruebas({ notificacionesFallan: true });
+    entorno = await crearAppDePruebas({ notificacionesFallan: true });
   }, 120000);
 
   afterAll(async () => {
-    await t.cerrar();
+    await entorno.cerrar();
   });
 
   it('la SI, el CC y el acta avanzan aunque no se pueda notificar', async () => {
-    const { proyectoId, siProcesoId } = await crearProyectoConSiAprobada(t);
-    const si = await t.llamar(
+    const { proyectoId, siProcesoId } =
+      await crearProyectoConSiAprobada(entorno);
+    const si = await entorno.llamar(
       'pm',
       'get',
       `/solicitud-inversion/${siProcesoId}`,
     );
     expect(si.body.estado_actual).toBe('APROBADO_FINAL');
 
-    const otra = await crearProyectoConSiEnviada(t);
+    const otra = await crearProyectoConSiEnviada(entorno);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pmo',
           'post',
           `/solicitud-inversion/${otra.siProcesoId}/rechazar`,
@@ -686,14 +722,14 @@ describe('Procesos con las notificaciones caídas', () => {
         )
       ).status,
     ).toBe(201);
-    await t.llamar(
+    await entorno.llamar(
       'pm',
       'post',
       `/solicitud-inversion/${otra.siProcesoId}/enviar`,
     );
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pmo',
           'post',
           `/solicitud-inversion/${otra.siProcesoId}/cancelar`,
@@ -702,30 +738,36 @@ describe('Procesos con las notificaciones caídas', () => {
       ).status,
     ).toBe(201);
 
-    const cc = await t.llamar('pm', 'post', '/control-cambios', {
+    const cc = await entorno.llamar('pm', 'post', '/control-cambios', {
       proyecto_id: proyectoId,
       requiere_orden_interna: false,
     });
     const ccId = cc.body.proceso_id;
-    await t.llamar(
+    await entorno.llamar(
       'pm',
       'post',
       `/control-cambios/${ccId}/partes-interesadas`,
       { partes_interesadas_ids: [USUARIOS.interesada] },
     );
     expect(
-      (await t.llamar('pm', 'post', `/control-cambios/${ccId}/enviar`)).status,
+      (await entorno.llamar('pm', 'post', `/control-cambios/${ccId}/enviar`))
+        .status,
     ).toBe(201);
     expect(
       (
-        await t.llamar('pmo', 'post', `/control-cambios/${ccId}/aprobar`, {
-          comentarios: 'ok',
-        })
+        await entorno.llamar(
+          'pmo',
+          'post',
+          `/control-cambios/${ccId}/aprobar`,
+          {
+            comentarios: 'ok',
+          },
+        )
       ).status,
     ).toBe(201);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'interesada',
           'post',
           `/control-cambios/${ccId}/rechazar`,
@@ -733,20 +775,30 @@ describe('Procesos con las notificaciones caídas', () => {
         )
       ).status,
     ).toBe(201);
-    await t.llamar('pm', 'post', `/control-cambios/${ccId}/enviar`);
-    await t.llamar('pmo', 'post', `/control-cambios/${ccId}/aprobar`, {
+    await entorno.llamar('pm', 'post', `/control-cambios/${ccId}/enviar`);
+    await entorno.llamar('pmo', 'post', `/control-cambios/${ccId}/aprobar`, {
       comentarios: 'ok',
     });
-    await t.llamar('interesada', 'post', `/control-cambios/${ccId}/aprobar`, {
-      comentarios: 'ok',
-    });
-    await t.llamar('director', 'post', `/control-cambios/${ccId}/aprobar`, {
-      comentarios: 'ok',
-      gerente_id: USUARIOS.gerencia1,
-    });
+    await entorno.llamar(
+      'interesada',
+      'post',
+      `/control-cambios/${ccId}/aprobar`,
+      {
+        comentarios: 'ok',
+      },
+    );
+    await entorno.llamar(
+      'director',
+      'post',
+      `/control-cambios/${ccId}/aprobar`,
+      {
+        comentarios: 'ok',
+        gerente_id: USUARIOS.gerencia1,
+      },
+    );
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'gerencia1',
           'post',
           `/control-cambios/${ccId}/aprobar`,
@@ -755,28 +807,34 @@ describe('Procesos con las notificaciones caídas', () => {
       ).status,
     ).toBe(201);
 
-    const acta = await t.llamar('pm', 'post', '/actas-cierre', {
+    const acta = await entorno.llamar('pm', 'post', '/actas-cierre', {
       proyecto_id: proyectoId,
       tipo_cierre: 'CANCELACION',
       control_gestion_asignado_id: USUARIOS.controlGestion,
     });
     const actaId = acta.body.proceso_id ?? acta.body.procesoId;
-    await t.llamar('pm', 'post', `/actas-cierre/${actaId}/partes-interesadas`, {
-      partes_interesadas_ids: [USUARIOS.interesada],
-    });
+    await entorno.llamar(
+      'pm',
+      'post',
+      `/actas-cierre/${actaId}/partes-interesadas`,
+      {
+        partes_interesadas_ids: [USUARIOS.interesada],
+      },
+    );
     expect(
-      (await t.llamar('pm', 'post', `/actas-cierre/${actaId}/enviar`)).status,
+      (await entorno.llamar('pm', 'post', `/actas-cierre/${actaId}/enviar`))
+        .status,
     ).toBe(201);
     expect(
       (
-        await t.llamar('pmo', 'post', `/actas-cierre/${actaId}/aprobar`, {
+        await entorno.llamar('pmo', 'post', `/actas-cierre/${actaId}/aprobar`, {
           comentarios: 'ok',
         })
       ).status,
     ).toBe(201);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'controlGestion',
           'post',
           `/actas-cierre/${actaId}/rechazar`,
