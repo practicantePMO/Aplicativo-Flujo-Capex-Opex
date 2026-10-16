@@ -156,7 +156,10 @@ export function DetalleControlCambio({ procesoId, companiaId, onCambio, onEditar
     );
 
   const puedeEditarYEnviar = estado === 'BORRADOR' && (esDueno || esAdmin);
-  const puedeAprobarORechazar = tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
+  // El Administrador puede aprobar o rechazar en cualquier etapa de aprobación,
+  // aunque no esté asignado (por ejemplo, si la persona responsable no está disponible).
+  const esAdminEnEtapa = esAdmin && Object.hasOwn(ROLES_POR_ETAPA, estado);
+  const puedeAprobarORechazar = esAdminEnEtapa || tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente;
 
   const manejarEnviar = async () => {
     setProcesando(true);

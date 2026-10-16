@@ -78,13 +78,17 @@ function calcularPermisos(data: SolicitudInversionDetalle, usuarioId: number | u
   // Dirección PMO eligió (asignación individual) puede aprobar/rechazar aquí.
   const estaAsignadoComoGerente = estaAsignadoPendiente(data, 'GERENCIA', usuarioId);
 
+  // El Administrador puede aprobar o rechazar en cualquier etapa de aprobación,
+  // aunque no esté asignado (por ejemplo, si la persona responsable no está disponible).
+  const esAdminEnEtapa = tieneRol('ADMIN') && Object.hasOwn(ROLES_POR_ETAPA, estado);
+
   const esPmOAdmin = esPmResponsable || tieneRol('ADMIN');
   const esGestorPmo = tieneRol('PMO') || tieneRol('DIRECTOR_PMO') || tieneRol('ADMIN');
 
   return {
     puedeEditarBorrador: estado === 'BORRADOR' && esPmOAdmin,
     puedeEnviarARevision: estado === 'BORRADOR' && esPmOAdmin,
-    puedeAprobarORechazar: tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente,
+    puedeAprobarORechazar: esAdminEnEtapa || tieneRolDeEtapa || estaAsignadoComoParteInteresada || estaAsignadoComoGerente,
     puedeCancelar: !['BORRADOR', 'APROBADO_FINAL', 'CANCELADO'].includes(estado) && esGestorPmo,
     puedeEditarPartesInteresadas: ['BORRADOR', 'PENDIENTE_PMO'].includes(estado) && (esPmResponsable || esGestorPmo),
   };

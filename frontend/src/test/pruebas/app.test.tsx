@@ -19,7 +19,7 @@ describe('Aplicación completa', () => {
     expect(await screen.findByText('Por favor completa todos los campos obligatorios.')).toBeInTheDocument();
     await usuario.type(dialogo().getByLabelText(/Nombre del Proyecto/), 'Proyecto nuevo');
     fireEvent.change(dialogo().getByLabelText(/Fecha del Proyecto/), { target: { value: '2027-02-01' } });
-    await usuario.click(dialogo().getByRole('combobox', { name: /Compañía/ }));
+    await usuario.click(dialogo().getByRole('combobox', { name: /Compañía/u }));
     await usuario.click(await screen.findByRole('option', { name: 'Pastas' }));
     await usuario.click(dialogo().getByRole('combobox', { name: /Asignar a PM/ }));
     await usuario.click(await screen.findByRole('option', { name: /Laura/ }));
@@ -93,12 +93,12 @@ describe('Aplicación completa', () => {
     expect(await screen.findByText(/Error al autenticar usuario de prueba/)).toBeInTheDocument();
 
     await usuario.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
-    expect(await screen.findAllByText(/sesión/i)).not.toHaveLength(0);
+    expect(await screen.findAllByText(/sesión/iu)).not.toHaveLength(0);
   });
 
   it('abre cada tipo de pendiente desde Mis Pendientes', async () => {
     const { usuario } = abrirAppComo('controlGestion');
-    await usuario.click(await screen.findByRole('button', { name: /Pendientes de tu revisión/ }).catch(() => screen.findByText('Pendientes de tu revisión')));
+    await usuario.click(await screen.findByRole('button', { name: /Pendientes de tu revisión/u }).catch(() => screen.findByText('Pendientes de tu revisión')));
     await screen.findAllByRole('button', { name: 'Revisar' });
     await usuario.click(screen.getByRole('combobox', { name: 'Tipo de proceso' }));
     await usuario.click(await screen.findByRole('option', { name: /ACTA/ }));
@@ -114,7 +114,7 @@ describe('Aplicación completa', () => {
     await irA(usuario, 'Mis Pendientes');
     // Orden Interna
     await usuario.click((await screen.findAllByRole('button', { name: 'Revisar' }))[1]);
-    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/)).toBeInTheDocument();
+    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/u)).toBeInTheDocument();
   });
 
   it('abre una solicitud y un control de cambios desde Mis Pendientes', async () => {
@@ -134,7 +134,7 @@ describe('Aplicación completa', () => {
     // Proyecto sin procesos: crear la Solicitud de Inversión
     await abrirProyecto(usuario, 'Sin procesos');
     await usuario.click(await screen.findByRole('button', { name: 'Iniciar Solicitud de Inversión' }));
-    expect(await screen.findByText(/Nueva Solicitud de Inversión/)).toBeInTheDocument();
+    expect(await screen.findByText(/Nueva Solicitud de Inversión/u)).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Cancelar y volver' }));
     await usuario.click(await screen.findByRole('button', { name: 'Volver al Portafolio' }));
 
@@ -154,8 +154,8 @@ describe('Aplicación completa', () => {
     await cerrarDialogo();
     await usuario.click(screen.getAllByRole('button', { name: 'Crear Orden Interna' })[0]);
     await usuario.click(await screen.findByRole('button', { name: 'Cancelar' }));
-    await usuario.click(screen.getByRole('button', { name: /Ver Órdenes Internas/ }));
-    await usuario.click(screen.getByRole('button', { name: /Borrador — Borrador|Sin número asignado — Borrador/ }));
+    await usuario.click(screen.getByRole('button', { name: /Ver Órdenes Internas/u }));
+    await usuario.click(screen.getByRole('button', { name: /Borrador — Borrador|Sin número asignado — Borrador/u }));
     await usuario.click(await screen.findByRole('button', { name: 'Editar' }));
     expect(await screen.findByDisplayValue('Borrador')).toBeInTheDocument();
     await usuario.click(screen.getAllByRole('button', { name: 'Cancelar' })[0]);
@@ -174,7 +174,7 @@ describe('Aplicación completa', () => {
     await usuario.click(await screen.findByLabelText('Elegir cuál Orden Interna ver'));
     await usuario.click(await screen.findByRole('option', { name: /OI del cambio/ }));
     await usuario.click(screen.getByRole('button', { name: 'Ver Orden Interna' }));
-    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/)).toBeInTheDocument();
+    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/u)).toBeInTheDocument();
     await usuario.click(screen.getByRole('button', { name: 'Volver a Procesos' }));
     await usuario.click(await screen.findByText('CONTROL DE CAMBIOS'));
     await usuario.click(await screen.findByRole('button', { name: /Ver Control de Cambios/ }));
@@ -187,7 +187,7 @@ describe('Aplicación completa', () => {
     // Acta de cierre: ir a Órdenes Internas
     await usuario.click(await screen.findByText('ACTA DE CIERRE'));
     await usuario.click(await screen.findByRole('button', { name: 'Ir a Órdenes Internas' }));
-    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/)).toBeInTheDocument();
+    expect(await screen.findByText(/Órdenes Internas — Grupo Planta/u)).toBeInTheDocument();
   });
 
   it('el PM crea el acta y edita la del proyecto cerrado', async () => {

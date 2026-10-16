@@ -289,10 +289,13 @@ function calcularPermisosActa(detalle: ActaCierreDetalle, usuarioId: number | un
   const rolesQuePuedenAprobar = ROLES_POR_ETAPA[estado] || [];
   const tieneRolDeEtapa = rolesQuePuedenAprobar.some((r) => tieneRol(r));
   const estaAsignado = ETAPAS_CON_ASIGNADO.some((etapa) => estaAsignadoPendiente(detalle, etapa, usuarioId));
+  // El Administrador puede aprobar o rechazar en cualquier etapa de aprobación,
+  // aunque no esté asignado (por ejemplo, si la persona responsable no está disponible).
+  const esAdminEnEtapa = esAdmin && Object.hasOwn(ROLES_POR_ETAPA, estado);
 
   return {
     puedeEditarYEnviar: estado === 'BORRADOR' && (esDueno || esAdmin),
-    puedeAprobarORechazar: tieneRolDeEtapa || estaAsignado,
+    puedeAprobarORechazar: esAdminEnEtapa || tieneRolDeEtapa || estaAsignado,
   };
 }
 

@@ -5,6 +5,7 @@ import {
   ForbiddenException,
   Logger,
 } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { PermisosService } from '../permisos/permisos.service';
 import { NotificacionesService } from '../notificaciones/notificaciones.service';
@@ -12,6 +13,8 @@ import { ControlCambiosHelpersService, REGLA_POR_ETAPA } from './control-cambios
 import { CrearControlCambioDto } from './dto/crear-control-cambio.dto';
 import { AprobarControlCambioDto, RechazarControlCambioDto } from './dto/cambiar-estado-control-cambio.dto';
 import { ActualizarPartesInteresadasCcDto } from './dto/actualizar-partes-interesadas-cc.dto';
+
+type ProcesoConCompania = Awaited<ReturnType<ControlCambiosHelpersService['obtenerProcesoConCompania']>>;
 
 @Injectable()
 export class ControlCambiosService {
@@ -205,94 +208,15 @@ export class ControlCambiosService {
 
     await this.validarProyectoNoCancelado(proyecto.id);
     await this.helpers.validarPermisoParaEtapa(usuarioId, procesoId, companiaId, estadoOrigen);
+    // El Administrador puede aprobar en cualquier etapa, aunque no esté asignado:
+    // en ese caso resuelve las asignaciones pendientes de la etapa en nombre de los asignados.
+    const filtroAsignado = (await this.permisos.esAdminGlobal(usuarioId)) ? {} : { usuario_id: usuarioId };
 
-    let estadoDestino = '';
-    let gerenteElegidoId: number | undefined;
-
-    switch (estadoOrigen) {
-      case 'PENDIENTE_PMO':
-        estadoDestino = 'VERIFICACION_PARTES_INTERESADAS';
-        break;
-      case 'VERIFICACION_PARTES_INTERESADAS':
-        break;
-      case 'DIRECCION_PMO':
-        if (!dto.gerente_id) {
-          throw new BadRequestException('Debes elegir a qué gerente enviar el proceso (hay varias gerencias).');
-        }
-        {
-          const gerenteValido = await this.permisos.tieneRolParaCompania(dto.gerente_id, ['GERENCIA'], companiaId);
-          if (!gerenteValido) {
-            throw new BadRequestException('El usuario seleccionado no tiene el rol GERENCIA en esta compañía.');
-          }
-        }
-        gerenteElegidoId = dto.gerente_id;
-        estadoDestino = 'GERENCIA';
-        break;
-      case 'GERENCIA':
-        if (dto.enviar_a_presidencia === undefined) {
-          throw new BadRequestException(
-            'Debes indicar si el proceso continúa a Presidencia (enviar_a_presidencia: true) o si finaliza aquí (false).',
-          );
-        }
-        estadoDestino = dto.enviar_a_presidencia ? 'PRESIDENCIA' : 'APROBADO_FINAL';
-        break;
-      case 'PRESIDENCIA':
-        estadoDestino = 'APROBADO_FINAL';
-        break;
-      default:
-        throw new BadRequestException(`No se puede aprobar un Control de Cambios en estado "${estadoOrigen}".`);
-    }
+    const { estadoDestino, gerenteElegidoId } = await this.calcularDestinoAprobacion(estadoOrigen, dto, companiaId);
 
     const resultado = await this.prisma.$transaction(async (tx) => {
       if (estadoOrigen === 'VERIFICACION_PARTES_INTERESADAS') {
-        const res = await tx.asignaciones_proceso.updateMany({
-          where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
-          data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
-        });
-
-        if (res.count === 0) {
-          throw new BadRequestException('No tienes una asignación pendiente para aprobar en esta etapa.');
-        }
-
-        const pendientes = await tx.asignaciones_proceso.count({
-          where: { proceso_id: procesoId, etapa: estadoOrigen, estado_asignacion: 'PENDIENTE' },
-        });
-
-        await tx.historico_aprobaciones.create({
-          data: {
-            proceso_id: procesoId,
-            etapa_origen: estadoOrigen,
-            etapa_destino: pendientes === 0 ? 'DIRECCION_PMO' : estadoOrigen,
-            accion: pendientes === 0 ? 'APROBADO' : 'APROBADO_PARCIAL',
-            observaciones: dto.comentarios,
-            usuario_id: usuarioId,
-          },
-        });
-
-        if (pendientes > 0) {
-          return {
-            procesoId,
-            estado_anterior: estadoOrigen,
-            estado_actual: estadoOrigen,
-            mensaje: `Aprobación registrada correctamente. Faltan ${pendientes} parte(s) interesada(s) por verificar.`,
-          };
-        }
-
-        estadoDestino = 'DIRECCION_PMO';
-        const { count } = await tx.procesos.updateMany({
-          where: { id: procesoId, estado_actual: estadoOrigen },
-          data: { estado_actual: estadoDestino },
-        });
-        if (count === 0) {
-          throw new BadRequestException('El proceso fue modificado por otro usuario. Refresca la pantalla.');
-        }
-
-        return {
-          procesoId,
-          estado_anterior: estadoOrigen,
-          estado_actual: estadoDestino,
-          mensaje: 'Todas las partes interesadas han verificado. El proceso avanza a Dirección PMO.',
-        };
+        return this.aprobarComoParteInteresada(tx, procesoId, usuarioId, filtroAsignado, dto);
       }
 
       const { count } = await tx.procesos.updateMany({
@@ -303,26 +227,7 @@ export class ControlCambiosService {
         throw new BadRequestException('El proceso fue modificado por otro usuario. Refresca la pantalla.');
       }
 
-      if (estadoDestino === 'VERIFICACION_PARTES_INTERESADAS') {
-        await tx.asignaciones_proceso.updateMany({
-          where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS' },
-          data: { estado_asignacion: 'PENDIENTE', fecha_resolucion: null },
-        });
-      }
-
-      if (estadoDestino === 'GERENCIA' && gerenteElegidoId) {
-        await tx.asignaciones_proceso.deleteMany({ where: { proceso_id: procesoId, etapa: 'GERENCIA' } });
-        await tx.asignaciones_proceso.create({
-          data: { proceso_id: procesoId, etapa: 'GERENCIA', usuario_id: gerenteElegidoId, estado_asignacion: 'PENDIENTE' },
-        });
-      }
-
-      if (REGLA_POR_ETAPA[estadoOrigen]?.tipo === 'ASIGNACION_INDIVIDUAL') {
-        await tx.asignaciones_proceso.updateMany({
-          where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
-          data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
-        });
-      }
+      await this.actualizarAsignacionesAlAprobar(tx, procesoId, filtroAsignado, estadoOrigen, estadoDestino, gerenteElegidoId);
 
       await tx.historico_aprobaciones.create({
         data: {
@@ -335,99 +240,224 @@ export class ControlCambiosService {
         },
       });
 
-      if (estadoDestino === 'APROBADO_FINAL' && proceso.controles_cambio?.tipo_control_cambio === 'APLAZAMIENTO') {
-        const anioNuevo = proceso.controles_cambio.anio_nuevo_propuesto;
-        if (anioNuevo) {
-          const proyectoActual = await tx.proyectos.findUnique({ where: { id: proyecto.id }, select: { anio_asignado: true } });
-          if (proyectoActual && proyectoActual.anio_asignado !== anioNuevo) {
-            await tx.proyectos_aplazamientos.create({
-              data: {
-                proyecto_id: proyecto.id,
-                anio_anterior: proyectoActual.anio_asignado,
-                anio_nuevo: anioNuevo,
-                motivo: `Aplazamiento aprobado vía Control de Cambios #${procesoId}.`,
-                usuario_id: usuarioId,
-              },
-            });
-            await tx.proyectos.update({ where: { id: proyecto.id }, data: { anio_asignado: anioNuevo } });
-          }
-        }
+      if (estadoDestino === 'APROBADO_FINAL') {
+        await this.aplicarAplazamientoAprobado(tx, proceso.controles_cambio, proyecto.id, procesoId, usuarioId);
       }
 
       return { procesoId, estado_anterior: estadoOrigen, estado_actual: estadoDestino, mensaje: 'Aprobado exitosamente.' };
     });
 
     try {
-      const pmEmail = proceso.controles_cambio?.usuarios?.email;
-      const usuarioAprobador = await this.prisma.usuarios.findUnique({ where: { id: usuarioId }, select: { nombre: true } });
-
-      if (pmEmail) {
-        await this.notificaciones.encolarNotificacion({
-          tipo: 'CC_APROBADO',
-          destinatarios: [pmEmail],
-          datos: {
-            nombrePM: proceso.controles_cambio?.usuarios?.nombre,
-            codigoProyecto: proyecto.id.toString(),
-            nombreProyecto: proyecto.nombre,
-            nuevoEstado: resultado.estado_actual,
-            nombreAprobador: usuarioAprobador?.nombre || 'Aprobador',
-          },
-        });
-      }
-
-      const nuevoEstado = resultado.estado_actual;
-
-      if (nuevoEstado === 'VERIFICACION_PARTES_INTERESADAS') {
-        const asignadosPartes = await this.helpers.obtenerAsignados(procesoId, 'VERIFICACION_PARTES_INTERESADAS');
-        for (const asignado of asignadosPartes) {
-          await this.notificaciones.encolarNotificacion({
-            tipo: 'CC_NUEVA_ETAPA',
-            destinatarios: [asignado.email],
-            datos: {
-              nombreUsuario: asignado.nombre,
-              etapaActual: 'Verificación de Partes Interesadas',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.controles_cambio?.usuarios?.nombre || 'Project Manager',
-            },
-          });
-        }
-      } else if (nuevoEstado === 'GERENCIA') {
-        const asignadosGerencia = await this.helpers.obtenerAsignados(procesoId, 'GERENCIA');
-        for (const asignado of asignadosGerencia) {
-          await this.notificaciones.encolarNotificacion({
-            tipo: 'CC_NUEVA_ETAPA',
-            destinatarios: [asignado.email],
-            datos: {
-              nombreUsuario: asignado.nombre,
-              etapaActual: 'Gerencia',
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.controles_cambio?.usuarios?.nombre || 'Project Manager',
-            },
-          });
-        }
-      } else if (REGLA_POR_ETAPA[nuevoEstado]?.roles) {
-        const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(REGLA_POR_ETAPA[nuevoEstado].roles ?? [], companiaId);
-        if (destinatariosSiguiente.length) {
-          await this.notificaciones.encolarNotificacion({
-            tipo: 'CC_NUEVA_ETAPA',
-            destinatarios: destinatariosSiguiente,
-            datos: {
-              nombreUsuario: 'Equipo responsable',
-              etapaActual: nuevoEstado.replace(/_/g, ' '),
-              codigoProyecto: proyecto.id.toString(),
-              nombreProyecto: proyecto.nombre,
-              nombrePM: proceso.controles_cambio?.usuarios?.nombre || 'Project Manager',
-            },
-          });
-        }
-      }
+      await this.notificarAprobacion(proceso, proyecto, companiaId, procesoId, usuarioId, resultado.estado_actual);
     } catch (error) {
       this.logger.error('Error al notificar (aprobarEtapa CC)', error);
     }
 
     return resultado;
+  }
+
+  // A qué etapa avanza el proceso al aprobar, según la etapa en la que está.
+  private async calcularDestinoAprobacion(estadoOrigen: string, dto: AprobarControlCambioDto, companiaId: number) {
+    switch (estadoOrigen) {
+      case 'PENDIENTE_PMO':
+        return { estadoDestino: 'VERIFICACION_PARTES_INTERESADAS', gerenteElegidoId: undefined };
+      case 'VERIFICACION_PARTES_INTERESADAS':
+        return { estadoDestino: 'DIRECCION_PMO', gerenteElegidoId: undefined };
+      case 'DIRECCION_PMO': {
+        if (!dto.gerente_id) {
+          throw new BadRequestException('Debes elegir a qué gerente enviar el proceso (hay varias gerencias).');
+        }
+        const gerenteValido = await this.permisos.tieneRolParaCompania(dto.gerente_id, ['GERENCIA'], companiaId);
+        if (!gerenteValido) {
+          throw new BadRequestException('El usuario seleccionado no tiene el rol GERENCIA en esta compañía.');
+        }
+        return { estadoDestino: 'GERENCIA', gerenteElegidoId: dto.gerente_id };
+      }
+      case 'GERENCIA':
+        if (dto.enviar_a_presidencia === undefined) {
+          throw new BadRequestException(
+            'Debes indicar si el proceso continúa a Presidencia (enviar_a_presidencia: true) o si finaliza aquí (false).',
+          );
+        }
+        return { estadoDestino: dto.enviar_a_presidencia ? 'PRESIDENCIA' : 'APROBADO_FINAL', gerenteElegidoId: undefined };
+      case 'PRESIDENCIA':
+        return { estadoDestino: 'APROBADO_FINAL', gerenteElegidoId: undefined };
+      default:
+        throw new BadRequestException(`No se puede aprobar un Control de Cambios en estado "${estadoOrigen}".`);
+    }
+  }
+
+  // Aprobación de una parte interesada: el proceso avanza solo cuando todas aprobaron.
+  private async aprobarComoParteInteresada(
+    tx: Prisma.TransactionClient,
+    procesoId: number,
+    usuarioId: number,
+    filtroAsignado: { usuario_id?: number },
+    dto: AprobarControlCambioDto,
+  ) {
+    const estadoOrigen = 'VERIFICACION_PARTES_INTERESADAS';
+    const res = await tx.asignaciones_proceso.updateMany({
+      where: { proceso_id: procesoId, etapa: estadoOrigen, ...filtroAsignado, estado_asignacion: 'PENDIENTE' },
+      data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
+    });
+
+    if (res.count === 0) {
+      throw new BadRequestException('No tienes una asignación pendiente para aprobar en esta etapa.');
+    }
+
+    const pendientes = await tx.asignaciones_proceso.count({
+      where: { proceso_id: procesoId, etapa: estadoOrigen, estado_asignacion: 'PENDIENTE' },
+    });
+
+    await tx.historico_aprobaciones.create({
+      data: {
+        proceso_id: procesoId,
+        etapa_origen: estadoOrigen,
+        etapa_destino: pendientes === 0 ? 'DIRECCION_PMO' : estadoOrigen,
+        accion: pendientes === 0 ? 'APROBADO' : 'APROBADO_PARCIAL',
+        observaciones: dto.comentarios,
+        usuario_id: usuarioId,
+      },
+    });
+
+    if (pendientes > 0) {
+      return {
+        procesoId,
+        estado_anterior: estadoOrigen,
+        estado_actual: estadoOrigen,
+        mensaje: `Aprobación registrada correctamente. Faltan ${pendientes} parte(s) interesada(s) por verificar.`,
+      };
+    }
+
+    const estadoDestino = 'DIRECCION_PMO';
+    const { count } = await tx.procesos.updateMany({
+      where: { id: procesoId, estado_actual: estadoOrigen },
+      data: { estado_actual: estadoDestino },
+    });
+    if (count === 0) {
+      throw new BadRequestException('El proceso fue modificado por otro usuario. Refresca la pantalla.');
+    }
+
+    return {
+      procesoId,
+      estado_anterior: estadoOrigen,
+      estado_actual: estadoDestino,
+      mensaje: 'Todas las partes interesadas han verificado. El proceso avanza a Dirección PMO.',
+    };
+  }
+
+  // Reabre, crea o resuelve las asignaciones de las etapas involucradas en la aprobación.
+  private async actualizarAsignacionesAlAprobar(
+    tx: Prisma.TransactionClient,
+    procesoId: number,
+    filtroAsignado: { usuario_id?: number },
+    estadoOrigen: string,
+    estadoDestino: string,
+    gerenteElegidoId: number | undefined,
+  ) {
+    if (estadoDestino === 'VERIFICACION_PARTES_INTERESADAS') {
+      await tx.asignaciones_proceso.updateMany({
+        where: { proceso_id: procesoId, etapa: 'VERIFICACION_PARTES_INTERESADAS' },
+        data: { estado_asignacion: 'PENDIENTE', fecha_resolucion: null },
+      });
+    }
+
+    if (estadoDestino === 'GERENCIA' && gerenteElegidoId) {
+      await tx.asignaciones_proceso.deleteMany({ where: { proceso_id: procesoId, etapa: 'GERENCIA' } });
+      await tx.asignaciones_proceso.create({
+        data: { proceso_id: procesoId, etapa: 'GERENCIA', usuario_id: gerenteElegidoId, estado_asignacion: 'PENDIENTE' },
+      });
+    }
+
+    if (REGLA_POR_ETAPA[estadoOrigen]?.tipo === 'ASIGNACION_INDIVIDUAL') {
+      await tx.asignaciones_proceso.updateMany({
+        where: { proceso_id: procesoId, etapa: estadoOrigen, ...filtroAsignado, estado_asignacion: 'PENDIENTE' },
+        data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
+      });
+    }
+  }
+
+  // Si el cambio aprobado es un aplazamiento, mueve el proyecto al año nuevo propuesto.
+  private async aplicarAplazamientoAprobado(
+    tx: Prisma.TransactionClient,
+    controlCambio: { tipo_control_cambio: string | null; anio_nuevo_propuesto: number | null } | null | undefined,
+    proyectoId: string,
+    procesoId: number,
+    usuarioId: number,
+  ) {
+    const anioNuevo = controlCambio?.tipo_control_cambio === 'APLAZAMIENTO' ? controlCambio.anio_nuevo_propuesto : null;
+    if (!anioNuevo) return;
+
+    const proyectoActual = await tx.proyectos.findUnique({ where: { id: proyectoId }, select: { anio_asignado: true } });
+    if (!proyectoActual || proyectoActual.anio_asignado === anioNuevo) return;
+
+    await tx.proyectos_aplazamientos.create({
+      data: {
+        proyecto_id: proyectoId,
+        anio_anterior: proyectoActual.anio_asignado,
+        anio_nuevo: anioNuevo,
+        motivo: `Aplazamiento aprobado vía Control de Cambios #${procesoId}.`,
+        usuario_id: usuarioId,
+      },
+    });
+    await tx.proyectos.update({ where: { id: proyectoId }, data: { anio_asignado: anioNuevo } });
+  }
+
+  // Avisa al PM de la aprobación y a los responsables de la siguiente etapa.
+  private async notificarAprobacion(
+    proceso: ProcesoConCompania['proceso'],
+    proyecto: ProcesoConCompania['proyecto'],
+    companiaId: number,
+    procesoId: number,
+    usuarioId: number,
+    nuevoEstado: string,
+  ) {
+    const nombrePM = proceso.controles_cambio?.usuarios?.nombre || 'Project Manager';
+    const pmEmail = proceso.controles_cambio?.usuarios?.email;
+    const usuarioAprobador = await this.prisma.usuarios.findUnique({ where: { id: usuarioId }, select: { nombre: true } });
+
+    if (pmEmail) {
+      await this.notificaciones.encolarNotificacion({
+        tipo: 'CC_APROBADO',
+        destinatarios: [pmEmail],
+        datos: {
+          nombrePM: proceso.controles_cambio?.usuarios?.nombre,
+          codigoProyecto: proyecto.id.toString(),
+          nombreProyecto: proyecto.nombre,
+          nuevoEstado,
+          nombreAprobador: usuarioAprobador?.nombre || 'Aprobador',
+        },
+      });
+    }
+
+    const etapasConAsignados: Record<string, string> = {
+      VERIFICACION_PARTES_INTERESADAS: 'Verificación de Partes Interesadas',
+      GERENCIA: 'Gerencia',
+    };
+    const datosEtapa = { codigoProyecto: proyecto.id.toString(), nombreProyecto: proyecto.nombre, nombrePM };
+
+    if (etapasConAsignados[nuevoEstado]) {
+      const asignados = await this.helpers.obtenerAsignados(procesoId, nuevoEstado);
+      for (const asignado of asignados) {
+        await this.notificaciones.encolarNotificacion({
+          tipo: 'CC_NUEVA_ETAPA',
+          destinatarios: [asignado.email],
+          datos: { nombreUsuario: asignado.nombre, etapaActual: etapasConAsignados[nuevoEstado], ...datosEtapa },
+        });
+      }
+      return;
+    }
+
+    const roles = REGLA_POR_ETAPA[nuevoEstado]?.roles;
+    if (!roles) return;
+    const destinatariosSiguiente = await this.helpers.obtenerEmailsPorRol(roles, companiaId);
+    if (destinatariosSiguiente.length) {
+      await this.notificaciones.encolarNotificacion({
+        tipo: 'CC_NUEVA_ETAPA',
+        destinatarios: destinatariosSiguiente,
+        datos: { nombreUsuario: 'Equipo responsable', etapaActual: nuevoEstado.replace(/_/g, ' '), ...datosEtapa },
+      });
+    }
   }
 
   // Rechazar la etapa actual — vuelve a BORRADOR

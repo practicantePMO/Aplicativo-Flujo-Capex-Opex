@@ -44,8 +44,8 @@ services:
     volumes:
       - ./backend/logs:/app/logs
     environment:
-      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}"
-      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672"
+      DATABASE_URL: "postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}" # skipcq: SCT-A000 (valores tomados de variables de entorno)
+      RABBITMQ_URL: "amqp://${RABBITMQ_USER}:${RABBITMQ_PASSWORD}@rabbitmq:5672" # skipcq: SCT-A000 (valores tomados de variables de entorno)
     ports:
       - "3000:3000"
     depends_on:

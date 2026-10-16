@@ -9,7 +9,7 @@ export interface NotificacionesContextType {
   confirmar: (mensaje: string) => Promise<boolean>;
 }
 
-export const NotificacionesContext = createContext<NotificacionesContextType | undefined>(undefined);
+export const NotificacionesContext = createContext<NotificacionesContextType | null>(null);
 
 export function useNotificaciones() {
   const contexto = useContext(NotificacionesContext);

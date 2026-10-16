@@ -6,7 +6,7 @@ import {
 // Flujo completo de una Solicitud de Inversión contra la API real (base en memoria):
 // creación del proyecto, borrador, envío y aprobación por todas las etapas.
 describe('Flujo: Solicitud de Inversión', () => {
-  let t: AppDePruebas;
+  let entorno: AppDePruebas;
   let proyectoId: string;
   let procesoId: number;
 
@@ -33,50 +33,68 @@ describe('Flujo: Solicitud de Inversión', () => {
   });
 
   beforeAll(async () => {
-    t = await crearAppDePruebas();
+    entorno = await crearAppDePruebas();
   }, 120000);
 
   afterAll(async () => {
-    await t.cerrar();
+    await entorno.cerrar();
   });
 
   it('el PM crea el proyecto', async () => {
-    const r = await t.llamar('pm', 'post', '/proyectos', {
+    const respuesta = await entorno.llamar('pm', 'post', '/proyectos', {
       nombre: 'Proyecto prueba',
       compania_id: 1,
       fecha_proyecto: '2026-07-31',
     });
-    expect(r.status).toBe(201);
-    proyectoId = r.body.id;
+    expect(respuesta.status).toBe(201);
+    proyectoId = respuesta.body.id;
     expect(proyectoId).toBeDefined();
   });
 
   it('rechaza una solicitud sin clasificación', async () => {
-    const r = await t.llamar('pm', 'post', '/solicitud-inversion', {
-      ...solicitud(),
-      incluye_tradicional: false,
-      incluye_nueva: false,
-    });
-    expect(r.status).toBe(400);
+    const respuesta = await entorno.llamar(
+      'pm',
+      'post',
+      '/solicitud-inversion',
+      {
+        ...solicitud(),
+        incluye_tradicional: false,
+        incluye_nueva: false,
+      },
+    );
+    expect(respuesta.status).toBe(400);
   });
 
   it('rechaza una categoría que exige evaluación financiera si no la trae', async () => {
-    const r = await t.llamar('pm', 'post', '/solicitud-inversion', {
-      ...solicitud(),
-      incluye_tradicional: false,
-      incluye_nueva: true,
-      categoria_id: 1,
-    });
-    expect(r.status).toBe(400);
+    const respuesta = await entorno.llamar(
+      'pm',
+      'post',
+      '/solicitud-inversion',
+      {
+        ...solicitud(),
+        incluye_tradicional: false,
+        incluye_nueva: true,
+        categoria_id: 1,
+      },
+    );
+    expect(respuesta.status).toBe(400);
   });
 
   it('el PM crea el borrador y lo edita', async () => {
-    const r = await t.llamar('pm', 'post', '/solicitud-inversion', solicitud());
-    expect(r.status).toBe(201);
-    procesoId = r.body.proceso_id ?? r.body.procesoId ?? r.body.id;
+    const respuesta = await entorno.llamar(
+      'pm',
+      'post',
+      '/solicitud-inversion',
+      solicitud(),
+    );
+    expect(respuesta.status).toBe(201);
+    procesoId =
+      respuesta.body.proceso_id ??
+      respuesta.body.procesoId ??
+      respuesta.body.id;
     expect(procesoId).toBeDefined();
 
-    const editar = await t.llamar(
+    const editar = await entorno.llamar(
       'pm',
       'put',
       `/solicitud-inversion/borrador/${procesoId}`,
@@ -84,7 +102,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     );
     expect(editar.status).toBe(200);
 
-    const detalle = await t.llamar(
+    const detalle = await entorno.llamar(
       'pm',
       'get',
       `/solicitud-inversion/${procesoId}`,
@@ -97,37 +115,39 @@ describe('Flujo: Solicitud de Inversión', () => {
   });
 
   it('el PM la envía a revisión y aparece en los pendientes del PMO', async () => {
-    const r = await t.llamar(
+    const respuesta = await entorno.llamar(
       'pm',
       'post',
       `/solicitud-inversion/${procesoId}/enviar`,
     );
-    expect(r.status).toBe(201);
-    const pendientes = await t.llamar(
+    expect(respuesta.status).toBe(201);
+    const pendientes = await entorno.llamar(
       'pmo',
       'get',
       '/pendientes/mis-pendientes',
     );
     expect(pendientes.status).toBe(200);
     expect(
-      pendientes.body.some((p: { id: number }) => p.id === procesoId),
+      pendientes.body.some(
+        (proceso: { id: number }) => proceso.id === procesoId,
+      ),
     ).toBe(true);
   });
 
   it('el PM no puede aprobar su propia solicitud', async () => {
-    const r = await t.llamar(
+    const respuesta = await entorno.llamar(
       'pm',
       'post',
       `/solicitud-inversion/${procesoId}/aprobar`,
       { comentarios: 'ok' },
     );
-    expect(r.status).toBe(403);
+    expect(respuesta.status).toBe(403);
   });
 
   it('pasa por PMO, partes interesadas, Dirección PMO, Gerencia y Presidencia', async () => {
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pmo',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -137,7 +157,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     ).toBe(201);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'interesada',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -148,7 +168,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     // Dirección PMO debe elegir a qué gerente se envía
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'director',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -158,7 +178,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     ).toBe(400);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'director',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -168,7 +188,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     ).toBe(201);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'gerencia1',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -178,7 +198,7 @@ describe('Flujo: Solicitud de Inversión', () => {
     ).toBe(201);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'presidencia',
           'post',
           `/solicitud-inversion/${procesoId}/aprobar`,
@@ -187,12 +207,12 @@ describe('Flujo: Solicitud de Inversión', () => {
       ).status,
     ).toBe(201);
 
-    const detalle = await t.llamar(
+    const detalle = await entorno.llamar(
       'pm',
       'get',
       `/solicitud-inversion/${procesoId}`,
     );
     expect(detalle.body.estado_actual).toBe('APROBADO_FINAL');
-    expect(t.notificaciones.length).toBeGreaterThan(0);
+    expect(entorno.notificaciones.length).toBeGreaterThan(0);
   });
 });

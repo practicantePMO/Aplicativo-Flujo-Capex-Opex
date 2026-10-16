@@ -290,6 +290,9 @@ export class ActasCierreService {
     const estadoOrigen = proceso.estado_actual;
 
     await this.helpers.validarPermisoParaEtapa(usuarioId, procesoId, companiaId, estadoOrigen);
+    // El Administrador puede aprobar en cualquier etapa, aunque no esté asignado:
+    // en ese caso resuelve las asignaciones pendientes de la etapa en nombre de los asignados.
+    const filtroAsignado = (await this.permisos.esAdminGlobal(usuarioId)) ? {} : { usuario_id: usuarioId };
 
     let estadoDestino = '';
     let gerenteElegidoId: number | undefined;
@@ -348,7 +351,7 @@ export class ActasCierreService {
     const resultado = await this.prisma.$transaction(async (tx) => {
       if (estadoOrigen === 'VERIFICACION_PARTES_INTERESADAS') {
         const res = await tx.asignaciones_proceso.updateMany({
-          where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
+          where: { proceso_id: procesoId, etapa: estadoOrigen, ...filtroAsignado, estado_asignacion: 'PENDIENTE' },
           data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
         });
 
@@ -443,7 +446,7 @@ export class ActasCierreService {
 
       if (REGLA_POR_ETAPA[estadoOrigen]?.tipo === 'ASIGNACION_INDIVIDUAL') {
         await tx.asignaciones_proceso.updateMany({
-          where: { proceso_id: procesoId, etapa: estadoOrigen, usuario_id: usuarioId, estado_asignacion: 'PENDIENTE' },
+          where: { proceso_id: procesoId, etapa: estadoOrigen, ...filtroAsignado, estado_asignacion: 'PENDIENTE' },
           data: { estado_asignacion: 'RESUELTA', fecha_resolucion: new Date() },
         });
       }

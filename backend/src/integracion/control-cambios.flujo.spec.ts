@@ -9,7 +9,7 @@ import {
 // Flujo de Control de Cambios: general (con Orden Interna asociada), aplazamiento de año,
 // rechazo y permisos.
 describe('Flujo: Control de Cambios', () => {
-  let t: AppDePruebas;
+  let entorno: AppDePruebas;
   let proyectoId: string;
 
   const cc = (cambios: object = {}) => ({
@@ -28,48 +28,53 @@ describe('Flujo: Control de Cambios', () => {
   });
 
   const aprobar = (usuario: NombreUsuario, procesoId: number, cuerpo: object) =>
-    t.llamar(usuario, 'post', `/control-cambios/${procesoId}/aprobar`, cuerpo);
+    entorno.llamar(
+      usuario,
+      'post',
+      `/control-cambios/${procesoId}/aprobar`,
+      cuerpo,
+    );
 
   // Crea el CC, le asigna la parte interesada y lo envía a revisión.
   const crearYEnviar = async (cambios: object = {}) => {
-    const creado = await t.llamar(
+    const creado = await entorno.llamar(
       'pm',
       'post',
       '/control-cambios',
       cc(cambios),
     );
     const procesoId: number = creado.body.proceso_id;
-    await t.llamar(
+    await entorno.llamar(
       'pm',
       'post',
       `/control-cambios/${procesoId}/partes-interesadas`,
       { partes_interesadas_ids: [USUARIOS.interesada] },
     );
-    await t.llamar('pm', 'post', `/control-cambios/${procesoId}/enviar`);
+    await entorno.llamar('pm', 'post', `/control-cambios/${procesoId}/enviar`);
     return procesoId;
   };
 
   beforeAll(async () => {
-    t = await crearAppDePruebas();
-    ({ proyectoId } = await crearProyectoConSiAprobada(t));
+    entorno = await crearAppDePruebas();
+    ({ proyectoId } = await crearProyectoConSiAprobada(entorno));
   }, 120000);
 
   afterAll(async () => {
-    await t.cerrar();
+    await entorno.cerrar();
   });
 
   it('crea, edita y consulta un CC en borrador', async () => {
-    const creado = await t.llamar('pm', 'post', '/control-cambios', cc());
+    const creado = await entorno.llamar('pm', 'post', '/control-cambios', cc());
     expect(creado.status).toBe(201);
     const procesoId = creado.body.proceso_id;
-    const editar = await t.llamar(
+    const editar = await entorno.llamar(
       'pm',
       'put',
       `/control-cambios/borrador/${procesoId}`,
       cc({ descripcion_cambio: 'Editado' }),
     );
     expect(editar.status).toBe(200);
-    const detalle = await t.llamar(
+    const detalle = await entorno.llamar(
       'pm',
       'get',
       `/control-cambios/${procesoId}`,
@@ -77,16 +82,21 @@ describe('Flujo: Control de Cambios', () => {
     expect(detalle.status).toBe(200);
     expect(detalle.body.descripcion_cambio).toBe('Editado');
     expect(
-      (await t.llamar('pm', 'get', `/control-cambios/proyecto/${proyectoId}`))
-        .status,
+      (
+        await entorno.llamar(
+          'pm',
+          'get',
+          `/control-cambios/proyecto/${proyectoId}`,
+        )
+      ).status,
     ).toBe(200);
   });
 
   it('no se puede enviar sin partes interesadas', async () => {
-    const creado = await t.llamar('pm', 'post', '/control-cambios', cc());
+    const creado = await entorno.llamar('pm', 'post', '/control-cambios', cc());
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pm',
           'post',
           `/control-cambios/${creado.body.proceso_id}/enviar`,
@@ -98,7 +108,8 @@ describe('Flujo: Control de Cambios', () => {
   it('un CC general recorre todas las etapas y permite crear su Orden Interna', async () => {
     const procesoId = await crearYEnviar();
     expect(
-      (await t.llamar('pmo', 'get', '/control-cambios/mis-pendientes')).status,
+      (await entorno.llamar('pmo', 'get', '/control-cambios/mis-pendientes'))
+        .status,
     ).toBe(200);
     expect(
       (await aprobar('pmo', procesoId, { comentarios: 'ok' })).status,
@@ -140,7 +151,7 @@ describe('Flujo: Control de Cambios', () => {
       (await aprobar('presidencia', procesoId, { comentarios: 'ok' })).status,
     ).toBe(201);
 
-    const detalle = await t.llamar(
+    const detalle = await entorno.llamar(
       'pm',
       'get',
       `/control-cambios/${procesoId}`,
@@ -148,7 +159,7 @@ describe('Flujo: Control de Cambios', () => {
     expect(detalle.body.procesos.estado_actual).toBe('APROBADO_FINAL');
 
     // Orden Interna creada desde el Control de Cambios, con su valor total
-    const oi = await t.llamar('pm', 'post', '/ordenes-internas', {
+    const oi = await entorno.llamar('pm', 'post', '/ordenes-internas', {
       proyecto_id: proyectoId,
       nombre_descriptivo: 'OI del CC',
       tipo_orden: 'GASTO',
@@ -166,7 +177,7 @@ describe('Flujo: Control de Cambios', () => {
   it('un CC de aplazamiento exige el año nuevo y al aprobarse aplaza el proyecto', async () => {
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pm',
           'post',
           '/control-cambios',
@@ -194,9 +205,9 @@ describe('Flujo: Control de Cambios', () => {
       ).status,
     ).toBe(201);
 
-    const proyectos = await t.llamar('pm', 'get', '/proyectos');
+    const proyectos = await entorno.llamar('pm', 'get', '/proyectos');
     const proyecto = proyectos.body.find(
-      (p: { id: string }) => p.id === proyectoId,
+      (proceso: { id: string }) => proceso.id === proyectoId,
     );
     expect(proyecto.anio_asignado).toBe(2027);
   });
@@ -205,7 +216,7 @@ describe('Flujo: Control de Cambios', () => {
     const procesoId = await crearYEnviar();
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pmo',
           'post',
           `/control-cambios/${procesoId}/rechazar`,
@@ -215,7 +226,7 @@ describe('Flujo: Control de Cambios', () => {
     ).toBe(400);
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'pmo',
           'post',
           `/control-cambios/${procesoId}/rechazar`,
@@ -233,7 +244,7 @@ describe('Flujo: Control de Cambios', () => {
     await aprobar('pmo', procesoId, { comentarios: 'ok' });
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'interesada',
           'post',
           `/control-cambios/${procesoId}/rechazar`,
@@ -247,7 +258,7 @@ describe('Flujo: Control de Cambios', () => {
     await aprobar('interesada', otro, { comentarios: 'ok' });
     expect(
       (
-        await t.llamar(
+        await entorno.llamar(
           'director',
           'post',
           `/control-cambios/${otro}/rechazar`,
@@ -258,19 +269,57 @@ describe('Flujo: Control de Cambios', () => {
   });
 
   it('otro PM no puede ver ni enviar el CC', async () => {
-    const creado = await t.llamar('pm', 'post', '/control-cambios', cc());
+    const creado = await entorno.llamar('pm', 'post', '/control-cambios', cc());
     const procesoId = creado.body.proceso_id;
     expect(
-      (await t.llamar('pm2', 'get', `/control-cambios/${procesoId}`)).status,
+      (await entorno.llamar('pm2', 'get', `/control-cambios/${procesoId}`))
+        .status,
     ).toBe(403);
     expect(
-      (await t.llamar('pm2', 'post', `/control-cambios/${procesoId}/enviar`))
-        .status,
+      (
+        await entorno.llamar(
+          'pm2',
+          'post',
+          `/control-cambios/${procesoId}/enviar`,
+        )
+      ).status,
     ).toBe(403);
   });
 
   it('el backup a Excel incluye los datos creados en este flujo', async () => {
-    const r = await t.llamar('admin', 'get', '/backup/excel');
-    expect(r.status).toBe(200);
+    const respuesta = await entorno.llamar('admin', 'get', '/backup/excel');
+    expect(respuesta.status).toBe(200);
+  });
+
+  it('el Administrador puede aprobar todas las etapas, aunque no esté asignado', async () => {
+    const procesoId = await crearYEnviar();
+    expect(
+      (await aprobar('admin', procesoId, { comentarios: 'ok' })).status,
+    ).toBe(201);
+    expect(
+      (await aprobar('admin', procesoId, { comentarios: 'ok' })).status,
+    ).toBe(201); // Partes Interesadas
+    expect(
+      (
+        await aprobar('admin', procesoId, {
+          comentarios: 'ok',
+          gerente_id: USUARIOS.gerencia1,
+        })
+      ).status,
+    ).toBe(201);
+    expect(
+      (
+        await aprobar('admin', procesoId, {
+          comentarios: 'ok',
+          enviar_a_presidencia: false,
+        })
+      ).status,
+    ).toBe(201); // Gerencia
+    const detalle = await entorno.llamar(
+      'admin',
+      'get',
+      `/control-cambios/${procesoId}`,
+    );
+    expect(detalle.body.procesos.estado_actual).toBe('APROBADO_FINAL');
   });
 });
