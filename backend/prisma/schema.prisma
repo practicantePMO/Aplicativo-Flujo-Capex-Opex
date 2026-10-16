@@ -234,7 +234,7 @@ model usuarios {
   nombre                 String                   @db.VarChar(150)
   email                  String                   @unique @db.VarChar(150)
   password_hash          String?                  @db.VarChar(255)
-  proveedor_auth         String?                  @default("GOOGLE") @db.VarChar(50)
+  proveedor_auth         String?                  @default("AZURE_AD") @db.VarChar(50)
   area                   String?                  @db.VarChar(100)
   activo                 Boolean?                 @default(true)
   fecha_creacion         DateTime?                @default(now()) @db.Timestamp(6)

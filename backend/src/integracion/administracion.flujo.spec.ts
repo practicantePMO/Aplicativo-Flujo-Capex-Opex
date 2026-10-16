@@ -29,7 +29,7 @@ describe('Flujo: administración, catálogos y consultas', () => {
     it('login SSO con un token inválido responde 401', async () => {
       const respuesta = await entorno.llamar(null, 'post', '/auth/login-sso', {
         idToken: 'token-falso',
-        proveedor: 'google',
+        proveedor: 'MICROSOFT',
       });
       expect(respuesta.status).toBe(401);
     });
@@ -327,7 +327,7 @@ describe('Flujo: administración, catálogos y consultas', () => {
       const nuevo = await usuarios.findOrCreateSSOUser({
         email: 'nuevo@empresa.com',
         nombre: 'Nuevo',
-        proveedor_auth: 'GOOGLE',
+        proveedor_auth: 'AZURE_AD',
       });
       expect(nuevo?.email).toBe('nuevo@empresa.com');
       const existente = await usuarios.findOrCreateSSOUser({

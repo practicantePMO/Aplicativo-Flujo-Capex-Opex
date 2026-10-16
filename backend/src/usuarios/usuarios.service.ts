@@ -43,7 +43,7 @@ export class UsuariosService {
         data: {
           email: data.email,
           nombre: data.nombre,
-          proveedor_auth: data.proveedor_auth || 'GOOGLE',
+          proveedor_auth: data.proveedor_auth || 'AZURE_AD',
           activo: true,
         },
       });

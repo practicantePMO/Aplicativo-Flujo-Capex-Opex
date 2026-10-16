@@ -33,8 +33,9 @@ Los colaboradores entran con su cuenta corporativa de Microsoft. Para esto, la a
   Los usan tanto el backend como el frontend.
 
 - **URI de redirección:** Microsoft devuelve la respuesta del inicio de sesión a la página `/blank.html` del frontend. Por eso, en el registro debe estar como URI de redirección `https://<dominio-del-frontend>/blank.html`.
-- **Un solo inquilino:** el sistema está pensado para un único inquilino de Microsoft. Si algún dominio corporativo pertenece a un inquilino distinto (por ejemplo, una filial con su propio Microsoft 365), haría falta registrar la aplicación como multiinquilino y ajustar la validación del emisor del token en el backend.
-- **Google:** el inicio de sesión con Google también está soportado, pero es opcional. Si no se configura, ese botón no aparece.
+- **Único medio de inicio de sesión:** Microsoft Entra ID. El inicio de sesión con Google se retiró del aplicativo.
+- **Un solo inquilino (lo normal):** el registro se hace como "Solo cuentas de este directorio organizativo" y en `MICROSOFT_TENANT_ID` va el Id. de directorio.
+- **Varios inquilinos (solo si hace falta):** si algún dominio corporativo pertenece a un inquilino distinto (por ejemplo, una filial con su propio Microsoft 365), la aplicación se registra como multiinquilino y en `MICROSOFT_TENANT_ID` (y `VITE_MICROSOFT_TENANT_ID`) se ponen los Id. de directorio separados por comas. El backend solo acepta tokens emitidos por esos inquilinos; no requiere cambios de código.
 
 ---
 
@@ -92,8 +93,7 @@ El frontend es un conjunto de archivos estáticos. Sus variables (`VITE_*`) **se
 | Variable                                               | Contenido                                                              |
 | ------------------------------------------------------ | ---------------------------------------------------------------------- |
 | `VITE_API_URL`                                         | URL pública del backend                                                |
-| `VITE_MICROSOFT_CLIENT_ID`, `VITE_MICROSOFT_TENANT_ID` | Los mismos datos del registro en Entra ID                              |
-| `VITE_GOOGLE_CLIENT_ID`                                | Opcional. Si queda vacía, no se muestra el inicio de sesión con Google |
+| `VITE_MICROSOFT_CLIENT_ID`, `VITE_MICROSOFT_TENANT_ID` | Los mismos datos del registro en Entra ID. Si faltan, la pantalla de inicio muestra "aún no está configurado" |
 
 Todo lo que empieza por `VITE_` queda visible en el navegador. Ninguno de estos valores es secreto, pero nunca deben ponerse contraseñas en ellos.
 

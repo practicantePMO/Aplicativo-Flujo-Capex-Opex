@@ -10,7 +10,7 @@ interface AuthContextType {
   // true cuando la sesión se cerró sola porque el token venció o dejó de ser válido
   sesionExpirada: boolean;
   loginDev: (usuarioId: number) => Promise<void>;
-  loginSSO: (idToken: string, proveedor?: 'GOOGLE' | 'MICROSOFT') => Promise<void>;
+  loginSSO: (idToken: string) => Promise<void>;
   logout: () => void;
   tieneRol: (codigoRol: string, companiaId?: number | null) => boolean;
   esAdminGlobal: () => boolean;
@@ -107,10 +107,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSesionExpirada(false);
   };
 
-  // Login vía SSO — el backend ya valida el idToken y el dominio
+  // Login con Microsoft Entra ID — el backend ya valida el idToken y el dominio
   // corporativo; acá solo guardamos la sesión resultante.
-  const loginSSO = async (idToken: string, proveedor: 'GOOGLE' | 'MICROSOFT' = 'GOOGLE') => {
-    const response = await axiosClient.post<AuthResponseSso>('/auth/login-sso', { idToken, proveedor });
+  const loginSSO = async (idToken: string) => {
+    const response = await axiosClient.post<AuthResponseSso>('/auth/login-sso', { idToken, proveedor: 'MICROSOFT' });
     const { access_token, usuario } = response.data;
 
     const rolesNormalizados = (usuario.rolesCompania || []).map((rc) => ({
