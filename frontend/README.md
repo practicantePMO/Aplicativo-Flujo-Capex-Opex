@@ -30,7 +30,7 @@ Aplicación web de una sola página (**SPA**) que consume la API REST del backen
 
 | Pantalla | Qué permite |
 |---|---|
-| **Inicio de sesión** | Entrar con la cuenta corporativa (Google). |
+| **Inicio de sesión** | Entrar con la cuenta corporativa de Microsoft (Entra ID). |
 | **Proyectos** | Ver el listado de proyectos, crear uno nuevo, aplazarlo y entrar a su detalle. |
 | **Detalle del proyecto** | Ver en un solo lugar todos sus procesos: Solicitud de Inversión, Órdenes Internas, Controles de Cambio y Acta de Cierre. |
 | **Solicitud de Inversión** | Diligenciar el formulario (presupuesto, flujo de caja, metas, evaluación financiera) y gestionar su aprobación. |
@@ -95,7 +95,6 @@ El frontend está organizado **por funcionalidad** (*feature-based*): cada proce
     │   └── axiosClient.ts    Cliente HTTP: agrega el token y maneja errores globales
     ├── auth/
     │   ├── AuthContext.tsx   Estado de la sesión del usuario
-    │   ├── GoogleLoginButton.tsx
     │   └── DevSwitcher.tsx   Selector de usuarios de prueba (solo en desarrollo)
     ├── layout/               Estructura general: Sidebar, Topbar, AppLayout
     ├── components/           Componentes compartidos (encabezados, stepper de etapas)
@@ -124,7 +123,7 @@ features/<proceso>/
 
 ### Manejo de la sesión
 
-1. El usuario inicia sesión con Google y el frontend envía el token de Google al backend (`POST /auth/login-sso`).
+1. El usuario inicia sesión con Microsoft (Entra ID) y el frontend envía el token de Microsoft al backend (`POST /auth/login-sso`).
 2. El backend responde con su propio **JWT**, que se guarda en el navegador.
 3. `axiosClient` agrega ese JWT automáticamente a todas las peticiones.
 4. Si el backend responde `401` (sesión vencida o usuario desactivado), `axiosClient` emite un evento y `AuthContext` muestra la pantalla de sesión cerrada.
@@ -137,7 +136,7 @@ features/<proceso>/
 ```mermaid
 flowchart LR
     U[Usuario<br/>navegador] -->|HTTPS| F[Frontend<br/>React SPA]
-    F -->|Inicio de sesión| G[Google]
+    F -->|Inicio de sesión| G[Microsoft Entra ID]
     F -->|API REST + JWT| B[Backend<br/>NestJS]
     B --> DB[(PostgreSQL)]
 ```
@@ -148,11 +147,11 @@ flowchart LR
 sequenceDiagram
     actor U as Usuario
     participant F as Frontend
-    participant G as Google
+    participant G as Microsoft Entra ID
     participant B as Backend
-    U->>F: Clic en "Iniciar sesión con Google"
+    U->>F: Clic en "Iniciar sesión con Microsoft"
     F->>G: Solicita autenticación
-    G-->>F: Token de Google (idToken)
+    G-->>F: Token de Microsoft (idToken)
     F->>B: POST /auth/login-sso { idToken }
     B->>G: Verifica el token
     B-->>F: JWT del aplicativo + datos del usuario
@@ -231,7 +230,7 @@ El frontend tiene pruebas automatizadas con **Vitest** y **React Testing Library
 - **Funciones y validaciones:** la validación de la Solicitud de Inversión, el manejo de errores y los interceptores de axios.
 - **Formularios:** Solicitud de Inversión, Orden Interna, Control de Cambios y Acta de Cierre.
 - **Acciones por rol:** aprobar, rechazar, cancelar, elegir gerente o Activos Fijos, y editar partes interesadas.
-- **Recorrido completo de la aplicación:** cada rol abre todas las pantallas de cada proyecto, más la gestión de usuarios, Mis Pendientes, el inicio de sesión con Microsoft y Google, y el backup.
+- **Recorrido completo de la aplicación:** cada rol abre todas las pantallas de cada proyecto, más la gestión de usuarios, Mis Pendientes, el inicio de sesión con Microsoft y el backup.
 
 **Cómo se simula el backend:** las pruebas no llaman al backend real. Usan respuestas reales que se grabaron del backend para cada rol (`src/test/fixtures/respuestas-api.json`), servidas por un adaptador de axios simulado (`src/test/apiFalsa.ts`).
 
@@ -344,7 +343,6 @@ Variables en el archivo `.env`, que **no** se sube al repositorio. La plantilla 
 | Variable | Obligatoria | Descripción |
 |---|---|---|
 | `VITE_API_URL` | En QA y producción | URL del backend. En local, por defecto `http://localhost:3000` |
-| `VITE_GOOGLE_CLIENT_ID` | Solo si se usa Google | Client ID de Google del aplicativo. Si está vacío, no aparece el botón de Google |
 | `VITE_MICROSOFT_CLIENT_ID` | Sí, para iniciar sesión con Microsoft | Application (client) ID de la app registrada en Azure (Entra ID). Es el mismo `MICROSOFT_CLIENT_ID` del backend |
 | `VITE_MICROSOFT_TENANT_ID` | Sí, para iniciar sesión con Microsoft | Directory (tenant) ID de la empresa en Azure. Es el mismo `MICROSOFT_TENANT_ID` del backend |
 
@@ -355,8 +353,7 @@ Variables en el archivo `.env`, que **no** se sube al repositorio. La plantilla 
 | Síntoma | Causa | Solución |
 |---|---|---|
 | Error de CORS en la consola del navegador | La URL del frontend no está en `CORS_ORIGIN` del backend | Agregar la URL en `CORS_ORIGIN` |
-| No aparece el botón de Google | Falta `VITE_GOOGLE_CLIENT_ID` | Definir la variable y reiniciar `npm run dev` |
-| No aparece el botón de Microsoft | Faltan `VITE_MICROSOFT_CLIENT_ID` o `VITE_MICROSOFT_TENANT_ID` | Definir las variables y volver a compilar |
+| Aparece "El inicio de sesión con Microsoft aún no está configurado" | Faltan `VITE_MICROSOFT_CLIENT_ID` o `VITE_MICROSOFT_TENANT_ID` | Definir las variables y volver a compilar |
 | El popup de Microsoft muestra un error de *redirect URI* | La URL `https://<dominio-del-frontend>/blank.html` no está registrada en Azure | En Azure, registrarla como **Single-page application (SPA)** |
 | Aparece "Sesión cerrada" | El token venció (8 horas) o el usuario fue desactivado | Volver a iniciar sesión |
 | Mensaje de "Conflicto de concurrencia" | Otro usuario modificó el mismo registro | Recargar la información e intentar de nuevo |

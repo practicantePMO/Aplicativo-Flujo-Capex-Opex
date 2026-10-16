@@ -11,9 +11,8 @@ export default defineConfig({
     // Margen amplio: en equipos lentos (o con antivirus) las pruebas largas tardan varios minutos.
     testTimeout: 300000,
     // Las pruebas no dependen del .env de cada equipo: el inicio de sesión
-    // con Google y Microsoft se prueba activándolo solo dentro de esas pruebas.
+    // con Microsoft se prueba activándolo solo dentro de esas pruebas.
     env: {
-      VITE_GOOGLE_CLIENT_ID: '',
       VITE_MICROSOFT_CLIENT_ID: '',
       VITE_MICROSOFT_TENANT_ID: '',
     },

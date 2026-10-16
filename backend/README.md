@@ -40,7 +40,7 @@ El backend expone una **API REST** que centraliza el ciclo de vida completo de u
 | **Respaldo** | Exportar la información a Excel (solo roles autorizados). |
 
 **Características transversales**
-- Inicio de sesión con **Google / Microsoft (SSO)**, restringido al dominio corporativo.
+- Inicio de sesión con **Microsoft Entra ID (SSO)**, restringido al dominio corporativo.
 - **Permisos por rol y por compañía**: un usuario puede tener roles distintos en cada compañía, o roles globales.
 - **Histórico de aprobaciones inalterable**: quién aprobó, rechazó o devolvió cada proceso, cuándo y con qué observación.
 - **Notificaciones por correo asíncronas** con reintentos automáticos (RabbitMQ).
@@ -91,7 +91,6 @@ Las versiones exactas están en `package.json` y `package-lock.json`.
 | `@nestjs/common`, `@nestjs/core`, `@nestjs/platform-express` | Núcleo de NestJS |
 | `@nestjs/config` | Lectura de variables de entorno |
 | `@nestjs/jwt`, `@nestjs/passport`, `passport`, `passport-jwt` | Autenticación con tokens JWT |
-| `google-auth-library` | Validación del inicio de sesión con Google |
 | `jsonwebtoken`, `jwks-rsa` | Validación del inicio de sesión con Microsoft (Azure AD) |
 | `@nestjs/throttler` | Límite de peticiones por IP (protección contra abuso) |
 | `helmet` | Encabezados HTTP de seguridad |
@@ -170,7 +169,7 @@ Controller  →  Servicio de comandos / Servicio de consultas  →  Helpers  →
 flowchart LR
     U[Usuario<br/>navegador] -->|HTTPS| F[Frontend<br/>React]
     F -->|API REST + JWT| B[Backend<br/>NestJS]
-    F -.->|SSO| IDP[Google /<br/>Microsoft]
+    F -.->|SSO| IDP[Microsoft<br/>Entra ID]
     B -->|Valida token| IDP
     B -->|Prisma| DB[(PostgreSQL)]
     B -->|Publica / consume| MQ[[RabbitMQ]]
@@ -281,7 +280,7 @@ Todas las rutas, excepto el inicio de sesión, exigen un **token JWT** en el enc
 | PostgreSQL | Almacenamiento de toda la información |
 | RabbitMQ | Cola de notificaciones con reintentos y cola de fallidos |
 | Servidor SMTP | Envío de correos |
-| Google / Microsoft | Validación de la identidad en el inicio de sesión |
+| Microsoft Entra ID | Validación de la identidad en el inicio de sesión |
 
 ## 9. Pruebas automatizadas
 
@@ -428,8 +427,7 @@ Todas las variables se definen en un archivo `.env`, que **nunca** se sube al re
 | `CORS_ORIGIN` | Sí | URL del frontend (varias separadas por coma) |
 | `RABBITMQ_URL` | Sí | Conexión a RabbitMQ. El servidor no arranca sin ella |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Sí | Servidor de correo |
-| `GOOGLE_CLIENT_ID` | Si se usa Google | Client ID de Google |
-| `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT_ID` | Si se usa Microsoft | Datos de Azure AD |
+| `MICROSOFT_CLIENT_ID`, `MICROSOFT_TENANT_ID` | Sí | Id. de aplicación e Id. de directorio del registro en Entra ID. Si hay varios inquilinos, sus Id. separados por comas |
 | `RABBITMQ_QUEUE` | No | Nombre de la cola (por defecto `cola_notificaciones_pmo`) |
 | `NOTIF_MAX_REINTENTOS`, `NOTIF_PAUSA_MS` | No | Reintentos de correo (por defecto 3 y 5000 ms) |
 | `ALLOW_DEV_LOGIN` | No | `true` **solo en local**. Nunca en producción |

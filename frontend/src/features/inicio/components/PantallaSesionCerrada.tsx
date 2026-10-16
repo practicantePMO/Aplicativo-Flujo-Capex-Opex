@@ -1,6 +1,5 @@
 import { Box, Card, Typography, Avatar } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutlineOutlined';
-import { GoogleLoginButton } from '../../../auth/GoogleLoginButton';
 import { MicrosoftLoginButton } from '../../../auth/MicrosoftLoginButton';
 import { useAuth } from '../../../auth/AuthContext';
 
@@ -43,7 +42,6 @@ export function PantallaSesionCerrada() {
             : 'Saliste del Sistema de Gestión de Proyectos correctamente.'}
         </Typography>
         <MicrosoftLoginButton />
-        <GoogleLoginButton />
       </Card>
     </Box>
   );

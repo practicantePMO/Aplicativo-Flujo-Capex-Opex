@@ -1,7 +1,6 @@
 import { Injectable, UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { UsuariosService } from '../usuarios/usuarios.service';
-import { OAuth2Client } from 'google-auth-library';
 import { PrismaService } from '../prisma/prisma.service';
 import { verify, type JwtHeader, type SigningKeyCallback } from 'jsonwebtoken';
 import jwksClient from 'jwks-rsa';
@@ -27,12 +26,23 @@ export function validarDominioCorporativo(email: string) {
     );
   }
 }
+// Inquilinos (tenants) de Microsoft Entra ID permitidos. Se configuran en MICROSOFT_TENANT_ID.
+// Normalmente es uno solo; si alguna compañía tiene su propio inquilino, se separan por comas.
+export function inquilinosMicrosoft(): string[] {
+  return (process.env.MICROSOFT_TENANT_ID || '')
+    .split(',')
+    .map((inquilino) => inquilino.trim())
+    .filter(Boolean);
+}
+
 @Injectable()
 export class AuthService {
-  private googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-
+  // Con un solo inquilino se usan sus llaves; con varios, las llaves comunes de Microsoft
+  // (son las mismas para todos los inquilinos). El emisor se valida aparte, inquilino por inquilino.
   private microsoftJwksClient = jwksClient({
-    jwksUri: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/discovery/v2.0/keys`,
+    jwksUri: `https://login.microsoftonline.com/${
+      inquilinosMicrosoft().length > 1 ? 'common' : inquilinosMicrosoft()[0]
+    }/discovery/v2.0/keys`,
   });
 
   constructor(
@@ -40,25 +50,6 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly prisma: PrismaService,
   ) {}
-
-  async verificarTokenGoogle(idToken: string) {
-    try {
-      const ticket = await this.googleClient.verifyIdToken({
-        idToken,
-        audience: process.env.GOOGLE_CLIENT_ID,
-      });
-      const payload = ticket.getPayload();
-      if (!payload || !payload.email) {
-        throw new UnauthorizedException('El token de Google no contiene un correo electrónico válido.');
-      }
-      const email = payload.email.toLowerCase();
-      validarDominioCorporativo(email);
-      return { email, nombre: payload.name || email.split('@')[0] };
-    } catch (error) {
-      if (error instanceof UnauthorizedException) throw error;
-      throw new UnauthorizedException('Token de autenticación de Google inválido o expirado.');
-    }
-  }
 
   // Validamos que 'key' exista antes de llamar a getPublicKey()
   private obtenerLlaveFirmaMicrosoft(header: JwtHeader, callback: SigningKeyCallback) {
@@ -78,7 +69,9 @@ export class AuthService {
         (header, callback) => this.obtenerLlaveFirmaMicrosoft(header, callback),
         {
           audience: process.env.MICROSOFT_CLIENT_ID,
-          issuer: `https://login.microsoftonline.com/${process.env.MICROSOFT_TENANT_ID}/v2.0`,
+          issuer: inquilinosMicrosoft().map(
+            (inquilino) => `https://login.microsoftonline.com/${inquilino}/v2.0`,
+          ) as [string, ...string[]],
         },
         (err, decoded) => {
           if (err || !decoded || typeof decoded === 'string') {
@@ -104,27 +97,18 @@ export class AuthService {
     });
   }
 
-  async loginSSO(idToken: string, proveedor = 'GOOGLE') {
-    let emailSeguro: string;
-    let nombreSeguro: string;
-
-    if (proveedor === 'GOOGLE') {
-      const datos = await this.verificarTokenGoogle(idToken);
-      emailSeguro = datos.email;
-      nombreSeguro = datos.nombre;
-    } else if (proveedor === 'MICROSOFT') {
-      const datos = await this.verificarTokenMicrosoft(idToken);
-      emailSeguro = datos.email;
-      nombreSeguro = datos.nombre;
-    } else {
+  // El único proveedor de inicio de sesión es Microsoft Entra ID.
+  async loginSSO(idToken: string, proveedor = 'MICROSOFT') {
+    if (proveedor !== 'MICROSOFT') {
       throw new UnauthorizedException('Proveedor de autenticación no soportado.');
     }
+    const { email, nombre } = await this.verificarTokenMicrosoft(idToken);
 
     const usuario = await this.usuariosService.findOrCreateSSOUser({
-      email: emailSeguro,
-      nombre: nombreSeguro,
+      email,
+      nombre,
       // En la base de datos el proveedor de Microsoft se guarda como 'AZURE_AD'.
-      proveedor_auth: proveedor === 'MICROSOFT' ? 'AZURE_AD' : proveedor,
+      proveedor_auth: 'AZURE_AD',
     });
 
     // Le garantizamos a TypeScript que 'usuario' NO es nulo

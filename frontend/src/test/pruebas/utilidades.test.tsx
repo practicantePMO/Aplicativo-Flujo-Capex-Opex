@@ -88,8 +88,7 @@ function SondaAuth() {
       <span>expirada:{String(sesionExpirada)}</span>
       <span>pm:{String(tieneRol(' pm '))}</span>
       <span>admin:{String(esAdminGlobal())}</span>
-      <button onClick={() => loginSSO('tok', 'MICROSOFT')}>sso</button>
-      <button onClick={() => loginSSO('tok')}>sso-google</button>
+      <button onClick={() => loginSSO('tok')}>sso</button>
       <button onClick={() => loginDev(1)}>dev</button>
       <button onClick={logout}>salir</button>
       <button onClick={() => avisar('Hola aviso', 'success')}>avisar</button>
@@ -119,10 +118,8 @@ describe('AuthProvider y NotificacionesProvider', () => {
     expect(await screen.findByText('usuario:Laura SSO')).toBeInTheDocument();
     expect(screen.getByText('pm:true')).toBeInTheDocument();
     expect(peticiones.at(-1)?.cuerpo).toEqual({ idToken: 'tok', proveedor: 'MICROSOFT' });
-    await usuario.click(screen.getByText('sso-google'));
-    await waitFor(() => expect(peticiones.at(-1)?.cuerpo).toEqual({ idToken: 'tok', proveedor: 'GOOGLE' }));
     responder('POST', '/auth/login-sso', 201, { access_token: 'x', usuario: { id: 9, nombre: 'Sin roles', email: 'e' } });
-    await usuario.click(screen.getByText('sso-google'));
+    await usuario.click(screen.getByText('sso'));
     expect(await screen.findByText('usuario:Sin roles')).toBeInTheDocument();
     expect(screen.getByText('pm:false')).toBeInTheDocument();
   });
