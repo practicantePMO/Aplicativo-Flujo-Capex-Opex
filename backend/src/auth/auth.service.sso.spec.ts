@@ -76,7 +76,7 @@ describe('AuthService (SSO y perfil)', () => {
   });
 
   describe('Google', () => {
-    const ticket = (payload: object | undefined) => ({
+    const ticket = (payload?: object) => ({
       getPayload: () => payload,
     });
 
@@ -98,7 +98,7 @@ describe('AuthService (SSO y perfil)', () => {
     });
 
     it('rechaza tokens sin correo, de otro dominio o inválidos', async () => {
-      google.verifyIdToken.mockResolvedValue(ticket(undefined));
+      google.verifyIdToken.mockResolvedValue(ticket());
       await expect(servicio.verificarTokenGoogle('t')).rejects.toThrow(
         'no contiene un correo',
       );
@@ -151,7 +151,7 @@ describe('AuthService (SSO y perfil)', () => {
           tokenMicrosoft({ email: 'a@empresa.com' }),
         ),
       ).rejects.toThrow(UnauthorizedException);
-      jwks.getSigningKey.mockImplementation((_kid, cb) => cb(null, undefined));
+      jwks.getSigningKey.mockImplementation((_kid, cb) => cb(null));
       await expect(
         servicio.verificarTokenMicrosoft(
           tokenMicrosoft({ email: 'a@empresa.com' }),
@@ -166,20 +166,20 @@ describe('AuthService (SSO y perfil)', () => {
         getPayload: () => ({ email: 'ana@empresa.com', name: 'Ana' }),
       });
       usuariosService.findOrCreateSSOUser.mockResolvedValue(usuarioConRoles);
-      const r = await servicio.loginSSO('t');
-      expect(r.access_token).toBe('token-firmado');
-      expect(r.usuario.rolesCompania).toHaveLength(2);
-      expect(r.usuario.esPendiente).toBe(false);
+      const respuesta = await servicio.loginSSO('t');
+      expect(respuesta.access_token).toBe('token-firmado');
+      expect(respuesta.usuario.rolesCompania).toHaveLength(2);
+      expect(respuesta.usuario.esPendiente).toBe(false);
 
       usuariosService.findOrCreateSSOUser.mockResolvedValue({
         ...usuarioConRoles,
         usuario_roles_compania: undefined,
       });
-      const m = await servicio.loginSSO(
+      const resultado = await servicio.loginSSO(
         tokenMicrosoft({ email: 'ana@empresa.com' }),
         'MICROSOFT',
       );
-      expect(m.usuario.esPendiente).toBe(true);
+      expect(resultado.usuario.esPendiente).toBe(true);
     });
 
     it('rechaza un proveedor no soportado o un usuario que no se pudo registrar', async () => {

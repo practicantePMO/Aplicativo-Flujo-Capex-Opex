@@ -73,12 +73,12 @@ describe('validarYConstruirPayload', () => {
   });
 
   it.each<[string, Partial<FormSolicitud>, RegExp]>([
-    ['sin clasificación', { incluyeTradicional: false, incluyeNueva: false }, /al menos una clasificación/],
+    ['sin clasificación', { incluyeTradicional: false, incluyeNueva: false }, /al menos una clasificación/u],
     ['tradicional incompleta', { subprogramaId: '' }, /Subprograma/],
-    ['nueva incompleta', { categoriaId: '' }, /Categoría/],
+    ['nueva incompleta', { categoriaId: '' }, /Categoría/u],
     ['sin entregable', { entregablePlaneado: '  ' }, /entregable planeado/],
     ['sin TIR', { tir: '' }, /TIR, VPN y Payback/],
-    ['sin justificación', { tieneEvaluacionFinanciera: false, justificacion: '' }, /justificación/],
+    ['sin justificación', { tieneEvaluacionFinanciera: false, justificacion: '' }, /justificación/u],
     ['sin metas', { metas: [{ compromiso: '', fecha_inicio: '', indicador: '' }] }, /al menos una meta/],
     ['sin TRM', { trm: ' ' }, /TRM/],
     ['año sin meses', { mesesSeleccionados: {} }, /Marca al menos un mes/],

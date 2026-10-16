@@ -33,7 +33,7 @@ describe('Formulario de Orden Interna', () => {
     // Pregunta inicial: ¿es por Control de Cambios?
     await usuario.click(await screen.findByLabelText('Sí, es por Control de Cambios'));
     expect(screen.getByRole('button', { name: 'Continuar' })).toBeDisabled();
-    await elegir(usuario, /A qué Control de Cambios/, /^#1/);
+    await elegir(usuario, /A qué Control de Cambios/u, /^#1/);
     await usuario.click(screen.getByLabelText('No'));
     await usuario.click(screen.getByRole('button', { name: 'Continuar' }));
 
@@ -92,7 +92,7 @@ describe('Formulario de Orden Interna', () => {
     responder('GET', /control-cambios\/proyecto/, 500);
     const { usuario } = renderizarCon('pm', <FormularioOrdenInterna proyectoId={PLANTA} onCancelar={vi.fn()} onGuardada={vi.fn()} />);
     await usuario.click(await screen.findByLabelText('Sí, es por Control de Cambios'));
-    expect(screen.getByText(/No hay ningún Control de Cambios/)).toBeInTheDocument();
+    expect(screen.getByText(/No hay ningún Control de Cambios/u)).toBeInTheDocument();
   });
 
   it('edita una OI existente y avisa si no carga', async () => {
@@ -131,7 +131,7 @@ describe('Formulario de Control de Cambios', () => {
     const { usuario } = renderizarCon('pm', <FormularioControlCambio proyectoId={PLANTA} companiaId={1} onCancelar={vi.fn()} onGuardado={onGuardado} />);
     await screen.findByText('Descripción del Cambio');
     await usuario.click(screen.getByLabelText('Aplazamiento de año del proyecto'));
-    await guardarYVerError(usuario, /año nuevo propuesto/, 'Guardar');
+    await guardarYVerError(usuario, /año nuevo propuesto/u, 'Guardar');
     await escribir(usuario, 'Año nuevo propuesto *', '2028');
     await usuario.clear(screen.getByLabelText('Año nuevo propuesto *'));
     await escribir(usuario, 'Año nuevo propuesto *', '2029');
@@ -182,14 +182,14 @@ describe('Formulario de Acta de Cierre', () => {
     const onCancelar = vi.fn();
     const { usuario } = renderizarCon('pm', <FormularioActaCierre proyectoId={PLANTA} companiaId={1} onCancelar={onCancelar} onGuardado={onGuardado} />);
     await screen.findByText('Flujo de Caja — Planeado vs. Real');
-    await guardarYVerError(usuario, /Control Gestión revisará/);
-    await usuario.click(screen.getByLabelText(/Quién de Control Gestión/));
+    await guardarYVerError(usuario, /Control Gestión revisará/u);
+    await usuario.click(screen.getByLabelText(/Quién de Control Gestión/u));
     await usuario.click(await screen.findByRole('option', { name: /Camila/ }));
     await guardarYVerError(usuario, /al menos una parte interesada/);
     await usuario.click(screen.getByLabelText('Elige quiénes son las partes interesadas'));
     await usuario.click(await screen.findByRole('option', { name: /Sofia/ }));
-    await usuario.click(screen.getByLabelText(/Cancelación \(el proyecto/));
-    await usuario.click(screen.getByLabelText(/Culminación \(el proyecto/));
+    await usuario.click(screen.getByLabelText(/Cancelación \(el proyecto/u));
+    await usuario.click(screen.getByLabelText(/Culminación \(el proyecto/u));
     await escribir(usuario, 'Presentación de Puertas 5 (link)', 'https://p5');
     await escribir(usuario, 'Entregable Real', 'Real');
     await escribir(usuario, 'Real USD', '1', 0);
@@ -237,9 +237,9 @@ describe('Formulario de Acta de Cierre', () => {
 
   it('muestra los mensajes cuando no hay datos y cuando falla la carga', async () => {
     const { unmount } = renderizarCon('pm', <FormularioActaCierre proyectoId="2026012" companiaId={3} onCancelar={vi.fn()} onGuardado={vi.fn()} />);
-    expect(await screen.findByText(/no registró flujo de caja/)).toBeInTheDocument();
-    expect(screen.getByText(/no registró metas/)).toBeInTheDocument();
-    expect(screen.getByText(/no tiene Órdenes Internas/)).toBeInTheDocument();
+    expect(await screen.findByText(/no registró flujo de caja/u)).toBeInTheDocument();
+    expect(screen.getByText(/no registró metas/u)).toBeInTheDocument();
+    expect(screen.getByText(/no tiene Órdenes Internas/u)).toBeInTheDocument();
     unmount();
     responder('GET', /usuarios\/por-rol/, 500);
     renderizarCon('pm', <FormularioActaCierre proyectoId={PLANTA} companiaId={1} onCancelar={vi.fn()} onGuardado={vi.fn()} />);

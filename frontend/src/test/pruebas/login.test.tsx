@@ -49,21 +49,21 @@ describe('Botón de Microsoft', () => {
     responder('POST', '/auth/login-sso', 201, respuestaLogin);
     msal.loginPopup.mockResolvedValueOnce({ idToken: 'token-ms' });
     const { usuario } = renderizarCon(null, <MicrosoftLoginButton />);
-    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/ }));
+    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/u }));
     await waitFor(() => expect(peticiones.at(-1)?.cuerpo).toEqual({ idToken: 'token-ms', proveedor: 'MICROSOFT' }));
 
     msal.loginPopup.mockRejectedValueOnce(new msal.BrowserAuthError('user_cancelled'));
-    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/ }));
-    await waitFor(() => expect(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/ })).toBeEnabled());
-    expect(screen.queryByText(/No se pudo iniciar sesión/)).not.toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/u }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/u })).toBeEnabled());
+    expect(screen.queryByText(/No se pudo iniciar sesión/u)).not.toBeInTheDocument();
 
     msal.loginPopup.mockRejectedValueOnce(new Error('popup bloqueado'));
-    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/ }));
-    expect(await screen.findByText(/No se pudo iniciar sesión con Microsoft/)).toBeInTheDocument();
+    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/u }));
+    expect(await screen.findByText(/No se pudo iniciar sesión con Microsoft/u)).toBeInTheDocument();
 
     msal.loginPopup.mockResolvedValueOnce({ idToken: 'token-ms' });
     responder('POST', '/auth/login-sso', 403, { message: 'Dominio no permitido' });
-    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/ }));
+    await usuario.click(screen.getByRole('button', { name: /Iniciar sesión con Microsoft/u }));
     expect(await screen.findByText('Dominio no permitido')).toBeInTheDocument();
     expect(msal.initialize).toHaveBeenCalledTimes(1);
   });
@@ -112,7 +112,7 @@ describe('Botón de Google', () => {
     await act(async () => {
       await google.callback?.({ credential: 'cred' });
     });
-    expect(screen.getByText(/No se pudo iniciar sesión con Google/)).toBeInTheDocument();
+    expect(screen.getByText(/No se pudo iniciar sesión con Google/u)).toBeInTheDocument();
   });
 
   it('carga el script de Google y avisa si falla', async () => {
@@ -123,7 +123,7 @@ describe('Botón de Google', () => {
     act(() => {
       script.onerror?.(new Event('error'));
     });
-    expect(await screen.findByText(/No se pudo cargar el botón de Google/)).toBeInTheDocument();
+    expect(await screen.findByText(/No se pudo cargar el botón de Google/u)).toBeInTheDocument();
     unmount();
 
     // Con el script ya en la página, espera su evento "load".

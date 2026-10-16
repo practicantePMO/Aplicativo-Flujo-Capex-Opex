@@ -24,7 +24,7 @@ export interface Peticion {
 type Manejador = (peticion: Peticion) => Respuesta | undefined;
 
 let manejadores: Manejador[] = [];
-export let peticiones: Peticion[] = [];
+export const peticiones: Peticion[] = [];
 
 function armarUrl(config: InternalAxiosRequestConfig): string {
   const url = config.url || '';
@@ -108,7 +108,7 @@ export function responder(metodo: string, ruta: string | RegExp, status: number,
 
 export function reiniciarApiFalsa() {
   manejadores = [];
-  peticiones = [];
+  peticiones.length = 0;
 }
 
 /** Datos grabados de una ruta para un rol (útil para pruebas de componentes sueltos). */
